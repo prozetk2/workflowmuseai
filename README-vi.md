@@ -1,0 +1,83 @@
+# TheKey.studio
+
+[English](README.md)
+
+**Cài nhanh:** dùng file `downloads/TheKey-studio-extension.zip` trong thư mục này · Không cần cài npm hoặc build.
+
+**TheKey.studio** là tiện ích mở rộng tạo quy trình trực quan bằng phiên Muse.ai bạn đã đăng nhập. Bạn có thể nối các node trên canvas, tạo ảnh/video và sắp xếp clip video trên timeline.
+
+**Hướng dẫn chi tiết:** trong app, bấm nút **📖 Hướng dẫn** trên thanh công cụ (hoặc mở file `guide.html`).
+
+### Tính năng
+
+- **Canvas node:** thêm, di chuyển, nối, chọn nhiều và sắp xếp node. Giữ **Alt** khi kéo để sao chép node hoặc nhóm node cùng các kết nối đầu vào; nhấn **Ctrl+Z** để hoàn tác chỉnh sửa workflow gần nhất. Nhấn **G** rồi kéo trên canvas để tạo khung nhóm node; nhấn **T** để thêm ghi chú văn bản trực tiếp trên canvas. Ghi chú có thể kéo, sửa, và được lưu cùng workflow. Khung nhóm được lưu trong workflow. Có thể phóng to/thu nhỏ, kéo canvas và mở thao tác bằng menu chuột phải.
+- **Công cụ prompt:** tạo prompt, negative prompt, nối thêm hoặc gộp văn bản; Text Merge nhận nhiều nguồn text trên cùng một cổng và ghép theo thứ tự kết nối bằng dấu phân cách tùy chỉnh.
+- **Quy trình ảnh:** đưa ảnh vào, kết nối nhiều ảnh tham chiếu, tạo ảnh, đổi kích thước và xem trước kết quả.
+- **Quy trình video:** tạo clip, tùy chọn dùng frame cuối của clip trước làm ảnh tham chiếu mở đầu để giữ tính liên tục.
+- **Timeline:** thêm và sắp xếp clip, đặt thời lượng, xem trước chuỗi clip; xuất WebM hoặc ghép toàn bộ timeline thành MP4 (H.264) bằng FFmpeg được đóng gói trong extension. MP4 được xử lý ngay trên máy.
+- **Script → Nodes:** chuyển kịch bản chia cảnh thành các node ảnh/video đã nối và timeline theo thứ tự.
+- **Tệp workflow:** chọn **Save workflow** để tải workflow dạng JSON có thể dùng lại, rồi chọn **Import workflow** để mở lại. Media đầu vào và media đã tạo sẽ được nhúng nếu có thể; media từ xa không truy cập được sẽ giữ liên kết gốc.
+- **Tự lưu cục bộ:** nút **Save** và tự động lưu giữ workflow hiện tại trong bộ nhớ extension trên trình duyệt.
+
+### Yêu cầu
+
+- Trình duyệt nền Chromium có hỗ trợ extension Manifest V3.
+- Đăng nhập Muse.ai và mở trang chat Muse.ai trong lúc tạo nội dung.
+- Tài khoản và giao diện Muse.ai cần hỗ trợ chức năng bạn muốn dùng. Tỷ lệ ảnh, âm thanh và khả năng tạo video phụ thuộc vào Muse.ai.
+
+TheKey.studio kết nối Muse.ai thông qua page bridge của extension. Ứng dụng không dùng muse2api, backend tạo nội dung riêng, API key, Docker hay bước build bằng npm. Khi chạy workflow, prompt và ảnh tham chiếu đã chọn sẽ được gửi tới Muse.ai. Chức năng xuất MP4 dùng engine FFmpeg WebAssembly được đóng gói cùng extension và xử lý video cục bộ trên máy.
+
+### Cài đặt
+
+1. Giải nén `downloads/TheKey-studio-extension.zip` vào một thư mục cố định.
+2. Mở trang quản lý extension của trình duyệt (Chrome: `chrome://extensions`).
+3. Bật **Developer mode (Chế độ nhà phát triển)**.
+4. Chọn **Load unpacked (Tải tiện ích đã giải nén)** và trỏ tới thư mục có file `manifest.json`.
+5. Mở Muse.ai, đăng nhập và vào trang chat.
+6. Mở **TheKey.studio** và kiểm tra trạng thái phiên Muse.
+
+Không cần cài npm hoặc chạy bước build. ZIP tải về có mã nguồn extension và các file FFmpeg cục bộ đi kèm. Khi chọn **Load unpacked**, hãy chọn thư mục sau giải nén có chứa trực tiếp file `manifest.json`.
+
+### Tải gói ZIP cài sẵn
+
+Gói ZIP có sẵn gồm extension, FFmpeg đi kèm và thông báo giấy phép liên quan. Cần giải nén trước, sau đó chọn thư mục chứa `manifest.json` bằng **Load unpacked**; không chọn trực tiếp file ZIP.
+
+#### Cập nhật
+
+Thay các file dự án bằng phiên bản mới, sau đó nhấn **Reload (Tải lại)** ở trang quản lý extension. Tải lại cả tab Muse.ai để cập nhật bridge của extension.
+
+## Mở TheKey.studio và Muse.ai cạnh nhau
+
+Để dễ thao tác và theo dõi quá trình tạo nội dung, bạn có thể hiển thị canvas TheKey.studio và khung chat Muse.ai cùng lúc:
+
+1. Mở trang chat Muse.ai trong một cửa sổ trình duyệt.
+2. Nhấn biểu tượng extension TheKey.studio để mở canvas trong tab mới. Kéo tab TheKey.studio ra khỏi thanh tab để tách thành cửa sổ riêng.
+3. Trên Windows, chọn cửa sổ TheKey.studio rồi nhấn **Windows + phím mũi tên trái**. Chọn cửa sổ Muse.ai rồi nhấn **Windows + phím mũi tên phải**. Bạn cũng có thể kéo từng cửa sổ sát mép trái hoặc mép phải màn hình.
+4. Giữ cả hai trang mở khi tạo nội dung để theo dõi node đang chạy trong TheKey.studio và phản hồi tạo nội dung trong Muse.ai.
+
+### Bắt đầu nhanh
+
+1. Thêm node **Prompt** và nhập nội dung.
+2. Thêm node **Generate Image** hoặc **Generate Video**.
+3. Kéo cổng output của Prompt sang cổng prompt của node tạo ảnh/video. Nối thêm ảnh tham chiếu hoặc input khác nếu cần.
+4. Chọn thông số và nhấn **Run Image** hoặc **Run Video** trên node, hoặc chạy toàn workflow từ thanh công cụ.
+5. Nối kết quả tới node **Preview**. Với video, thêm các clip vào **Timeline**, sắp xếp thứ tự rồi xem trước hoặc xuất video.
+
+Để tạo node từ kịch bản, chọn **Script → Nodes**, dán nội dung và tạo workflow. Tiêu đề cảnh có thể theo dạng `CẢNH 1 (0:00–0:07): Tên cảnh`, cùng các trường `Prompt ảnh`, `Prompt video` và `Audio` nếu có.
+
+### Dữ liệu và quyền truy cập
+
+Workflow và media lưu cục bộ được giữ trong bộ nhớ extension trên thiết bị. Khi chạy workflow, TheKey.studio gửi prompt và ảnh tham chiếu liên quan tới Muse.ai thông qua phiên bạn đã đăng nhập. Extension cần quyền lưu trữ và truy cập tab để lưu workflow, kết nối với Muse.ai; extension không tạo tài khoản TheKey.studio hay máy chủ sinh nội dung riêng.
+
+### Khắc phục sự cố
+
+- **Chạy lại workflow:** **Run workflow** giữ lại các node đã tạo xong và chỉ chạy các node chưa có kết quả hoặc bị lỗi. Nếu một node lỗi, các node khác vẫn chạy tiếp; chỉ những node phụ thuộc vào nó bị bỏ qua. Muốn tạo lại một node đã xong, bấm **Run** hoặc **Again** trên node đó.
+- **Không nhận phiên Muse:** đăng nhập Muse.ai, giữ trang chat đang mở, sau đó tải lại TheKey.studio và tab Muse.ai.
+- **Không bắt đầu tạo hoặc không thấy media:** kiểm tra trang và phiên Muse.ai rồi thử lại. Muse.ai có thể thay đổi giao diện hoặc luồng tạo nội dung, khi đó extension cần được cập nhật.
+- **Muse từ chối tạo cảnh:** TheKey.studio nhận diện lời từ chối, kể cả phản hồi tiếng Việt báo không tạo được hoặc đề nghị tạo bản tương đương, rồi tự thử lại cảnh đó một lần bằng prompt thay thế an toàn gần nhất. Không cần chờ xác nhận. Lần thử lại giữ vai trò của cảnh trong kịch bản và các thiết lập; Muse.ai vẫn quyết định nội dung có được tạo hay không.
+- **Xuất timeline bị lỗi:** tải lại extension rồi thử lại. MP4 dùng engine FFmpeg đi kèm; WebM dùng `MediaRecorder` và canvas capture của trình duyệt.
+- **Kết quả không đúng thông số:** Muse.ai quyết định media đầu ra; dịch vụ có thể không luôn làm theo tỷ lệ ảnh, âm thanh hoặc tùy chọn video được yêu cầu.
+
+### Giấy phép
+
+TheKey.studio được cấp phép theo [Giấy phép Công cộng GNU phiên bản 2.0 trở lên (GPL-2.0-or-later)](LICENSE), cùng loại với FFmpeg core đi kèm. JavaScript wrapper của FFmpeg vẫn dùng MIT. Xem [thông báo giấy phép bên thứ ba](THIRD_PARTY_NOTICES.md) và các tệp giấy phép liên quan.

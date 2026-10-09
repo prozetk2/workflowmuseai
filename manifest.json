@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "content_security_policy": { "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';" },
+  "name": "TheKey.studio",
+  "version": "0.5.1",
+  "description": "TheKey.studio visual workflow canvas for your signed-in Muse.ai session.",
+  "action": { "default_title": "Open TheKey.studio", "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png" } },
+  "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "background": { "service_worker": "background.js" },
+  "permissions": ["storage", "tabs", "scripting"],
+  "host_permissions": ["https://muse.ai/*", "https://*.muse.ai/*"],
+  "content_scripts": [{
+    "matches": ["https://muse.ai/*", "https://*.muse.ai/*"],
+    "js": ["muse-bridge.js"],
+    "run_at": "document_idle"
+  }]
+}
