@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TheKey.studio Flow 0.3.0</title>
+  <link rel="icon" type="image/png" sizes="128x128" href="icons/icon128.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="toolbar">
+    <div class="brand"><img class="brand-logo" src="icons/thekey-logo.png" alt="TheKey.studio" /><strong class="brand-name">TheKey.studio</strong><span class="brand-version">Flow 0.3.0</span></div>
+    <div class="toolbar-actions">
+      <button id="saveBtn" title="Lưu workflow trong trình duyệt">Lưu</button>
+      <button id="workflowExportBtn" type="button" title="Lưu workflow ra file JSON để dùng lại hoặc gửi người khác">Lưu file workflow</button>
+      <button id="workflowImportBtn" type="button" title="Mở một file workflow TheKey.studio đã lưu">Mở file workflow</button>
+      <input id="workflowFileInput" type="file" accept=".json,application/json" hidden />
+      <button id="settingsBtn">Cài đặt</button>
+      <button id="resetBtn" class="danger" title="Xoá canvas và bắt đầu lại">Làm mới</button>
+      <button id="runBtn" class="primary" title="Chạy mọi node theo đúng thứ tự nối dây">▶ Chạy tất cả</button>
+      <button id="guideBtn" type="button" title="Mở hướng dẫn sử dụng chi tiết">📖 Hướng dẫn</button>
+      <button id="welcomeBtn" type="button" title="Giới thiệu The Key studio">✦ The Key studio</button>
+    </div>
+  </header>
+
+  <div class="statusbar">
+    <span id="museStatus">● Đang kiểm tra Google Flow...</span>
+    <span id="backendStatus">Tạo bằng: tab Google Flow</span>
+    <span id="runStatus"></span>
+  </div>
+
+  <aside id="nodeSidebar" class="node-sidebar" aria-label="Thêm node">
+    <button id="nodeSidebarToggle" class="ns-toggle" type="button" title="Thu gọn / mở rộng cột node"><span class="ns-icon">«</span><span class="ns-label">Thu gọn</span></button>
+    <button id="scriptImportBtn" type="button" class="ns-script" title="Dán kịch bản, tự tạo node cho từng cảnh"><span class="ns-icon">📜</span><span class="ns-label">Kịch bản → Cảnh</span></button>
+    <div class="ns-group"><div class="ns-title">Văn bản</div>
+      <button data-add="prompt" title="Câu mô tả cho node Tạo ảnh / Tạo video"><span class="ns-icon">✏️</span><span class="ns-label">Câu lệnh (Prompt)</span></button>
+      <button data-add="text" title="Ghi chú tự do trên canvas"><span class="ns-icon">🗒️</span><span class="ns-label">Ghi chú</span></button>
+      <button data-add="negativePrompt" title="Những thứ không muốn xuất hiện"><span class="ns-icon">⛔</span><span class="ns-label">Tránh (Negative)</span></button>
+      <button data-add="textAppend" title="Nối thêm chữ vào sau câu lệnh"><span class="ns-icon">➕</span><span class="ns-label">Nối thêm chữ</span></button>
+      <button data-add="textConcat" title="Gộp nhiều đoạn chữ thành một"><span class="ns-icon">🔗</span><span class="ns-label">Gộp chữ</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Hình ảnh đầu vào</div>
+      <button data-add="imageInput" title="Ảnh từ máy (hoặc kéo thả / dán ảnh vào canvas)"><span class="ns-icon">🖼️</span><span class="ns-label">Ảnh đầu vào</span></button>
+      <button data-add="references" title="Gom nhiều ảnh rồi nối một lần"><span class="ns-icon">🧩</span><span class="ns-label">Gom ảnh tham chiếu</span></button>
+      <button data-add="imageResize" title="Đổi kích thước hoặc cắt ảnh"><span class="ns-icon">📐</span><span class="ns-label">Đổi kích thước ảnh</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Nhân vật</div>
+      <button data-add="character" title="Giữ một nhân vật giống hệt nhau ở mọi cảnh (gửi ảnh + mô tả kèm mọi node Tạo)"><span class="ns-icon">🔒</span><span class="ns-label">Khóa nhân vật</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Tạo trên Flow</div>
+      <button data-add="generateImage" title="Tạo ảnh trên Google Flow"><span class="ns-icon">🎨</span><span class="ns-label">Tạo ảnh</span></button>
+      <button data-add="generateVideo" title="Tạo video trên Google Flow"><span class="ns-icon">🎬</span><span class="ns-label">Tạo video</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Xem &amp; xuất</div>
+      <button data-add="preview" title="Xem ảnh hoặc video"><span class="ns-icon">👁️</span><span class="ns-label">Xem trước</span></button>
+      <button data-add="timeline" title="Sắp xếp các clip và xuất thành một video"><span class="ns-icon">🎞️</span><span class="ns-label">Timeline</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Mẫu có sẵn</div>
+      <button id="fashionPresetBtn" type="button" title="Ảnh người mẫu + ảnh trang phục → ảnh người mẫu mặc đồ → video quảng cáo"><span class="ns-icon">👗</span><span class="ns-label">Quảng cáo thời trang</span></button>
+    </div>
+    <p class="ns-hint">Mẹo: kéo thả hoặc dán (Ctrl+V) ảnh vào canvas để tạo Image Input.</p>
+  </aside>
+
+  <main id="viewport">
+    <svg id="edges"></svg>
+    <div id="canvas"></div>
+    <div id="canvasTools" class="canvas-tools" aria-label="Điều khiển canvas">
+      <button id="handTool" type="button" title="Kéo canvas (H) · giữ Space để kéo · Alt-kéo để nhân bản · Ctrl+Z hoàn tác · G nhóm · T ghi chú">✋</button>
+      <button id="groupTool" type="button" title="Vẽ vùng nhóm (G)">▱</button>
+      <button id="zoomOut" type="button" title="Thu nhỏ">−</button>
+      <span id="zoomLevel">100%</span>
+      <button id="zoomIn" type="button" title="Phóng to">＋</button>
+      <button id="fitCanvas" type="button" title="Vừa khít mọi node">Vừa</button>
+    </div>
+  </main>
+  <section id="timelineDock" class="timeline-dock collapsed" aria-label="Timeline video">
+    <div class="timeline-dock-header"><div class="timeline-heading"><strong>Timeline</strong><span id="timelineClipCount">0 clip</span><small>Sắp xếp cảnh · kéo clip để đổi thứ tự</small></div><div class="timeline-dock-actions"><button id="timelineImportAllBtn" type="button" title="Thêm mọi node Tạo video vào timeline">＋ Thêm tất cả video</button><div class="timeline-output-picker"><button id="timelineAddVideoBtn" type="button" title="Thêm một video">＋ Thêm clip</button><div id="timelineOutputMenu" class="timeline-output-menu hidden"></div></div><button id="timelinePlayBtn" type="button" title="Xem thử cả chuỗi">▶ Xem thử</button><select id="timelineExportFormat" title="Chọn định dạng xuất"><option value="webm">WebM</option><option value="mp4">MP4 (H.264)</option></select><button id="timelineExportBtn" type="button" title="Xuất cả timeline thành một video">⇩ Xuất</button><button id="timelineExportStopBtn" class="timeline-export-stop hidden" type="button" title="Dừng xuất">■ Dừng</button><button id="timelineToggleBtn" type="button" aria-expanded="false" title="Mở timeline">▲</button></div></div>
+    <div id="timelineDropZone" class="timeline-drop-zone">Kéo node Tạo video hoặc clip vào đây</div>
+    <div class="timeline-dock-content"><div id="timelineTrack" class="timeline-dock-track"></div></div>
+  </section>
+
+  <aside id="timelinePreviewPanel" class="timeline-preview-panel hidden" aria-label="Xem thử timeline">
+    <header><strong>Xem thử timeline</strong><button id="closeTimelinePreview" type="button" aria-label="Đóng">×</button></header>
+    <div class="timeline-preview-stage"><video id="timelinePlayer" class="is-active" controls playsinline preload="auto"></video><video id="timelinePlayerNext" playsinline preload="auto"></video></div>
+    <div class="timeline-preview-caption">Đang phát cảnh</div>
+  </aside>
+
+  <div id="canvasMenu" class="canvas-menu hidden" role="menu">
+    <div class="menu-caption">Thêm node</div>
+    <button data-context-action="add:prompt" role="menuitem">＋ Câu lệnh</button>
+    <button data-context-action="add:negativePrompt" role="menuitem">＋ Tránh (Negative)</button>
+    <button data-context-action="add:text" role="menuitem">＋ Ghi chú</button>
+    <button data-context-action="add:textAppend" role="menuitem">＋ Nối thêm chữ</button>
+    <button data-context-action="add:textConcat" role="menuitem">＋ Gộp chữ</button>
+    <button data-context-action="add:character" role="menuitem">🔒 Khóa nhân vật</button>
+    <button data-context-action="add:imageInput" role="menuitem">＋ Ảnh đầu vào</button>
+    <button data-context-action="add:references" role="menuitem">＋ Gom ảnh tham chiếu</button>
+    <button data-context-action="add:generateImage" role="menuitem">＋ Tạo ảnh</button>
+    <button data-context-action="add:generateVideo" role="menuitem">＋ Tạo video</button>
+    <button data-context-action="add:timeline" role="menuitem">＋ Timeline</button>
+    <button data-context-action="add:imageResize" role="menuitem">＋ Đổi kích thước ảnh</button>
+    <button data-context-action="add:preview" role="menuitem">＋ Xem trước</button>
+    <div class="menu-divider"></div>
+    <button data-context-action="save" role="menuitem">Lưu workflow</button>
+    <button data-context-action="run" role="menuitem">▶ Chạy tất cả</button>
+    <button data-context-action="arrange" role="menuitem">Sắp xếp node</button>
+    <div class="menu-divider"></div>
+    <button data-context-action="delete-selected" role="menuitem">Xoá node đang chọn</button>
+    <button data-context-action="disconnect-all" role="menuitem">Gỡ mọi dây nối</button>
+  </div>
+
+  <div id="settingsModal" class="modal-backdrop hidden">
+    <section class="modal settings-modal">
+      <h2>Cài đặt tạo nội dung</h2>
+      <div class="settings-grid">
+        <label for="providerSelect">Tạo bằng</label>
+        <select id="providerSelect"><option value="flow">Tab Google Flow (dùng credit Google AI của bạn)</option><option value="api">Gemini API (Veo, trả tiền theo lượt)</option></select>
+        <label for="timeoutSelect">Chờ tối đa mỗi clip</label>
+        <select id="timeoutSelect"><option value="600">10 phút</option><option value="900">15 phút</option><option value="1800">30 phút</option></select>
+
+        <p class="settings-note" data-provider="flow">Mở một project trên Google Flow (flow.google.com) và để tab đó mở trong lúc chạy. Ô nào để trống thì dùng lựa chọn trong "Cài đặt tác nhân" của Flow.</p>
+        <label for="flowVideoModel" data-provider="flow">Model video trên Flow</label>
+        <input id="flowVideoModel" data-provider="flow" placeholder="vd: Omni 1.1 Flash (trống = mặc định của Flow)" />
+        <label for="flowImageModel" data-provider="flow">Model ảnh trên Flow</label>
+        <input id="flowImageModel" data-provider="flow" placeholder="vd: Nano Banana 2.1 (trống = mặc định của Flow)" />
+        <label for="inputModeSelect" data-provider="flow">Kiểu nhập</label>
+        <select id="inputModeSelect" data-provider="flow"><option value="auto">Tự động (nên dùng)</option><option value="dom">Chỉ sự kiện trang</option><option value="cdp">Luôn dùng bàn phím thật (Chrome hiện thanh gỡ lỗi)</option></select>
+        <label for="flowSelectors" data-provider="flow">Selector Flow (JSON, nâng cao)</label>
+        <textarea id="flowSelectors" data-provider="flow" rows="3" placeholder='Chỉ dùng khi Flow đổi giao diện, vd: {"agentSubmitIcons":["arrow_forward"]}'></textarea>
+
+        <p class="settings-note hidden" data-provider="api">Dùng Gemini API chính thức của Google. Mỗi clip tính tiền vào project của API key. Google giữ video 2 ngày, TheKey.studio tải về ngay khi xong.</p>
+        <label for="apiKeyInput" class="hidden" data-provider="api">Gemini API key</label>
+        <input id="apiKeyInput" class="hidden" data-provider="api" type="password" autocomplete="off" placeholder="Chỉ lưu trong trình duyệt này, không bao giờ ghi vào file workflow" />
+        <label for="apiVideoModel" class="hidden" data-provider="api">Model video</label>
+        <input id="apiVideoModel" class="hidden" data-provider="api" list="apiVideoModels" />
+        <datalist id="apiVideoModels"><option value="veo-3.1-fast-generate-preview"></option><option value="veo-3.1-generate-preview"></option></datalist>
+        <label for="apiResolution" class="hidden" data-provider="api">Độ phân giải video</label>
+        <select id="apiResolution" class="hidden" data-provider="api"><option value="720p">720p</option><option value="1080p">1080p (chỉ 8 giây)</option><option value="4k">4K (chỉ 8 giây)</option></select>
+        <label for="apiImageModel" class="hidden" data-provider="api">Model ảnh</label>
+        <input id="apiImageModel" class="hidden" data-provider="api" list="apiImageModels" />
+        <datalist id="apiImageModels"><option value="gemini-nano-banana-2.1"></option><option value="gemini-3.1-flash-image"></option><option value="gemini-3-pro-image"></option></datalist>
+      </div>
+      <div class="connection-check"><button id="testMuseBtn" type="button">Kiểm tra kết nối</button><button id="diagnoseFlowBtn" type="button" data-provider="flow" title="Liệt kê những phần của trang Flow mà TheKey.studio tìm thấy (tự chép vào clipboard)">Kiểm tra trang Flow</button><span id="connectionStatus" role="status"></span></div>
+      <pre id="diagnoseOutput" class="diagnose-output hidden"></pre>
+      <div class="modal-actions">
+        <button id="closeSettingsBtn">Huỷ</button>
+        <button id="saveSettingsBtn" class="primary">Lưu</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="welcomeModal" class="modal-backdrop hidden">
+    <section class="modal welcome-modal" role="dialog" aria-modal="true" aria-labelledby="welcomeModalTitle">
+      <h2 id="welcomeModalTitle">welcome to The Key studio</h2>
+      <p>make by Cos_alpha</p>
+      <div class="modal-actions"><button id="welcomeGuideBtn" type="button">📖 Xem hướng dẫn</button><button id="closeWelcomeBtn" type="button" class="primary">OK</button></div>
+    </section>
+  </div>
+  <div id="scriptModal" class="modal-backdrop hidden">
+    <section class="modal script-modal" role="dialog" aria-modal="true" aria-labelledby="scriptModalTitle">
+      <h2 id="scriptModalTitle">Tạo node từ kịch bản</h2>
+      <p>Dán kịch bản có “CẢNH”, “Prompt ảnh”, “Prompt video” và “Audio” (tuỳ chọn). TheKey.studio sẽ tạo và nối node cho từng cảnh, rồi xếp các clip vào Timeline.</p>
+      <label for="scriptInput">Kịch bản</label>
+      <textarea id="scriptInput" placeholder="CẢNH 1 (0:00–0:07): Tên cảnh&#10;&#10;Prompt ảnh: ...&#10;&#10;Prompt video: ...&#10;Audio: ..."></textarea>
+      <div id="scriptImportStatus" role="status"></div>
+      <div class="modal-actions">
+        <button id="cancelScriptImport" type="button">Huỷ</button>
+        <button id="buildScriptNodes" type="button" class="primary">Tạo node các cảnh</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="vendor/ffmpeg/ffmpeg.js"></script>
+  <script src="veo-api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

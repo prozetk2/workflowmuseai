@@ -6,6 +6,8 @@
 
 **Quick install:** use `downloads/TheKey-studio-extension.zip` from this folder · No npm install or build step required.
 
+**Google Flow version:** the `thekey-flow/` folder holds **TheKey.studio Flow**, a separate extension that generates through Google Flow (Veo) or the Gemini API. Load that folder unpacked; see `thekey-flow/README.md`.
+
 **Full user guide (Vietnamese):** click **📖 Hướng dẫn** in the toolbar, or open `guide.html`.
 
 ## Features

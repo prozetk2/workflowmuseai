@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hướng dẫn sử dụng · TheKey.studio</title>
+  <link rel="icon" type="image/png" sizes="128x128" href="icons/icon128.png" />
+  <link rel="stylesheet" href="guide.css" />
+</head>
+<body>
+<header class="top">
+  <img src="icons/thekey-logo.png" alt="" />
+  <div><h1>Hướng dẫn sử dụng TheKey.studio Flow</h1><p>Từ ý tưởng đến video hoàn chỉnh bằng Google Flow hoặc Gemini API</p></div>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="Mục lục">
+  <strong>Mục lục</strong>
+  <a href="#gioi-thieu">1. TheKey.studio Flow là gì</a>
+  <a href="#cai-extension">2. Cài và cập nhật extension</a>
+  <a href="#chuan-bi">3. Chuẩn bị Google Flow</a>
+  <a href="#giao-dien">4. Làm quen giao diện</a>
+  <a href="#bat-dau">5. Ảnh và video đầu tiên</a>
+  <a href="#node">6. Các loại node</a>
+  <a href="#noi-day">7. Nối dây và thao tác canvas</a>
+  <a href="#anh-dau-vao">8. Đưa ảnh vào và chọn vai trò</a>
+  <a href="#thoi-trang">9. Mẫu Quảng cáo thời trang</a>
+  <a href="#khoa-nhan-vat">10. Khóa nhân vật</a>
+  <a href="#kich-ban">11. Video dài nhiều cảnh</a>
+  <a href="#timeline">12. Timeline và xuất video</a>
+  <a href="#chay">13. Chạy, dừng, tạo lại</a>
+  <a href="#luu">14. Lưu và chia sẻ workflow</a>
+  <a href="#cai-dat">15. Cài đặt và Gemini API</a>
+  <a href="#prompt">16. Bí quyết viết câu lệnh</a>
+  <a href="#su-co">17. Xử lý sự cố</a>
+  <a href="#hoi-dap">18. Câu hỏi thường gặp</a>
+</nav>
+
+<main>
+<section id="gioi-thieu">
+<h2>1. TheKey.studio Flow là gì</h2>
+<p>TheKey.studio Flow (make by Cos_alpha) là một bàn dựng dạng sơ đồ, chạy ngay trong một tab Chrome. Bạn đặt các <b>node</b> (khối chức năng) lên canvas, nối chúng lại thành một quy trình, rồi bấm <b>▶ Chạy tất cả</b>.</p>
+<p>Extension sẽ tự điều khiển tab <b>Google Flow</b> (flow.google.com) mà bạn đã đăng nhập. Nó gõ câu lệnh, gửi ảnh, chờ Flow tạo ảnh hoặc video, rồi tải kết quả về đúng node. Video xong thì bạn xếp lên <b>Timeline</b> và xuất thành một file MP4 hoặc WebM.</p>
+<ul>
+  <li>Không cần biết lập trình. Chỉ kéo, thả và nối dây.</li>
+  <li>Dùng chính tài khoản Google Flow của bạn. Không cần máy chủ riêng.</li>
+  <li>Muốn cách khác? Bạn có thể chọn <b>Gemini API</b> (cần API key trả phí) trong <b>Cài đặt</b>. Xem mục 15.</li>
+  <li>Phim được ghép ngay trên máy bạn.</li>
+</ul>
+<p class="note"><b>Lưu ý:</b> mỗi lượt tạo đều trừ <b>credit thật</b> trong tài khoản của bạn. Ví dụ, một video có thể tốn khoảng 15 credit. Hãy thử một cảnh trước khi chạy cả kịch bản. Việc tự động thao tác trên giao diện Flow có thể trái điều khoản của Google, bạn hãy tự cân nhắc.</p>
+</section>
+
+<section id="cai-extension">
+<h2>2. Cài và cập nhật extension</h2>
+<h3>Bạn cần có</h3>
+<ul>
+  <li>Google Chrome trên máy tính.</li>
+  <li>Thư mục <code>TheKey-studio-flow-extension</code> (đã giải nén).</li>
+  <li>Tài khoản Google dùng được Google Flow và còn credit. Hoặc một Gemini API key.</li>
+</ul>
+<h3>Cài lần đầu</h3>
+<ol class="steps">
+  <li>Đặt thư mục <code>TheKey-studio-flow-extension</code> ở một chỗ cố định, ví dụ <code>C:\TheKey.studio</code>. Đừng xóa hay đổi tên thư mục này sau khi cài.</li>
+  <li>Mở Chrome, gõ <code>chrome://extensions</code> vào thanh địa chỉ rồi nhấn <kbd>Enter</kbd>.</li>
+  <li>Bật <b>Chế độ dành cho nhà phát triển</b> ở góc trên bên phải.</li>
+  <li>Bấm <b>Tải tiện ích đã giải nén</b> và chọn thư mục <code>TheKey-studio-flow-extension</code> (thư mục có file <code>manifest.json</code>).</li>
+  <li>Bấm biểu tượng mảnh ghép trên thanh Chrome và ghim (📌) TheKey.studio Flow cho dễ tìm.</li>
+  <li>Bấm biểu tượng <b>α màu cam</b>. App mở ra trong một tab mới.</li>
+</ol>
+<h3>Khi cập nhật bản mới</h3>
+<ol>
+  <li>Chép đè các file mới vào đúng thư mục cũ.</li>
+  <li>Vào <code>chrome://extensions</code>, bấm nút <b>Reload</b> (mũi tên tròn ↻) ở TheKey.studio Flow.</li>
+  <li>Nhấn <kbd>F5</kbd> ở <b>cả hai tab</b>: tab app và tab Google Flow.</li>
+</ol>
+<p class="tip"><b>Mẹo:</b> workflow được lưu trong trình duyệt, nên cập nhật không làm mất bài. Cho chắc, hãy bấm <b>Lưu file workflow</b> trước khi cập nhật.</p>
+</section>
+
+<section id="chuan-bi">
+<h2>3. Chuẩn bị Google Flow</h2>
+<p>Làm các bước này trước mỗi lần chạy. Nếu bạn dùng Gemini API thì bỏ qua mục này.</p>
+<ol class="steps">
+  <li>Mở <b>flow.google.com</b> và đăng nhập tài khoản Google có gói còn credit.</li>
+  <li>Mở một dự án có sẵn, hoặc bấm <b>+ Dự án mới</b>.</li>
+  <li>Khi dự án mở ra, Flow thường hiện bảng <b>Cài đặt tác nhân</b> có nút <b>Lưu</b>. Đây là nơi chọn số kết quả mỗi lượt (x1, x2…) và model mặc định. Nên chọn <b>x1</b> để tiết kiệm credit. Nếu bạn không bấm <b>Lưu</b>, extension sẽ tự bấm.</li>
+  <li>Để nguyên tab Flow đó, đừng đóng. Sau đó bấm biểu tượng α để mở app.</li>
+  <li>Nhìn dòng trạng thái dưới thanh trên cùng. Chấm xanh <span class="ok">●</span> báo Flow sẵn sàng là xong. Nếu chưa, vào <b>Cài đặt</b> và bấm <b>Kiểm tra kết nối</b>.</li>
+</ol>
+<h3>Extension làm gì trên tab Flow</h3>
+<p>Flow giờ làm việc qua bảng <b>tác nhân</b> ở bên phải trang. Với mỗi node cần tạo, extension sẽ:</p>
+<ol>
+  <li>Bấm <b>Lưu</b> ở bảng <b>Cài đặt tác nhân</b>, nếu bảng này đang hiện.</li>
+  <li>Gắn ảnh (nếu có), gõ câu lệnh vào ô <b>Bạn muốn tạo gì?</b> rồi gửi đi.</li>
+  <li>Khi Flow hỏi duyệt số credit sẽ dùng, extension bấm <b>Phê duyệt</b>. Nó <b>không bao giờ</b> bấm <b>Luôn phê duyệt</b> hay <b>Từ chối</b>.</li>
+  <li>Chờ Flow làm xong, rồi tải ảnh hoặc video về node trong app.</li>
+</ol>
+<div class="card note"><p>Trong lúc chạy, Chrome sẽ tự nhảy sang tab Flow. Đó là bình thường. Đừng gõ vào ô chat của Flow hay bấm lung tung lúc này, để extension không lấy nhầm kết quả.</p></div>
+<p class="tip"><b>Mẹo:</b> số kết quả (x1, x2…) và model mặc định lấy từ <b>Cài đặt tác nhân</b> của Flow. Để x2 thì mỗi lượt ra 2 kết quả và thường tốn gấp đôi credit. Muốn xem cả hai bên cùng lúc, hãy kéo tab app ra cửa sổ riêng. Trên Windows, nhấn <kbd>Win</kbd> + <kbd>←</kbd> cho cửa sổ app và <kbd>Win</kbd> + <kbd>→</kbd> cho cửa sổ Flow.</p>
+</section>
+
+<section id="giao-dien">
+<h2>4. Làm quen giao diện</h2>
+<div class="grid">
+  <div class="card"><h4>Thanh trên cùng</h4><p>Logo, rồi các nút <b>Lưu</b>, <b>Lưu file workflow</b>, <b>Mở file workflow</b>, <b>Cài đặt</b>, <b>Làm mới</b>. Nút lớn <b>▶ Chạy tất cả</b> chạy cả quy trình. <b>📖 Hướng dẫn</b> mở trang này. <b>✦ The Key studio</b> mở lời giới thiệu.</p></div>
+  <div class="card"><h4>Dòng trạng thái</h4><p>Ngay dưới thanh trên cùng. Bên trái cho biết đang tạo bằng gì và Flow đã sẵn sàng chưa. Bên phải là tin mới nhất: đang chạy node nào, lỗi gì (chữ đỏ), đã lưu chưa. Hãy liếc dòng này mỗi khi bấm nút.</p></div>
+  <div class="card"><h4>Cột node (bên trái)</h4><p>Bấm một nút để thêm node. Trên cùng là <b>📜 Kịch bản → Cảnh</b>. Bên dưới chia nhóm: Văn bản, Hình ảnh đầu vào, Nhân vật, Tạo trên Flow, Xem &amp; xuất, Mẫu có sẵn. Bấm <b>« Thu gọn</b> để thu cột lại chỉ còn biểu tượng.</p></div>
+  <div class="card"><h4>Canvas (giữa màn hình)</h4><p>Nơi đặt và nối các node. Góc trên bên phải có ✋ (kéo canvas), ▱ (vẽ nhóm), − / + (thu phóng) và <b>Vừa</b> (Fit, để thấy mọi node). Chuột phải vào chỗ trống để mở menu.</p></div>
+  <div class="card"><h4>Timeline (dưới cùng)</h4><p>Bấm ▲ để mở. Có các nút <b>＋ Thêm tất cả video</b>, <b>＋ Thêm clip</b>, <b>▶ Xem thử</b>, ô chọn WebM / MP4 và <b>⇩ Xuất</b>.</p></div>
+</div>
+</section>
+
+<section id="bat-dau">
+<h2>5. Ảnh và video đầu tiên</h2>
+<p>Lần đầu mở, canvas có sẵn 3 node: <b>Câu lệnh → Tạo ảnh → Xem trước</b>. Ta sẽ làm một ảnh, rồi biến nó thành video.</p>
+<ol class="steps">
+  <li><b>Kiểm tra Flow.</b> Tab Flow đang mở một dự án và dòng trạng thái báo sẵn sàng (xem mục 3).</li>
+  <li><b>Viết ý tưởng.</b> Bấm vào ô chữ trong node <b>Câu lệnh</b>, xóa chữ mẫu và gõ, ví dụ: <span class="ex">Một chú mèo cam ngồi bên cửa sổ ngày mưa, ánh đèn vàng ấm, phong cách phim hoạt hình</span></li>
+  <li><b>Chọn khung hình.</b> Trong node <b>Tạo ảnh</b>, chọn tỉ lệ <b>9:16</b> (dọc, hợp TikTok/Reels) hoặc <b>16:9</b> (ngang, hợp YouTube). Video chỉ có hai tỉ lệ này, nên chọn luôn từ bước ảnh.</li>
+  <li><b>Tạo ảnh.</b> Bấm nút chạy ▶ trên node <b>Tạo ảnh</b>. Chrome nhảy sang tab Flow và Flow bắt đầu làm. Xong, ảnh hiện trong node và trong <b>Xem trước</b>.</li>
+  <li><b>Thêm video.</b> Ở cột node, bấm <b>🎬 Tạo video</b>. Thêm một <b>✏️ Câu lệnh</b> mới để tả chuyển động, ví dụ <span class="ex">Chú mèo quay đầu nhìn ra cửa sổ, mưa rơi chậm, máy quay đẩy nhẹ vào</span></li>
+  <li><b>Nối dây.</b> Kéo từ chấm bên phải của Câu lệnh mới sang chấm <i>câu lệnh</i> của Tạo video. Kéo từ chấm bên phải của Tạo ảnh sang chấm <i>ảnh tham chiếu</i> của Tạo video.</li>
+  <li><b>Chỉnh video.</b> Trên node Tạo video, chọn cùng tỉ lệ với ảnh, độ dài <b>8 giây</b> và <b>Ảnh → khung đầu</b>. Video sẽ bắt đầu đúng từ ảnh vừa tạo.</li>
+  <li><b>Chạy.</b> Bấm <b>▶ Chạy tất cả</b>. Ảnh đã xong được giữ nguyên, chỉ video được tạo.</li>
+  <li><b>Xuất phim.</b> Bấm ▲ ở đáy màn hình để mở Timeline. Bấm <b>＋ Thêm tất cả video</b>, chọn <b>MP4</b> rồi bấm <b>⇩ Xuất</b>. File nằm trong thư mục Downloads.</li>
+</ol>
+<p class="tip">Bạn vừa đi trọn một vòng: <b>ý tưởng → ảnh → video → phim</b>. Quy trình lớn hơn chỉ là nhiều vòng như vậy nối với nhau.</p>
+</section>
+
+<section id="node">
+<h2>6. Các loại node</h2>
+<p>Mỗi node có <b>cổng vào</b> (chấm tròn bên trái) và <b>cổng ra</b> (chấm tròn bên phải). Màu chấm cho biết loại dữ liệu:
+<span class="pill c-text">tím: chữ</span> <span class="pill c-neg">hồng: tránh</span> <span class="pill c-img">xanh dương: ảnh</span> <span class="pill c-vid">xanh lá: video</span> <span class="pill c-media">tím nhạt: ảnh hoặc video</span></p>
+<table>
+  <thead><tr><th>Node</th><th>Dùng để</th><th>Vào → Ra</th></tr></thead>
+  <tbody>
+    <tr><td><b>✏️ Câu lệnh (Prompt)</b></td><td>Viết mô tả thứ bạn muốn tạo.</td><td>— → chữ</td></tr>
+    <tr><td><b>🗒️ Ghi chú</b></td><td>Ghi chú tự do trên canvas, không tham gia chạy. Dùng để ghi kịch bản, ý tưởng, nhắc việc.</td><td>—</td></tr>
+    <tr><td><b>⛔ Tránh (Negative)</b></td><td>Liệt kê những thứ <i>không</i> muốn có (mờ, méo, chữ, logo…). Được gửi kèm câu lệnh.</td><td>— → tránh</td></tr>
+    <tr><td><b>➕ Nối thêm chữ</b></td><td>Thêm một đoạn cố định vào sau câu lệnh. Hợp để gắn "phong cách chung" cho mọi cảnh.</td><td>chữ → chữ</td></tr>
+    <tr><td><b>🔗 Gộp chữ</b></td><td>Gộp nhiều đoạn chữ thành một, theo thứ tự nối dây.</td><td>nhiều chữ → chữ</td></tr>
+    <tr><td><b>🖼️ Ảnh đầu vào</b></td><td>Đưa một ảnh từ máy vào, và cho biết ảnh đó là gì (người mẫu, trang phục, sản phẩm…). Xem mục 8.</td><td>— → ảnh</td></tr>
+    <tr><td><b>🧩 Gom ảnh tham chiếu</b></td><td>Gom tối đa 8 ảnh và <b>tự nối tới mọi node Tạo ảnh / Tạo video</b>. Dùng khi cả phim cần chung một ảnh mẫu.</td><td>8 ảnh → ảnh</td></tr>
+    <tr><td><b>📐 Đổi kích thước ảnh</b></td><td>Đổi kích thước ảnh (tối đa 4096 px): cắt cho đầy khung, thu vừa khung, hoặc kéo giãn. Có nút tải ảnh về.</td><td>ảnh → ảnh</td></tr>
+    <tr><td><b>🔒 Khóa nhân vật</b></td><td>Giữ một nhân vật giống hệt nhau ở mọi cảnh. Không cần nối dây. Xem mục 10.</td><td>—</td></tr>
+    <tr><td><b>🎨 Tạo ảnh</b></td><td>Gửi câu lệnh (và ảnh nếu có) lên Flow để tạo ảnh. Tỉ lệ 1:1, 16:9, 9:16, 4:3, 3:4.</td><td>câu lệnh, tránh, ảnh tham chiếu → ảnh</td></tr>
+    <tr><td><b>🎬 Tạo video</b></td><td>Tạo một clip video. Tỉ lệ 16:9 hoặc 9:16. Dài 4, 6 hoặc 8 giây.</td><td>câu lệnh, tránh, ảnh tham chiếu → video, khung cuối</td></tr>
+    <tr><td><b>👁️ Xem trước</b></td><td>Xem lớn ảnh hoặc video. Chuột phải để tải về.</td><td>ảnh/video → —</td></tr>
+    <tr><td><b>🎞️ Timeline</b></td><td>Xếp clip thành phim. Thường bạn chỉ cần thanh Timeline ở đáy màn hình.</td><td>video → —</td></tr>
+  </tbody>
+</table>
+<p class="tip">Cổng <b>câu lệnh</b> và <b>ảnh tham chiếu</b> nhận <b>nhiều dây</b> cùng lúc. Nhiều câu lệnh sẽ được ghép thành một, nhiều ảnh sẽ được gửi hết. Các cổng khác chỉ nhận một dây; nối dây mới sẽ thay dây cũ.</p>
+<h3>Tùy chọn trên node Tạo video</h3>
+<ul>
+  <li><b>Tỉ lệ:</b> 16:9 (ngang) hoặc 9:16 (dọc).</li>
+  <li><b>Độ dài:</b> 4, 6 hoặc 8 giây.</li>
+  <li><b>Model:</b> để trống thì dùng model trong <b>Cài đặt</b>.</li>
+  <li><b>Ảnh → khung đầu:</b> ảnh nối vào làm khung hình mở đầu. Video bắt đầu đúng từ ảnh đó. Nếu nối nhiều ảnh <i>Tự do</i>, chỉ ảnh đầu tiên được dùng. Muốn gửi thêm ảnh khác, hãy chọn vai trò cho chúng (mục 8).</li>
+  <li><b>Ảnh → tham chiếu:</b> ảnh chỉ làm mẫu (nhân vật, đồ vật, phong cách). Flow tự dựng cảnh mới.</li>
+  <li><b>Dùng khung cuối của clip trước làm khung đầu:</b> nối cảnh liền mạch (mục 11).</li>
+  <li><b>🔒 Dùng khóa nhân vật:</b> bỏ tick nếu cảnh này không cần nhân vật đã khóa (mục 10).</li>
+</ul>
+<h3>Tùy chọn trên node Tạo ảnh</h3>
+<ul>
+  <li><b>Tỉ lệ:</b> 1:1, 16:9, 9:16, 4:3 hoặc 3:4. Định làm video từ ảnh này thì chọn 16:9 hoặc 9:16.</li>
+  <li><b>Model:</b> để trống thì dùng model trong <b>Cài đặt</b>.</li>
+  <li><b>Khi nối sang cảnh khác, ảnh kết quả là:</b> gán vai trò cho ảnh tạo ra (mục 8).</li>
+  <li><b>🔒 Dùng khóa nhân vật:</b> như ở node Tạo video.</li>
+</ul>
+</section>
+
+<section id="noi-day">
+<h2>7. Nối dây và thao tác canvas</h2>
+<h3>Nối dây</h3>
+<ul>
+  <li><b>Kéo thả:</b> nhấn giữ chấm cổng ra (bên phải node), kéo tới chấm cổng vào (bên trái node khác) rồi thả. Trong lúc kéo, các cổng nhận được sẽ sáng lên.</li>
+  <li><b>Thả ra chỗ trống:</b> kéo dây từ cổng ra rồi thả xuống chỗ trống. Một menu hiện ra để bạn nối vào node có sẵn, hoặc <b>tạo node mới đã nối sẵn</b>. Đây là cách dựng quy trình nhanh nhất.</li>
+  <li><b>Kéo ngược:</b> kéo từ cổng vào <i>câu lệnh</i> ra chỗ trống sẽ tự tạo một node Câu lệnh đã nối sẵn.</li>
+  <li><b>Bấm rồi bấm:</b> bấm cổng ra, rồi bấm cổng vào.</li>
+  <li><b>Xóa dây:</b> chuột phải lên dây và chọn xóa. Hoặc bấm chọn dây (dây chuyển vàng) rồi nhấn <kbd>Delete</kbd>.</li>
+</ul>
+<p class="note">Không nối được thành vòng (A → B → A). Hãy nối theo một chiều, từ trái sang phải.</p>
+<h3>Thao tác và phím tắt</h3>
+<table>
+  <thead><tr><th>Thao tác</th><th>Cách làm</th></tr></thead>
+  <tbody>
+    <tr><td>Di chuyển node</td><td>Kéo phần tiêu đề của node.</td></tr>
+    <tr><td>Chọn nhiều node</td><td>Kéo khung chọn trên chỗ trống, hoặc giữ <kbd>Shift</kbd> / <kbd>Ctrl</kbd> và bấm từng node.</td></tr>
+    <tr><td>Nhân bản node</td><td>Giữ <kbd>Alt</kbd> rồi kéo node, hoặc chuột phải lên node.</td></tr>
+    <tr><td>Hoàn tác</td><td><kbd>Ctrl</kbd> + <kbd>Z</kbd>.</td></tr>
+    <tr><td>Xóa</td><td>Chọn node hoặc dây rồi nhấn <kbd>Delete</kbd>, hoặc bấm × trên node.</td></tr>
+    <tr><td>Kéo canvas</td><td>Giữ <kbd>Space</kbd> và kéo chuột, kéo bằng chuột giữa, hoặc bật ✋ (phím <kbd>H</kbd>).</td></tr>
+    <tr><td>Thu phóng</td><td>Lăn chuột, nút − / +, hoặc nút <b>Vừa</b> (Fit) để thấy toàn bộ.</td></tr>
+    <tr><td>Thêm ghi chú</td><td>Nhấn <kbd>T</kbd>.</td></tr>
+    <tr><td>Vẽ khung nhóm</td><td>Bấm ▱ hoặc nhấn <kbd>G</kbd>, rồi kéo một vùng, ví dụ "Cảnh 1", "Nhân vật". Nhấn <kbd>G</kbd> hoặc <kbd>Esc</kbd> để thôi.</td></tr>
+    <tr><td>Dán ảnh</td><td>Copy một ảnh, bấm vào canvas rồi nhấn <kbd>Ctrl</kbd> + <kbd>V</kbd>.</td></tr>
+    <tr><td>Đổi tên, chạy, tạo lại</td><td>Chuột phải lên node. Tên node hiện trong thông báo, giúp dễ theo dõi.</td></tr>
+    <tr><td>Sắp xếp gọn</td><td>Chuột phải vào chỗ trống và chọn <b>Sắp xếp node</b>.</td></tr>
+  </tbody>
+</table>
+</section>
+
+<section id="anh-dau-vao">
+<h2>8. Đưa ảnh vào và chọn vai trò</h2>
+<h3>Ba cách đưa ảnh vào</h3>
+<ul>
+  <li>Bấm <b>🖼️ Ảnh đầu vào</b> ở cột node, rồi bấm <b>Chọn ảnh</b> trên node.</li>
+  <li>Kéo file ảnh từ máy thả thẳng lên canvas. Mỗi file thành một node Ảnh đầu vào. Thả nhiều file một lúc cũng được.</li>
+  <li>Copy một ảnh (từ trang web, ảnh chụp màn hình…), bấm vào canvas rồi nhấn <kbd>Ctrl</kbd> + <kbd>V</kbd>.</li>
+</ul>
+<p>Muốn đổi ảnh? Thả ảnh mới lên node Ảnh đầu vào có sẵn, ảnh cũ sẽ được thay. Nếu bạn đang chọn một node Ảnh đầu vào còn trống, <kbd>Ctrl</kbd> + <kbd>V</kbd> sẽ dán ảnh vào chính node đó.</p>
+<h3>"Ảnh này là:"</h3>
+<p>Mỗi node Ảnh đầu vào có ô <b>Ảnh này là:</b>. Chọn đúng vai trò để Flow hiểu ảnh dùng vào việc gì.</p>
+<table>
+  <thead><tr><th>Vai trò</th><th>Flow sẽ hiểu là</th></tr></thead>
+  <tbody>
+    <tr><td><b>Tự do (ảnh tham chiếu)</b></td><td>Ảnh mẫu chung. Ở node Tạo video có chọn <b>Ảnh → khung đầu</b>, ảnh Tự do đầu tiên sẽ làm khung đầu.</td></tr>
+    <tr><td><b>👤 Người mẫu / nhân vật</b></td><td>Giữ đúng người này: mặt, tóc, màu da, dáng người.</td></tr>
+    <tr><td><b>👗 Trang phục</b></td><td>Mặc đúng bộ đồ này: kiểu, màu, chất vải, họa tiết, chi tiết.</td></tr>
+    <tr><td><b>👜 Sản phẩm</b></td><td>Hiện đúng sản phẩm này: hình dáng, màu, logo, chi tiết.</td></tr>
+    <tr><td><b>🏙️ Bối cảnh</b></td><td>Dùng nơi này làm bối cảnh.</td></tr>
+    <tr><td><b>🎨 Phong cách / ánh sáng</b></td><td>Bắt chước ánh sáng, màu sắc, không khí, nhưng không chép nội dung ảnh.</td></tr>
+    <tr><td><b>🎬 Khung đầu video</b></td><td>Khung hình mở đầu của video.</td></tr>
+  </tbody>
+</table>
+<h3>Nối nhiều ảnh vào một cảnh</h3>
+<ol>
+  <li>Thêm 2–3 node Ảnh đầu vào và chọn vai trò cho từng ảnh.</li>
+  <li>Nối tất cả vào chấm <i>ảnh tham chiếu</i> của cùng một node Tạo ảnh hoặc Tạo video. Chấm này nhận nhiều dây.</li>
+  <li>Viết câu lệnh như bình thường. App tự nói với Flow ảnh nào là gì, kiểu "ảnh 1 là người mẫu, ảnh 2 là trang phục…".</li>
+</ol>
+<p class="note">Trên Flow, mỗi cảnh gửi được tối đa <b>5 ảnh</b>. Nối nhiều hơn thì chỉ 5 ảnh đầu được gửi, và node hiện cảnh báo. Với <b>Gemini API</b>: tối đa <b>3 ảnh tham chiếu</b>, và không gửi được khung đầu cùng lúc với ảnh tham chiếu (khi đó ảnh tham chiếu chỉ được tả bằng chữ).</p>
+<h3>Ảnh kết quả đi tiếp sang cảnh khác</h3>
+<p>Node <b>Tạo ảnh</b> có ô <b>Khi nối sang cảnh khác, ảnh kết quả là:</b>. Ô này gán vai trò cho ảnh nó tạo ra. Ví dụ chọn <b>🎬 Khung đầu video</b> thì video phía sau sẽ bắt đầu đúng từ ảnh này, kể cả khi video đó có thêm ảnh trang phục làm tham chiếu.</p>
+<p class="tip"><b>Mẹo:</b> mỗi ảnh chỉ nên có một thứ chính, rõ nét, nền đơn giản. Ảnh càng "sạch", Flow càng ít nhầm.</p>
+</section>
+
+<section id="thoi-trang">
+<h2>9. Mẫu Quảng cáo thời trang</h2>
+<p>Bấm <b>👗 Quảng cáo thời trang</b> ở nhóm <b>Mẫu có sẵn</b>. App dựng sẵn cả quy trình chỉ với một lần bấm:</p>
+<pre>Ảnh người mẫu (👤 Người mẫu) + Ảnh trang phục (👗 Trang phục) + Câu lệnh 1
+      → Tạo ảnh "Người mẫu mặc đồ" (9:16, kết quả = khung đầu video)
+
+Ảnh người mẫu mặc đồ + Ảnh trang phục + Câu lệnh 2
+      → Tạo video "Quảng cáo" (9:16, 8 giây)</pre>
+<p>Video nhận thêm ảnh trang phục để giữ đúng chi tiết bộ đồ.</p>
+<h3>Bạn chỉ cần làm</h3>
+<ol class="steps">
+  <li>Bấm <b>👗 Quảng cáo thời trang</b>.</li>
+  <li>Thả ảnh người mẫu vào node Ảnh đầu vào có vai trò <b>👤 Người mẫu / nhân vật</b>.</li>
+  <li>Thả ảnh bộ đồ vào node Ảnh đầu vào có vai trò <b>👗 Trang phục</b>.</li>
+  <li>Đọc 2 câu lệnh có sẵn (một cho ảnh, một cho video). Sửa nếu muốn: chất liệu, màu, bối cảnh, cách người mẫu di chuyển.</li>
+  <li>Bấm <b>▶ Chạy tất cả</b>. Flow tạo ảnh người mẫu mặc đồ trước, rồi dùng ảnh đó làm khung đầu cho video.</li>
+  <li>Xem kết quả. Ưng thì xuất ở Timeline. Chưa ưng thì sửa câu lệnh và tạo lại riêng node đó.</li>
+</ol>
+<p class="note">Mẫu này chạy 2 lượt (1 ảnh + 1 video), nên tốn credit của cả hai.</p>
+<h3>Mẹo cho quảng cáo thời trang</h3>
+<ul>
+  <li><b>Ảnh người mẫu:</b> chụp chính diện, rõ mặt, đủ sáng, thấy cả dáng người.</li>
+  <li><b>Ảnh trang phục:</b> chụp trải phẳng hoặc treo móc, nền trơn, không có người mặc, thấy rõ cả bộ.</li>
+  <li><b>Ghi rõ chất liệu và màu</b> trong câu lệnh, ví dụ <span class="ex">váy lụa màu xanh ngọc, vải rủ mềm, ánh lên dưới đèn</span></li>
+  <li><b>Tỉ lệ:</b> 9:16 cho TikTok, Reels, Shorts. 16:9 cho YouTube. Nhớ đổi ở <b>cả</b> node Tạo ảnh và node Tạo video.</li>
+  <li><b>Thử ảnh trước:</b> bấm nút chạy riêng trên node Tạo ảnh. Ưng ảnh rồi mới chạy video, đỡ tốn credit.</li>
+</ul>
+<h3>Biến thể: quảng cáo sản phẩm</h3>
+<ol>
+  <li>Dùng mẫu như trên. Ở node ảnh thứ hai, đổi <b>Ảnh này là:</b> thành <b>👜 Sản phẩm</b> và thả ảnh sản phẩm vào (túi, giày, mỹ phẩm…).</li>
+  <li>Sửa câu lệnh, ví dụ <span class="ex">Người mẫu cầm chiếc túi da màu nâu bò, đứng trên phố lúc chiều, nắng vàng, logo trên túi rõ nét</span></li>
+  <li>Không cần người mẫu? Xóa node ảnh người mẫu và viết câu lệnh về sản phẩm: xoay chậm trên bục, cận chất liệu, nền studio.</li>
+</ol>
+</section>
+
+<section id="khoa-nhan-vat">
+<h2>10. Khóa nhân vật</h2>
+<p>Dùng khi một nhân vật xuất hiện ở nhiều cảnh và bạn muốn mặt, tóc, dáng, trang phục luôn giống nhau.</p>
+<ol class="steps">
+  <li>Ở cột node, nhóm <b>Nhân vật</b>, bấm <b>🔒 Khóa nhân vật</b>.</li>
+  <li>Đặt tên, ví dụ <i>Lan</i>.</li>
+  <li>Ghi ngoại hình cố định: tuổi, khuôn mặt, tóc, dáng người, trang phục. Ví dụ <span class="ex">cô gái 25 tuổi, tóc đen ngắn ngang vai, áo khoác jean xanh, quần trắng</span></li>
+  <li>Thêm ảnh nhân vật: bấm <b>Chọn ảnh nhân vật</b>, hoặc thả ảnh vào node, hoặc chọn node rồi dán bằng <kbd>Ctrl</kbd> + <kbd>V</kbd>.</li>
+  <li>Giữ tick <b>Khóa nhân vật này cho mọi cảnh</b>.</li>
+</ol>
+<p>Không cần nối dây. Khi chạy, <b>mọi</b> node Tạo ảnh và Tạo video trong workflow đều được gửi kèm:</p>
+<ul>
+  <li><b>Ảnh nhân vật</b>, luôn làm ảnh tham chiếu (không bao giờ làm khung đầu). Ảnh vẫn được gửi cả khi cảnh đó dùng khung cuối của clip trước làm khung đầu.</li>
+  <li><b>Một câu dặn Flow</b> giữ nguyên mặt, tóc, dáng người và trang phục, kèm phần mô tả bạn ghi.</li>
+</ul>
+<h3>Khi nào bỏ khóa</h3>
+<ul>
+  <li>Cảnh không có nhân vật đó (ví dụ cảnh phong cảnh): bỏ tick <b>🔒 Dùng khóa nhân vật</b> trên node của cảnh đó.</li>
+  <li>Muốn tạm tắt cho cả workflow: bỏ tick <b>Khóa nhân vật này cho mọi cảnh</b>.</li>
+</ul>
+<h3>Hai nhân vật trở lên</h3>
+<p>Tạo mỗi nhân vật một node Khóa nhân vật. Lưu ý ảnh nhân vật cũng tính vào giới hạn ảnh mỗi cảnh (5 ảnh trên Flow, 3 ảnh với Gemini API).</p>
+<p class="tip"><b>Mẹo:</b> ảnh nhân vật nên chụp chính diện, rõ mặt, nền trơn. Bạn cũng có thể tạo ảnh nhân vật bằng một node Tạo ảnh trước, tải ảnh về máy, rồi thả vào node Khóa nhân vật.</p>
+</section>
+
+<section id="kich-ban">
+<h2>11. Video dài nhiều cảnh</h2>
+<p>Mỗi clip của Flow chỉ dài 4–8 giây. Muốn phim dài hơn, bạn ghép nhiều cảnh. Cách gọn nhất:</p>
+<ol class="steps">
+  <li><b>Viết kịch bản</b> theo mẫu bên dưới. Có thể nhờ AI chat viết hộ.</li>
+  <li>Bấm <b>📜 Kịch bản → Cảnh</b> ở đầu cột node, dán kịch bản, rồi bấm <b>Tạo node các cảnh</b>. App dựng node cho mọi cảnh và xếp sẵn Timeline.</li>
+  <li><b>Khóa nhân vật:</b> thêm 🔒 Khóa nhân vật với ảnh nhân vật chính (mục 10).</li>
+  <li><b>Nối cảnh liền mạch:</b> kiểm tra ô <b>Dùng khung cuối của clip trước làm khung đầu</b> đã được tick từ cảnh 2 trở đi.</li>
+  <li><b>Chạy thử cảnh 1</b> bằng nút chạy trên node. Ưng rồi mới bấm <b>▶ Chạy tất cả</b>.</li>
+  <li>Mở <b>Timeline</b>, bấm <b>▶ Xem thử</b>, rồi bấm <b>⇩ Xuất</b>.</li>
+</ol>
+<h3>Mẫu kịch bản</h3>
+<pre>CẢNH 1 (0:00–0:06): Thức dậy
+Prompt ảnh: Cô gái trẻ tóc ngắn thức dậy trong căn phòng nhỏ ngập nắng sớm, phong cách anime, 9:16
+Prompt video: Cô gái vươn vai, kéo rèm cửa, nắng tràn vào phòng, máy quay đẩy chậm vào
+Audio: tiếng chim hót, nhạc piano nhẹ nhàng
+
+CẢNH 2 (0:06–0:12): Ra phố
+Prompt ảnh: Cô gái đạp xe trên con phố nhỏ đầy hoa giấy, phong cách anime, 9:16
+Prompt video: Cô gái đạp xe qua phố, hoa giấy bay, máy quay đi song song bên cạnh
+Audio: tiếng chuông xe đạp, nhạc vui tươi</pre>
+<ul>
+  <li>Dòng tiêu đề bắt đầu bằng <code>CẢNH</code> + số, rồi khoảng thời gian trong ngoặc <code>(phút:giây–phút:giây)</code>, dấu hai chấm và tên cảnh.</li>
+  <li><code>Prompt ảnh:</code> tạo ảnh mở đầu cho cảnh. <code>Prompt video:</code> tả chuyển động. <code>Audio:</code> âm thanh (không bắt buộc). Mỗi cảnh cần ít nhất một trong hai dòng prompt.</li>
+  <li><b>Tỉ lệ:</b> ghi <code>16:9</code> hoặc <code>9:16</code> trong prompt. Không ghi thì mặc định là <b>9:16</b> (dọc).</li>
+  <li><b>Độ dài:</b> tính từ khoảng thời gian, tự làm tròn về 4, 6 hoặc 8 giây cho Flow. Timeline vẫn giữ đúng số giây bạn ghi.</li>
+</ul>
+<p>Với mỗi cảnh, app tạo: Câu lệnh → <b>Tạo ảnh</b> → <b>Tạo video</b> (ảnh làm khung đầu). App cũng tạo một node <b>🧩 Gom ảnh tham chiếu</b> đã nối tới mọi cảnh. Ảnh nào nối vào đó sẽ được gửi kèm mọi cảnh.</p>
+<h3>Nối cảnh liền mạch</h3>
+<p>Tick <b>Dùng khung cuối của clip trước làm khung đầu</b> trên node Tạo video. Khung hình cuối của clip <b>đứng trước nó trên Timeline</b> sẽ thành khung đầu của clip này. Cảnh sau bắt đầu đúng chỗ cảnh trước kết thúc.</p>
+<ul>
+  <li>Thứ tự trên Timeline quyết định "clip trước" là clip nào. Hãy xếp Timeline trước khi chạy.</li>
+  <li>Clip trước phải xong trước. <b>▶ Chạy tất cả</b> tự chạy đúng thứ tự này.</li>
+  <li>Khi bật ô này, ảnh riêng của cảnh đó chuyển thành ảnh tham chiếu.</li>
+  <li>Cách thủ công: nối chấm <i>khung cuối</i> của video này sang chấm <i>ảnh tham chiếu</i> của video kế tiếp.</li>
+</ul>
+<h3>Phong cách thống nhất</h3>
+<p>Thêm một node <b>➕ Nối thêm chữ</b> chứa câu phong cách, ví dụ <span class="ex">phong cách điện ảnh, ánh sáng vàng ấm, màu phim Kodak</span>, rồi cho mọi câu lệnh cảnh đi qua nó. Đổi phong cách cả phim chỉ cần sửa một chỗ.</p>
+<p class="tip"><b>Mẹo:</b> nhờ một AI chat viết kịch bản đúng mẫu. Ví dụ hỏi: "Viết kịch bản 6 cảnh, mỗi cảnh 8 giây, về một chú chó đi lạc tìm đường về nhà. Mỗi cảnh có dòng CẢNH n (m:ss–m:ss): tên, Prompt ảnh, Prompt video, Audio. Phong cách hoạt hình 3D, 16:9."</p>
+</section>
+
+<section id="timeline">
+<h2>12. Timeline và xuất video</h2>
+<ul>
+  <li><b>Mở Timeline:</b> bấm ▲ ở góc dưới bên phải.</li>
+  <li><b>Thêm clip:</b> bấm <b>＋ Thêm tất cả video</b> để thêm mọi video, hoặc <b>＋ Thêm clip</b> để chọn từng clip. Bạn cũng có thể kéo chấm <i>video</i> của node thả xuống thanh Timeline, hoặc dùng nút ⠿ trên node video.</li>
+  <li><b>Đổi thứ tự:</b> kéo thả clip trên Timeline.</li>
+  <li><b>Thời lượng phát:</b> sửa ô số giây trên từng clip (1–60 giây). Clip ngắn hơn thì giữ khung cuối cho đủ, clip dài hơn thì bị cắt.</li>
+  <li><b>Bỏ clip:</b> bấm × trên clip. Node video vẫn còn trên canvas.</li>
+  <li><b>Xem thử:</b> bấm <b>▶ Xem thử</b>, hoặc bấm / kéo trên thước thời gian để xem từ một điểm bất kỳ.</li>
+</ul>
+<h3>Xuất phim</h3>
+<ol>
+  <li>Chọn <b>MP4 (H.264)</b> hoặc <b>WebM</b>.</li>
+  <li>Bấm <b>⇩ Xuất</b>. Muốn hủy giữa chừng, bấm <b>■ Dừng</b>.</li>
+  <li>File được tải về thư mục Downloads.</li>
+</ol>
+<table>
+  <thead><tr><th>Định dạng</th><th>Đặc điểm</th><th>Nên dùng khi</th></tr></thead>
+  <tbody>
+    <tr><td><b>MP4 (H.264)</b></td><td>Ghép bằng FFmpeg đi kèm extension, chạy ngay trên máy bạn. Các clip giống nhau thì ghép nhanh. Clip khác kích thước thì phải mã hóa lại, có thể mất vài phút.</td><td>Đăng YouTube, TikTok, Facebook, gửi cho người khác. <b>Nên dùng.</b></td></tr>
+    <tr><td><b>WebM</b></td><td>Phát lại từng clip và ghi hình theo thời gian thực, nên mất đúng bằng thời lượng phim.</td><td>Khi xuất MP4 gặp lỗi.</td></tr>
+  </tbody>
+</table>
+<p class="note">Trong lúc xuất, hãy để tab app mở và đang hiển thị. Máy yếu thì xuất MP4 có thể chậm, cứ kiên nhẫn chờ.</p>
+<p class="tip"><b>Mẹo:</b> để mọi clip cùng một tỉ lệ (đều 9:16 hoặc đều 16:9). Phim sẽ đẹp hơn và xuất nhanh hơn.</p>
+</section>
+
+<section id="chay">
+<h2>13. Chạy, dừng, tạo lại</h2>
+<table>
+  <thead><tr><th>Nút</th><th>Tác dụng</th></tr></thead>
+  <tbody>
+    <tr><td><b>▶ Chạy tất cả</b></td><td>Chạy cả workflow theo đúng thứ tự: node phía trước chạy trước. <b>Node đã xong được giữ nguyên</b>, chỉ chạy node chưa có kết quả hoặc bị lỗi. Một node lỗi thì các node khác vẫn chạy tiếp, chỉ node phụ thuộc vào nó bị bỏ qua. Cuối cùng app báo node nào bị lỗi.</td></tr>
+    <tr><td><b>Nút chạy ▶ trên node</b></td><td>Mỗi node Tạo ảnh / Tạo video có nút chạy riêng. Bấm để chạy riêng node đó, kể cả khi đã có kết quả. Node phía trước chưa có kết quả sẽ được chạy trước.</td></tr>
+    <tr><td><b>↻ Tạo lại</b></td><td>Tạo lại kết quả với cùng câu lệnh và ảnh. Dùng khi chưa ưng.</td></tr>
+    <tr><td><b>■ Dừng tất cả</b> / <b>■ Dừng</b></td><td>Trong lúc chạy, nút <b>▶ Chạy tất cả</b> đổi thành <b>■ Dừng tất cả</b>, nút chạy trên node đổi thành <b>■ Dừng</b>. Bấm để dừng. Flow có thể vẫn làm nốt lượt đang dở và vẫn tính credit.</td></tr>
+  </tbody>
+</table>
+<h3>Khi có lỗi</h3>
+<ul>
+  <li>Lỗi hiện bằng chữ đỏ trên node và ở dòng trạng thái.</li>
+  <li><b>Flow từ chối nội dung</b> (vi phạm chính sách): node hiện đúng lời nhắn của Flow. App không tự gửi lại. Hãy sửa câu lệnh rồi chạy lại node đó.</li>
+  <li><b>Flow trả video sai tỉ lệ:</b> kết quả vẫn được giữ, node hiện cảnh báo.</li>
+  <li>Mỗi lượt chờ tối đa theo ô <b>Chờ tối đa mỗi clip</b> trong Cài đặt. Video thường lâu hơn ảnh.</li>
+  <li>Trong lúc chạy, đừng gõ vào ô chat của Flow.</li>
+</ul>
+</section>
+
+<section id="luu">
+<h2>14. Lưu và chia sẻ workflow</h2>
+<ul>
+  <li><b>Tự động lưu:</b> mọi thay đổi được lưu vào trình duyệt sau chốc lát. Đóng tab rồi mở lại, mọi thứ vẫn còn.</li>
+  <li><b>Lưu:</b> lưu ngay vào trình duyệt.</li>
+  <li><b>Lưu file workflow:</b> tải về một file <code>.json</code> chứa cả quy trình, ảnh được đóng gói kèm trong file. Dùng để sao lưu, chuyển máy hoặc gửi cho bạn bè làm mẫu.</li>
+  <li><b>Mở file workflow:</b> mở lại file <code>.json</code>. Canvas hiện tại sẽ bị thay (có thể hoàn tác bằng <kbd>Ctrl</kbd> + <kbd>Z</kbd>).</li>
+  <li><b>Làm mới:</b> xóa canvas, quay về 3 node mẫu. Hãy <b>Lưu file workflow</b> trước nếu muốn giữ bài cũ.</li>
+</ul>
+<p class="note"><b>Gemini API key không bao giờ được ghi vào file workflow.</b> Bạn gửi file cho người khác cũng không lộ key. Chỉ mở file workflow từ người bạn tin tưởng.</p>
+<p class="tip"><b>Mẹo:</b> tạo sẵn vài workflow mẫu (ví dụ <i>TikTok 6 cảnh</i>, <i>quảng cáo sản phẩm</i>) và lưu thành file. Lần sau chỉ cần mở file, sửa câu lệnh và chạy.</p>
+</section>
+
+<section id="cai-dat">
+<h2>15. Cài đặt và Gemini API</h2>
+<p>Bấm <b>Cài đặt</b> trên thanh trên cùng. Chỉnh xong, bấm <b>Lưu</b> để áp dụng.</p>
+<table>
+  <thead><tr><th>Mục</th><th>Dùng để</th></tr></thead>
+  <tbody>
+    <tr><td><b>Tạo bằng</b></td><td>Chọn cách tạo: <b>Tab Google Flow</b> (dùng credit Google AI của bạn) hoặc <b>Gemini API</b> (trả tiền theo lượt).</td></tr>
+    <tr><td><b>Chờ tối đa mỗi clip</b></td><td>Thời gian chờ tối đa cho mỗi lượt tạo: 10, 15 hoặc 30 phút. Quá thời gian này, node báo lỗi hết giờ.</td></tr>
+    <tr><td><b>Model video / Model ảnh trên Flow</b></td><td>Model mặc định cho video và ảnh. <b>Để trống</b> thì theo mặc định của tác nhân Flow (ví dụ Nano Banana 2.1 cho ảnh, Omni 1.1 Flash cho video). Ô Model trên từng node được ưu tiên hơn.</td></tr>
+    <tr><td><b>Kiểu nhập</b></td><td><b>Tự động</b> (nên dùng): thử cách thường trước, Flow không nhận thì dùng bàn phím thật. <b>Chỉ sự kiện trang</b> (DOM): không dùng bàn phím thật. <b>Luôn dùng bàn phím thật</b>: Chrome sẽ hiện thanh gỡ lỗi.</td></tr>
+    <tr><td><b>Kiểm tra kết nối</b></td><td>Xem tab Flow đã sẵn sàng chưa (hoặc API key có dùng được không).</td></tr>
+    <tr><td><b>Kiểm tra trang Flow</b></td><td>Dò xem app còn tìm thấy các phần cần thiết trên trang Flow không, rồi <b>chép báo cáo vào clipboard</b>. Khi cần hỗ trợ, dán báo cáo này gửi kèm.</td></tr>
+  </tbody>
+</table>
+<p>Các ô nâng cao khác: cứ để nguyên, trừ khi được hướng dẫn đổi.</p>
+<h3>Dùng Gemini API thay cho tab Flow</h3>
+<ol class="steps">
+  <li>Lấy API key ở Google AI Studio. Tài khoản API cần bật thanh toán.</li>
+  <li>Vào <b>Cài đặt</b>, ở ô <b>Tạo bằng</b> chọn <b>Gemini API</b>.</li>
+  <li>Dán key vào ô <b>Gemini API key</b>.</li>
+  <li>Chọn <b>Model video</b>, <b>Độ phân giải video</b> (720p; 1080p và 4K chỉ cho clip 8 giây) và <b>Model ảnh</b>.</li>
+  <li>Bấm <b>Kiểm tra kết nối</b>. Thấy báo key dùng được thì bấm <b>Lưu</b>.</li>
+</ol>
+<ul>
+  <li>Không cần mở tab Flow. Tiền tính theo giây video trên tài khoản API, không trừ credit Flow.</li>
+  <li>Giới hạn: tối đa <b>3 ảnh tham chiếu</b> mỗi cảnh. Không gửi được khung đầu cùng lúc với ảnh tham chiếu. Clip có ảnh tham chiếu luôn dài 8 giây.</li>
+  <li>API key chỉ lưu trong trình duyệt này, không bao giờ nằm trong file workflow.</li>
+</ul>
+</section>
+
+<section id="prompt">
+<h2>16. Bí quyết viết câu lệnh</h2>
+<h3>Công thức câu lệnh ảnh</h3>
+<p class="formula">[Chủ thể] + [Hành động/tư thế] + [Bối cảnh] + [Ánh sáng] + [Góc máy] + [Phong cách]</p>
+<p class="ex">Một người đàn ông lớn tuổi đang pha trà, ngồi trong gian bếp gỗ cổ, nắng chiều xuyên qua cửa sổ, cận cảnh ngang tầm mắt, phong cách nhiếp ảnh tài liệu</p>
+<h3>Công thức câu lệnh video</h3>
+<p class="formula">[Ai làm gì, chuyển động ra sao] + [Máy quay di chuyển thế nào] + [Không khí, nhịp độ]</p>
+<p class="ex">Ông cụ rót trà, hơi nước bốc lên chậm rãi, máy quay đẩy chậm từ trung cảnh vào cận ấm trà, không khí yên bình, nhịp chậm</p>
+<h3>Từ khóa hữu ích</h3>
+<div class="grid">
+  <div class="card"><h4>Góc máy</h4><p>cận cảnh, trung cảnh, toàn cảnh, góc từ trên xuống (flycam), góc thấp hất lên, góc qua vai, góc nhìn thứ nhất</p></div>
+  <div class="card"><h4>Chuyển động máy</h4><p>đẩy chậm vào, kéo ra, lia ngang, quay vòng quanh chủ thể, máy đi theo sau, cầm tay rung nhẹ</p></div>
+  <div class="card"><h4>Ánh sáng</h4><p>giờ vàng, ánh trăng, đèn neon, ánh nến, ngược sáng, ánh sáng studio mềm, sương mù có tia nắng</p></div>
+  <div class="card"><h4>Phong cách</h4><p>điện ảnh, anime, hoạt hình 3D, màu nước, tranh sơn dầu, đất sét, phim cũ thập niên 90, tối giản</p></div>
+  <div class="card"><h4>Âm thanh</h4><p>nhạc lo-fi, trống dồn dập, tiếng mưa, tiếng sóng biển, tiếng phố đông người, chỉ có tiếng gió</p></div>
+  <div class="card"><h4>⛔ Tránh</h4><p>mờ, méo mặt, thừa ngón tay, chữ, logo, watermark, khung hình bị cắt, nhiễu hạt</p></div>
+</div>
+<ul>
+  <li>Viết cụ thể thay vì chung chung: "chiếc váy đỏ dài tới gót" tốt hơn "váy đẹp".</li>
+  <li>Mỗi clip chỉ nên có <b>một hành động chính</b>. Clip 4–8 giây không đủ cho cả câu chuyện.</li>
+  <li>Nhắc lại đặc điểm nhân vật trong mọi cảnh (tóc, áo, màu sắc), hoặc dùng 🔒 Khóa nhân vật.</li>
+  <li>Muốn dọc hay ngang thì ghi luôn "khung dọc 9:16" hoặc "khung ngang 16:9" trong câu lệnh.</li>
+  <li>Câu lệnh tiếng Việt dùng được. Tiếng Anh đôi khi cho kết quả ổn định hơn.</li>
+</ul>
+</section>
+
+<section id="su-co">
+<h2>17. Xử lý sự cố</h2>
+<table>
+  <thead><tr><th>Hiện tượng</th><th>Cách xử lý</th></tr></thead>
+  <tbody>
+    <tr><td>Không thấy ô "Bạn muốn tạo gì?", dòng trạng thái báo chưa mở dự án</td><td>Mở một dự án trên Flow (hoặc bấm <b>+ Dự án mới</b>). Đóng các bảng phụ đang mở trên trang Flow. Nếu đang hiện bảng <b>Cài đặt tác nhân</b>, bấm <b>Lưu</b>. Rồi vào <b>Cài đặt</b> → <b>Kiểm tra kết nối</b>.</td></tr>
+    <tr><td>Flow đòi đăng nhập</td><td>Đăng nhập lại trên tab Flow, mở dự án, rồi bấm <b>Kiểm tra kết nối</b>.</td></tr>
+    <tr><td>Tab Flow chạy nền, đứng im, không tạo gì</td><td>Chrome có thể cho tab nền "ngủ" để tiết kiệm bộ nhớ. Đừng đóng hay thu nhỏ cửa sổ Flow. Trong cài đặt Chrome, mục <i>Hiệu suất</i>, thêm <code>flow.google.com</code> vào danh sách trang luôn hoạt động. Bấm sang tab Flow xem có gì đang chờ không, rồi chạy lại node.</td></tr>
+    <tr><td>Extension gõ nhầm chỗ hoặc bấm nhầm nút</td><td>Vào <code>chrome://extensions</code>, bấm <b>Reload</b> (↻) ở TheKey.studio Flow, rồi nhấn <kbd>F5</kbd> cả tab app và tab Flow. Đóng các bảng phụ trên Flow. Vẫn lỗi thì thử đổi <b>Kiểu nhập</b> trong Cài đặt.</td></tr>
+    <tr><td>Hết credit</td><td>Nạp thêm hoặc chờ gói được làm mới, rồi bấm <b>▶ Chạy tất cả</b>. Node đã xong được giữ, chỉ chạy phần còn lại. Chọn x1 trong <b>Cài đặt tác nhân</b> của Flow để tiết kiệm.</td></tr>
+    <tr><td>Flow từ chối nội dung</td><td>Đọc lời nhắn của Flow trên node. Viết lại câu lệnh nhẹ nhàng hơn (tránh người nổi tiếng thật, bạo lực, nội dung nhạy cảm), rồi chạy lại node.</td></tr>
+    <tr><td>Video ra sai tỉ lệ</td><td>Kết quả vẫn được giữ và node hiện cảnh báo. Kiểm tra tỉ lệ trên node, ghi rõ "khung dọc 9:16" hoặc "khung ngang 16:9" trong câu lệnh, rồi bấm <b>↻ Tạo lại</b>.</td></tr>
+    <tr><td>Ảnh tham chiếu không gắn được</td><td>Gửi cho bộ phận hỗ trợ: dòng lỗi màu đỏ trên node, kèm kết quả của <b>Cài đặt</b> → <b>Kiểm tra trang Flow</b> (bấm nút rồi dán ra, vì báo cáo đã nằm trong clipboard).</td></tr>
+    <tr><td>Chrome hiện thanh "đang gỡ lỗi trình duyệt này"</td><td>Bình thường. Chrome hiện thanh này khi extension dùng bàn phím thật để gõ vào Flow. Đừng bấm Hủy trên thanh đó khi đang chạy.</td></tr>
+    <tr><td>Báo hết giờ chờ</td><td>Flow chưa xong trong thời gian chờ. Xem tab Flow đã có kết quả chưa. Tăng <b>Chờ tối đa mỗi clip</b> trong Cài đặt rồi chạy lại node.</td></tr>
+    <tr><td>Nối cảnh liền mạch báo cần clip trước</td><td>Kiểm tra thứ tự trên Timeline, và chạy clip đứng trước cho xong trước.</td></tr>
+    <tr><td>Xuất MP4 rất chậm hoặc lỗi</td><td>MP4 dùng FFmpeg đi kèm, chạy trên máy bạn nên có thể chậm, nhất là khi các clip khác kích thước. Hãy chờ. Nếu lỗi: Reload extension, <kbd>F5</kbd> tab app rồi thử lại, hoặc chọn WebM.</td></tr>
+    <tr><td>App đơ, không phản hồi</td><td>Nhấn <kbd>F5</kbd> ở tab app. Workflow đã được tự động lưu.</td></tr>
+  </tbody>
+</table>
+</section>
+
+<section id="hoi-dap">
+<h2>18. Câu hỏi thường gặp</h2>
+<details><summary>Có tốn tiền không?</summary><p>App miễn phí. Bạn chỉ dùng credit Google Flow của mình cho mỗi lượt tạo, hoặc trả tiền API nếu chọn Gemini API.</p></details>
+<details><summary>Vì sao Chrome cứ nhảy sang tab Flow?</summary><p>Extension cần tab Flow hiện ra để gõ và bấm như người thật. Đó là bình thường. Xong việc, bạn quay lại tab app để xem kết quả.</p></details>
+<details><summary>Extension có tự duyệt chi tiêu không giới hạn không?</summary><p>Không. Nó chỉ bấm <b>Phê duyệt</b> cho từng lượt mà workflow cần, và không bao giờ bấm <b>Luôn phê duyệt</b>. Muốn kiểm soát chặt hơn, hãy chạy từng node một.</p></details>
+<details><summary>Làm sao tiết kiệm credit?</summary><p>Chọn x1 trong <b>Cài đặt tác nhân</b> của Flow. Thử một cảnh trước khi chạy cả kịch bản. Tạo ảnh trước, ưng rồi mới làm video. Khi có lỗi, chỉ chạy lại node lỗi.</p></details>
+<details><summary>Dữ liệu của tôi có bị gửi đi đâu không?</summary><p>Câu lệnh và ảnh chỉ được gửi tới Google Flow qua tab bạn đã đăng nhập (hoặc tới Gemini API nếu bạn chọn). Workflow, ảnh, video được lưu trong trình duyệt trên máy bạn. Việc ghép phim cũng chạy ngay trên máy.</p></details>
+<details><summary>Có thể tắt máy giữa chừng không?</summary><p>Workflow được lưu liên tục. Lần sau mở lại, bấm <b>▶ Chạy tất cả</b>: node đã xong được giữ, chỉ chạy tiếp phần còn lại.</p></details>
+<details><summary>Muốn tạo lại toàn bộ phim từ đầu?</summary><p>Bấm nút chạy trên từng node cần làm lại. Hoặc <b>Lưu file workflow</b> để giữ bản cũ, rồi dựng lại bằng <b>📜 Kịch bản → Cảnh</b>.</p></details>
+<details><summary>Có dùng trên nhiều máy được không?</summary><p>Được. Cài extension ở máy mới. Dùng <b>Lưu file workflow</b> ở máy cũ và <b>Mở file workflow</b> ở máy mới. Gemini API key phải nhập lại, vì key không nằm trong file.</p></details>
+<details><summary>Có thêm nhạc hoặc giọng đọc riêng được không?</summary><p>App xuất phim có âm thanh do Flow tạo. Để lồng nhạc hoặc giọng đọc riêng, hãy mở file MP4 bằng phần mềm dựng như CapCut hoặc Premiere.</p></details>
+</section>
+
+<footer>TheKey.studio Flow 0.3.0 · Chúc bạn sáng tạo vui vẻ ✦</footer>
+</main>
+</div>
+</body>
+</html>

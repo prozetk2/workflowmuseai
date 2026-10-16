@@ -6,6 +6,8 @@
 
 **TheKey.studio** là tiện ích mở rộng tạo quy trình trực quan bằng phiên Muse.ai bạn đã đăng nhập. Bạn có thể nối các node trên canvas, tạo ảnh/video và sắp xếp clip video trên timeline.
 
+**Bản Google Flow:** thư mục `thekey-flow/` là **TheKey.studio Flow**, một extension riêng tạo ảnh/video qua Google Flow (Veo) hoặc Gemini API. Cài bằng cách Load unpacked thư mục đó; xem `thekey-flow/README-vi.md`.
+
 **Hướng dẫn chi tiết:** trong app, bấm nút **📖 Hướng dẫn** trên thanh công cụ (hoặc mở file `guide.html`).
 
 ### Tính năng
