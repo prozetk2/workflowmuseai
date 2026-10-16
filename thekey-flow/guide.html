@@ -154,7 +154,7 @@
   <li><b>Tỉ lệ:</b> 16:9 (ngang) hoặc 9:16 (dọc).</li>
   <li><b>Độ dài:</b> 4, 6 hoặc 8 giây.</li>
   <li><b>Model:</b> để trống thì dùng model trong <b>Cài đặt</b>.</li>
-  <li><b>Ảnh → khung đầu:</b> ảnh nối vào làm khung hình mở đầu. Video bắt đầu đúng từ ảnh đó. Nếu nối nhiều ảnh <i>Tự do</i>, chỉ ảnh đầu tiên được dùng. Muốn gửi thêm ảnh khác, hãy chọn vai trò cho chúng (mục 8).</li>
+  <li><b>Ảnh → khung đầu:</b> ảnh nối vào làm khung hình mở đầu. Video bắt đầu đúng từ ảnh đó. Chỉ áp dụng khi node có đúng <b>1 ảnh</b>. Nối từ 2 ảnh trở lên thì tất cả được gửi làm ảnh tham chiếu (cách <i>Reference-to-Video</i> của Flow), vì Veo không dùng khung đầu cùng lúc với ảnh tham chiếu.</li>
   <li><b>Ảnh → tham chiếu:</b> ảnh chỉ làm mẫu (nhân vật, đồ vật, phong cách). Flow tự dựng cảnh mới.</li>
   <li><b>Dùng khung cuối của clip trước làm khung đầu:</b> nối cảnh liền mạch (mục 11).</li>
   <li><b>🔒 Dùng khóa nhân vật:</b> bỏ tick nếu cảnh này không cần nhân vật đã khóa (mục 10).</li>
@@ -213,7 +213,7 @@
 <table>
   <thead><tr><th>Vai trò</th><th>Flow sẽ hiểu là</th></tr></thead>
   <tbody>
-    <tr><td><b>Tự do (ảnh tham chiếu)</b></td><td>Ảnh mẫu chung. Ở node Tạo video có chọn <b>Ảnh → khung đầu</b>, ảnh Tự do đầu tiên sẽ làm khung đầu.</td></tr>
+    <tr><td><b>Tự do (ảnh tham chiếu)</b></td><td>Ảnh mẫu chung. Ở node Tạo video có chọn <b>Ảnh → khung đầu</b>, ảnh Tự do sẽ làm khung đầu nếu đó là ảnh duy nhất nối vào; có từ 2 ảnh trở lên thì mọi ảnh làm ảnh tham chiếu.</td></tr>
     <tr><td><b>👤 Người mẫu / nhân vật</b></td><td>Giữ đúng người này: mặt, tóc, màu da, dáng người.</td></tr>
     <tr><td><b>👗 Trang phục</b></td><td>Mặc đúng bộ đồ này: kiểu, màu, chất vải, họa tiết, chi tiết.</td></tr>
     <tr><td><b>👜 Sản phẩm</b></td><td>Hiện đúng sản phẩm này: hình dáng, màu, logo, chi tiết.</td></tr>
@@ -228,7 +228,7 @@
   <li>Nối tất cả vào chấm <i>ảnh tham chiếu</i> của cùng một node Tạo ảnh hoặc Tạo video. Chấm này nhận nhiều dây.</li>
   <li>Viết câu lệnh như bình thường. App tự nói với Flow ảnh nào là gì, kiểu "ảnh 1 là người mẫu, ảnh 2 là trang phục…".</li>
 </ol>
-<p class="note">Trên Flow, mỗi cảnh gửi được tối đa <b>5 ảnh</b>. Nối nhiều hơn thì chỉ 5 ảnh đầu được gửi, và node hiện cảnh báo. Với <b>Gemini API</b>: tối đa <b>3 ảnh tham chiếu</b>, và không gửi được khung đầu cùng lúc với ảnh tham chiếu (khi đó ảnh tham chiếu chỉ được tả bằng chữ).</p>
+<p class="note">Tạo ảnh trên Flow: tối đa <b>5 ảnh</b> mỗi cảnh. Tạo video (cả Flow lẫn Gemini API): tối đa <b>3 ảnh tham chiếu</b>. Nối nhiều hơn thì chỉ các ảnh đầu được gửi, và node hiện cảnh báo. Video có <b>khung đầu</b> (vai trò 🎬 Khung đầu video, hoặc khung cuối của clip trước) thì không gửi kèm ảnh tham chiếu được, vì Veo không dùng hai thứ cùng lúc; các ảnh tham chiếu khi đó bị bỏ qua và node có ghi chú.</p>
 <h3>Ảnh kết quả đi tiếp sang cảnh khác</h3>
 <p>Node <b>Tạo ảnh</b> có ô <b>Khi nối sang cảnh khác, ảnh kết quả là:</b>. Ô này gán vai trò cho ảnh nó tạo ra. Ví dụ chọn <b>🎬 Khung đầu video</b> thì video phía sau sẽ bắt đầu đúng từ ảnh này, kể cả khi video đó có thêm ảnh trang phục làm tham chiếu.</p>
 <p class="tip"><b>Mẹo:</b> mỗi ảnh chỉ nên có một thứ chính, rõ nét, nền đơn giản. Ảnh càng "sạch", Flow càng ít nhầm.</p>
@@ -281,7 +281,7 @@
 </ol>
 <p>Không cần nối dây. Khi chạy, <b>mọi</b> node Tạo ảnh và Tạo video trong workflow đều được gửi kèm:</p>
 <ul>
-  <li><b>Ảnh nhân vật</b>, luôn làm ảnh tham chiếu (không bao giờ làm khung đầu). Ảnh vẫn được gửi cả khi cảnh đó dùng khung cuối của clip trước làm khung đầu.</li>
+  <li><b>Ảnh nhân vật</b>, luôn làm ảnh tham chiếu (không bao giờ làm khung đầu). Nếu cảnh đó dùng khung cuối của clip trước làm khung đầu thì ảnh nhân vật không được gửi kèm (khung đầu đã có nhân vật), chỉ còn lời mô tả nhân vật trong câu lệnh.</li>
   <li><b>Một câu dặn Flow</b> giữ nguyên mặt, tóc, dáng người và trang phục, kèm phần mô tả bạn ghi.</li>
 </ul>
 <h3>Khi nào bỏ khóa</h3>
@@ -290,7 +290,7 @@
   <li>Muốn tạm tắt cho cả workflow: bỏ tick <b>Khóa nhân vật này cho mọi cảnh</b>.</li>
 </ul>
 <h3>Hai nhân vật trở lên</h3>
-<p>Tạo mỗi nhân vật một node Khóa nhân vật. Lưu ý ảnh nhân vật cũng tính vào giới hạn ảnh mỗi cảnh (5 ảnh trên Flow, 3 ảnh với Gemini API).</p>
+<p>Tạo mỗi nhân vật một node Khóa nhân vật. Lưu ý ảnh nhân vật cũng tính vào giới hạn ảnh mỗi cảnh (tạo ảnh trên Flow: 5 ảnh; tạo video: 3 ảnh).</p>
 <p class="tip"><b>Mẹo:</b> ảnh nhân vật nên chụp chính diện, rõ mặt, nền trơn. Bạn cũng có thể tạo ảnh nhân vật bằng một node Tạo ảnh trước, tải ảnh về máy, rồi thả vào node Khóa nhân vật.</p>
 </section>
 
@@ -487,7 +487,7 @@ Audio: tiếng chuông xe đạp, nhạc vui tươi</pre>
 <details><summary>Có thêm nhạc hoặc giọng đọc riêng được không?</summary><p>App xuất phim có âm thanh do Flow tạo. Để lồng nhạc hoặc giọng đọc riêng, hãy mở file MP4 bằng phần mềm dựng như CapCut hoặc Premiere.</p></details>
 </section>
 
-<footer>TheKey.studio Flow 0.3.0 · Chúc bạn sáng tạo vui vẻ ✦</footer>
+<footer>TheKey.studio Flow 0.3.7 · Chúc bạn sáng tạo vui vẻ ✦</footer>
 </main>
 </div>
 </body>

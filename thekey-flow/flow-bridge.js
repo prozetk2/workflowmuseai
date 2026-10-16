@@ -43,8 +43,12 @@
     agentAcceptText: '^(lưu|save|xong|done|chấp nhận|accept)$',
     agentConfirmText: '^(phê duyệt|approve|tạo|bắt đầu tạo|xác nhận|đồng ý|tiếp tục|có|ok|generate|create|confirm|continue|proceed|yes|run)( (ngay|video|hình ảnh|ảnh|nội dung|now|it|image))?$',
     // "Luôn phê duyệt" would change the account setting for good, so it is never pressed.
-    agentCancelText: 'hủy|huỷ|cancel|không|từ chối|reject|deny|luôn|always|chỉnh sửa|edit|^no\\b',
-    agentUploadText: 'tải nội dung|tải lên|upload',
+    agentCancelText: 'hủy|huỷ|cancel|không|từ chối|reject|deny|luôn|always|chỉnh sửa|edit|thử lại|try again|retry|^no\\b',
+    // The add menu's upload button ("Tải nội dung ..."). Its "Tệp tải lên" entry is only a filter
+    // of past uploads, so a loose "tải lên|upload" match is used only when nothing better is there.
+    agentUploadText: 'tải nội dung|tải tệp lên|upload media|upload content|upload file',
+    agentUploadLoose: 'tải lên|upload',
+    agentUploadSkip: '^(tệp tải lên|tệp đã tải lên|đã tải lên|uploads?|uploaded( files?)?|my uploads)$',
     // {kind} {count} {aspect} {duration} {model} {refs} {prompt}; empty parts are dropped.
     agentTemplate: {
       image: 'Generate exactly 1 image now{aspect}{model}{refs}. Use this prompt exactly as written, do not rewrite it and do not ask me questions: {prompt}',
@@ -54,6 +58,8 @@
   const ICON_SELECTOR = 'mat-icon, i, .material-icons, .material-symbols-outlined, .google-symbols, [class*="symbols"]';
   const CLICKABLE = 'button, [role="button"], a, mat-list-item, mat-button-toggle, mat-option, [role="menuitem"], [role="option"], [role="radio"], [role="tab"]';
   const POLICY_RX = /(polic(y|ies)|violat|unsafe|not allowed|couldn'?t generate|could not generate|can'?t generate|unable to generate|blocked|prominent people|chính sách|vi phạm|không thể tạo)/i;
+  // Google's own "unusual activity" notice: this request was blocked, so stop instead of trying again.
+  const BLOCKED_RX = /(hoạt động bất thường|unusual activity|unusual traffic|lưu lượng truy cập bất thường)/i;
   const CREDIT_RX = /(not enough credits|insufficient credits|out of credits|no credits left|run out of credits|hết tín dụng|không đủ tín dụng)/i;
   const FAIL_RX = /(failed|error|something went wrong|try again|thất bại|đã xảy ra lỗi)/i;
   const MAX_TRANSFER_BYTES = 40 * 1024 * 1024;
@@ -202,6 +208,7 @@
   async function typePrompt(editor, text, signal) {
     const clean = String(text).replace(/\s*\n+\s*/g, ' ').trim();
     const accepted = () => norm(readEditor(currentEditor(editor)).replace(/[\u200b\ufeff]/g, '')).includes(norm(clean).slice(0, 60));
+    await waitFor(() => canType(currentEditor(editor)), 15000, signal, 300);
     if (inputMode !== 'cdp') {
       // A background tab has no keyboard focus, so rich-text editors ignore typing there.
       await bringToFront(signal);
@@ -241,9 +248,9 @@
   }
   function editorReport(editor) {
     const el = currentEditor(editor);
-    const tag = el ? `${el.tagName.toLowerCase()}${el.getAttribute('role') ? `[role=${el.getAttribute('role')}]` : ''}${el.isContentEditable ? '[contenteditable]' : ''}` : 'none';
+    const tag = el ? `${el.tagName.toLowerCase()}${el.getAttribute('role') ? `[role=${el.getAttribute('role')}]` : ''}${el.isContentEditable ? '[contenteditable]' : ''}${canType(el) ? '' : ' (đang khoá)'}` : 'none';
     const count = query(SEL.editor).filter(visible).length;
-    return `(Prompt box: ${tag}, ${count} match(es), tab ${document.hidden ? 'hidden' : 'visible'}, focus ${document.hasFocus() ? 'yes' : 'no'}, it now reads "${norm(readEditor(el)).slice(0, 50)}". Send this line and the "Check Flow page" output to fix it.)`;
+    return `(Ô nhập: ${tag}, khớp ${count}, tab ${document.hidden ? 'đang ẩn' : 'đang hiện'}, ${document.hasFocus() ? 'đang được chọn' : 'không được chọn'}, hiện ghi "${norm(readEditor(el)).slice(0, 50)}". Gửi dòng này cho người hỗ trợ để sửa.)`;
   }
   // Switches Chrome to the Flow tab for the moment Flow needs keyboard focus.
   async function bringToFront(signal) {
@@ -274,10 +281,32 @@
     const editable = [...document.querySelectorAll('[contenteditable="true"], [contenteditable=""], textarea, [role="textbox"], input[type="text"]:not([readonly])')]
       .filter(el => visible(el) && !/tìm kiếm|search/i.test(hintText(el)) && el.getBoundingClientRect().top > innerHeight * 0.3);
     const hinted = editable.filter(el => rx(SEL.agentComposerHint).test(hintText(el)));
-    const pool = hinted.length ? hinted : editable.filter(el => !(el instanceof HTMLInputElement));
+    const pool = (hinted.length ? hinted : editable.filter(el => !(el instanceof HTMLInputElement)))
+      // A role="textbox" wrapper may hold the real editable element inside it.
+      .map(el => (canType(el) ? el : el.querySelector('[contenteditable="true"], [contenteditable=""], [contenteditable="plaintext-only"], textarea') || el));
     if (!pool.length) return null;
     // The agent box sits at the bottom of the panel: take the lowest one.
     return pool.sort((a, b) => b.getBoundingClientRect().bottom - a.getBoundingClientRect().bottom)[0];
+  }
+  // Flow locks its box (contenteditable="false", aria-disabled) while an attached picture is still uploading.
+  function canType(el) {
+    if (!el || el.getAttribute('aria-disabled') === 'true' || el.getAttribute('aria-readonly') === 'true') return false;
+    if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) return !el.disabled && !el.readOnly;
+    return el.isContentEditable;
+  }
+  // Closes the add menu / asset picker; Angular overlays listen for Escape on the focused element's path.
+  async function closePopups(signal, popup) {
+    const open = () => Boolean(popup && popup.isConnected && visible(popup));
+    // Nothing open: send no key, since Escape could also close the agent panel.
+    if (!open()) return;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const target = document.activeElement && document.activeElement !== document.body ? document.activeElement : document.body;
+      target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true, cancelable: true, composed: true }));
+      await delay(300, signal);
+      if (!open()) return;
+      if (inputMode !== 'dom') { await trusted('key', { key: 'Escape', code: 'Escape', keyCode: 27 }).catch(() => {}); await delay(400, signal); }
+      if (!open()) return;
+    }
   }
   function labelOf(el) {
     return [el.getAttribute('aria-label'), el.getAttribute('title'), el.getAttribute('mattooltip'), el.getAttribute('data-tooltip')].filter(Boolean).join(' ');
@@ -341,7 +370,10 @@
   function fillTemplate(kind, req, imageCount) {
     const templates = SEL.agentTemplate || DEFAULT_SELECTORS.agentTemplate;
     const template = templates[kind] || DEFAULT_SELECTORS.agentTemplate[kind];
-    const refs = !imageCount ? '' : req.firstFrame ? (imageCount > 1 ? ', using the first attached image as the start frame and the others as references' : ', using the attached image as the start frame') : ', using the attached image(s) as references';
+    // Say which Veo tool to use, so the agent does not stop to ask (it cannot mix a start frame with references).
+    const refs = !imageCount ? '' : req.firstFrame
+      ? (imageCount > 1 ? ', using the first attached image as the start frame and the others as references' : ', animating the attached image as the start frame')
+      : kind === 'video' ? ', with Reference-to-Video (R2V) using all attached images as references' : ', using the attached image(s) as references';
     const parts = {
       kind, count: '1',
       aspect: req.aspect ? `, aspect ratio ${req.aspect}` : '',
@@ -352,27 +384,61 @@
     };
     return template.replace(/\{(\w+)\}/g, (_, key) => parts[key] ?? '');
   }
+  function findUploadButton() {
+    const all = clickables();
+    const words = el => `${textOf(el)} ${labelOf(el)}`.trim();
+    const skip = el => rx(SEL.agentUploadSkip || DEFAULT_SELECTORS.agentUploadSkip).test(textOf(el));
+    return all.find(el => rx(SEL.agentUploadText).test(words(el)))
+      || all.find(el => !skip(el) && iconNames(el).some(icon => ['upload', 'upload_file', 'file_upload'].includes(icon)))
+      || all.find(el => !skip(el) && rx(SEL.agentUploadLoose || DEFAULT_SELECTORS.agentUploadLoose).test(words(el)))
+      || null;
+  }
+  // The asset picker that the upload button sits in (a large box around it).
+  function pickerOf(el, composer) {
+    for (let node = el?.parentElement; node && node !== document.body; node = node.parentElement) {
+      const rect = node.getBoundingClientRect();
+      // Never the whole page or the agent panel itself.
+      if ((composer && node.contains(composer)) || rect.width * rect.height > innerWidth * innerHeight * 0.85) return null;
+      if (rect.height >= 250 && rect.width >= 300) return node;
+    }
+    return null;
+  }
   async function attachAgentImage(image, composer, warnings, signal) {
-    const area = composerArea(composer);
-    const before = new Set([...area.querySelectorAll('img')].map(mediaSrc));
-    const pageBefore = allMediaSources();
+    let pickerRoot = null;
+    const area = () => composerArea(findComposer() || composer);
+    // Pictures already in the message box (earlier attachments) and on the page before this upload.
+    const shownImgs = root => [...root.querySelectorAll('img')].filter(img => mediaSrc(img) && visible(img));
+    const boxBefore = new Set(shownImgs(area())), boxSrcBefore = new Set([...boxBefore].map(mediaSrc));
+    let srcBefore = new Set(), elsBefore = new Set();
+    const inputsBefore = new Set(document.querySelectorAll('input[type="file"]'));
     let captured = false;
     const onCaptured = () => { captured = true; };
     document.addEventListener('thekey-flow-file-input', onCaptured);
     document.documentElement.setAttribute('data-thekey-upload', '1');
     try {
-      const add = [...area.querySelectorAll(CLICKABLE)].filter(visible).find(el => iconNames(el).some(icon => list(SEL.addIcons).includes(icon)) || /thêm|add|đính kèm|attach/i.test(labelOf(el)));
+      const add = [...area().querySelectorAll(CLICKABLE)].filter(visible).find(el => iconNames(el).some(icon => list(SEL.addIcons).includes(icon)) || /thêm|add|đính kèm|attach/i.test(labelOf(el)));
       if (!add) throw flowError('Không thấy nút + cạnh ô nhập của Flow để thêm ảnh. Chưa gửi gì cả.');
-      await press(add, signal, () => captured || clickables().some(el => rx(SEL.agentUploadText).test(textOf(el) + ' ' + labelOf(el))), 2500);
+      await press(add, signal, () => captured || findUploadButton(), 2500);
       if (!captured) {
-        const upload = clickables().find(el => rx(SEL.agentUploadText).test(textOf(el) + ' ' + labelOf(el))) || withIcon(SEL.uploadIcons)[0];
+        const upload = findUploadButton();
         if (!upload) throw flowError('Menu + của Flow không có mục "Tải nội dung". Chưa gửi gì cả.');
+        pickerRoot = pickerOf(upload, composer);
         await press(upload, signal, () => captured, 2500);
       }
-      if (!(await waitFor(() => captured || domFileInput(), 4000, signal))) throw flowError('Flow không mở hộp chọn file cho ảnh. Chưa gửi gì cả.');
+      const freshInput = () => { const inputs = [...document.querySelectorAll('input[type="file"]')].filter(input => !inputsBefore.has(input) && !input.disabled && (!input.accept || /image|\*|png|jpe?g|webp/i.test(input.accept))); return inputs.pop() || null; };
+      if (!(await waitFor(() => captured || freshInput() || domFileInput(), 4000, signal))) throw flowError('Flow không mở hộp chọn file cho ảnh. Chưa gửi gì cả.');
+      // The picker also lists earlier uploads (such as the previous reference image): those are not this upload.
+      // Let its list finish loading first; Flow waits for the file, so holding it a moment changes nothing.
+      const pickerList = () => (pickerRoot?.isConnected ? [...pickerRoot.querySelectorAll('img')].map(mediaSrc).join('|') : '');
+      for (let last = pickerList(), stable = 0, waited = 0; stable < 1200 && waited < 6000; waited += 300) {
+        await delay(300, signal);
+        const now = pickerList();
+        stable = now === last ? stable + 300 : 0; last = now;
+      }
+      srcBefore = allMediaSources(); elsBefore = new Set(document.querySelectorAll('img, video'));
       if (captured) await sendFileToPage(image, signal);
       else {
-        const input = domFileInput();
+        const input = freshInput() || domFileInput();
         const transfer = new DataTransfer(); transfer.items.add(await dataUrlToFile(image));
         input.files = transfer.files;
         input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -380,15 +446,28 @@
       }
       const agree = firstVisible(SEL.agreeButtons);
       if (agree) await press(agree, signal);
-      const attached = () => [...composerArea(findComposer() || composer).querySelectorAll('img')].some(img => { const src = mediaSrc(img); return src && !before.has(src) && visible(img); });
-      // The upload lands in the asset picker; pick the new item if it is not attached by itself.
-      const newItem = () => clickables().find(el => !composerArea(findComposer() || composer).contains(el) && [...el.querySelectorAll('img')].some(img => { const src = mediaSrc(img); return src && !pageBefore.has(src); }));
+      // Attached = the message box shows one more picture than before (earlier attachments stay).
+      const attached = () => shownImgs(area()).some(img => !boxBefore.has(img) && !boxSrcBefore.has(mediaSrc(img)));
+      // The upload lands in the asset picker; only a picture that is new both as an element and as a link is this upload.
+      const isNew = img => { const src = mediaSrc(img); return src && !srcBefore.has(src) && !elsBefore.has(img) && visible(img) && !area().contains(img); };
+      const named = el => { const words = `${el.getAttribute('alt') || ''} ${labelOf(el)} ${textOf(el.closest(CLICKABLE) || el)}`; return words.includes(image.name); };
+      const newItem = () => {
+        if (pickerRoot?.isConnected) {
+          // Inside the picker any new picture is the upload, even when its tile is a plain <div>.
+          const fresh = [...pickerRoot.querySelectorAll('img')].filter(isNew);
+          const pick = fresh.find(named) || fresh.find(img => /^(blob|data):/.test(mediaSrc(img))) || fresh[0];
+          return pick ? pick.closest(CLICKABLE) || pick : null;
+        }
+        return clickables().find(el => !area().contains(el) && [...el.querySelectorAll('img')].some(isNew));
+      };
       const appeared = await waitFor(() => attached() || newItem(), 90000, signal, 500);
-      if (!appeared) throw flowError('Tải ảnh lên Flow quá 90 giây vẫn chưa xong. Chưa gửi gì cả.');
-      if (!attached()) { const item = newItem(); if (item) await press(item, signal, attached, 3000); }
-      if (!(await waitFor(attached, 10000, signal, 400))) warnings.push(`Uploaded ${image.name}, but could not confirm it is attached to the agent message.`);
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-      await delay(300, signal);
+      if (!appeared) throw flowError(`Tải ảnh ${image.name} lên Flow quá 90 giây vẫn chưa xong. Chưa gửi gì cả.`);
+      if (!attached()) {
+        // Give Flow a moment to attach the upload by itself before picking it, so it is not picked twice.
+        if (!(await waitFor(attached, 1500, signal, 300))) { const item = newItem(); if (item) await press(item, signal, attached, 3000); }
+      }
+      if (!(await waitFor(attached, 10000, signal, 400))) warnings.push(`Đã tải ${image.name} lên Flow nhưng chưa chắc ảnh đã được gắn vào tin nhắn.`);
+      await closePopups(signal, pickerRoot);
     } finally {
       document.documentElement.removeAttribute('data-thekey-upload');
       document.removeEventListener('thekey-flow-file-input', onCaptured);
@@ -405,6 +484,31 @@
     }
     return out;
   }
+  // Flow may show a finished video as a still picture and only load its <video> when the mouse is over it.
+  async function hoverOver(el, signal) {
+    el.scrollIntoView({ block: 'center', inline: 'center' });
+    await delay(150, signal);
+    const rect = el.getBoundingClientRect(), x = Math.round(rect.left + rect.width / 2), y = Math.round(rect.top + rect.height / 2);
+    const options = { bubbles: true, cancelable: true, composed: true, view: window, clientX: x, clientY: y };
+    for (let node = el, depth = 0; node && node !== document.body && depth < 5; node = node.parentElement, depth++) {
+      node.dispatchEvent(new PointerEvent('pointerover', options));
+      node.dispatchEvent(new PointerEvent('pointerenter', { ...options, bubbles: false }));
+      node.dispatchEvent(new MouseEvent('mouseover', options));
+      node.dispatchEvent(new MouseEvent('mouseenter', { ...options, bubbles: false }));
+    }
+    el.dispatchEvent(new MouseEvent('mousemove', options));
+    if (inputMode !== 'dom') await trusted('move', { x, y }).catch(() => {});
+    await delay(1200, signal);
+  }
+  // A real file link next to a video that plays from a stream (blob:), such as its download link.
+  function videoLinkNear(el) {
+    for (let node = el, depth = 0; node && node !== document.body && depth < 6; node = node.parentElement, depth++) {
+      const link = [...node.querySelectorAll('a[href], source[src]')].map(item => item.href || item.src)
+        .find(href => href && !href.startsWith('blob:') && /\.mp4|video|download|googleusercontent|storage\.googleapis/i.test(href));
+      if (link) return link;
+    }
+    return '';
+  }
   async function generateAgent(req, kind, signal) {
     const warnings = [];
     let composer = await openAgentComposer(signal);
@@ -417,12 +521,33 @@
       const type = match[1] || 'image/png';
       await attachAgentImage({ dataUrl: item.image, type, name: `thekey-${item.role}-${index + 1}.${(type.split('/')[1] || 'png').replace('jpeg', 'jpg')}` }, findComposer() || composer, warnings, signal);
     }
+    if (images.length) {
+      if (!findComposer()) await openAgentComposer(signal);
+      // Wait until Flow has finished processing the pictures and unlocks its box.
+      const busy = () => { const c = findComposer(); return !c || !canType(c) || [...composerArea(c).querySelectorAll('[role="progressbar"], mat-progress-spinner, mat-spinner, [class*="spinner"]')].some(visible); };
+      if (!(await waitFor(() => !busy(), 180000, signal, 500))) {
+        const c = findComposer();
+        throw flowError(`Flow vẫn đang xử lý ảnh vừa tải lên sau 3 phút, ô nhập chưa mở lại. Chưa gửi gì cả. ${editorReport(c)}`);
+      }
+      await delay(500, signal);
+    }
     composer = findComposer() || composer;
     const message = fillTemplate(kind, req, images.length);
     await typePrompt(composer, message, signal);
 
     const panel = agentPanel(composer);
     const baselineMedia = new Set(bigMedia(kind).map(item => item.src));
+    const baselineEls = new Set(document.querySelectorAll('video, img'));
+    const hovered = new WeakSet();
+    // What appeared on the page since sending; added to timeout and refusal errors so they can be fixed.
+    const diagnosis = () => {
+      const videos = [...document.querySelectorAll('video')].filter(el => !baselineEls.has(el));
+      const pictures = bigMedia('image').filter(item => !baselineEls.has(item.el));
+      return ` [Chẩn đoán: ${videos.length} video mới (${videos.filter(el => mediaSrc(el)).length} có link${videos.some(el => mediaSrc(el).startsWith('blob:')) ? ', dạng blob' : ''}), ${pictures.length} ảnh mới, đã bấm xác nhận ${confirmations} lần]`;
+    };
+    // Something is being made outside the chat: a progress indicator or any new picture/video on the page.
+    const workingElsewhere = currentPanel => [...document.querySelectorAll('[role="progressbar"], mat-progress-spinner, mat-spinner, [class*="spinner"], [class*="progress"]')].some(el => visible(el) && !currentPanel.contains(el))
+      || [...document.querySelectorAll('video, img')].some(el => !baselineEls.has(el) && visible(el) && !currentPanel.contains(el));
     const baselineButtons = new Set(panelButtons(panel));
     const baselineText = (panel.innerText || '').length;
     const baselineAlerts = new Set(alertTexts());
@@ -455,7 +580,7 @@
     const timeoutMs = Math.min(1800, Math.max(60, Number(req.timeoutSec) || 900)) * 1000;
     const deadline = Date.now() + timeoutMs;
     const clicked = new Set();
-    let confirmations = 0, refusalText = '', refusalSince = 0, panelMediaSince = 0;
+    let confirmations = 0, refusalText = '', refusalSince = 0, panelMediaSince = 0, questionText = '', questionSince = 0;
     while (Date.now() < deadline) {
       if (signal.aborted) throw abortError();
       // Prefer the new result in the main grid; something new only inside the chat (for example the
@@ -467,10 +592,21 @@
         panelMediaSince = panelMediaSince || Date.now();
         if (Date.now() - panelMediaSince > 20000) fresh = newMedia[0];
       }
+      if (!fresh && kind === 'video') {
+        const stills = [...document.querySelectorAll('video, img')].filter(el => !baselineEls.has(el) && !hovered.has(el) && visible(el)
+          && !currentPanelForMedia.contains(el) && el.getBoundingClientRect().width >= 96 && (el.tagName === 'IMG' || !mediaSrc(el)));
+        for (const el of stills.slice(0, 3)) { hovered.add(el); await hoverOver(el, signal); }
+        if (stills.length) continue;
+      }
       if (fresh) {
         await delay(kind === 'video' ? 1500 : 800, signal);
-        const url = mediaSrc(fresh.el) || fresh.src;
-        const copied = await copyLocally(url, kind);
+        let url = mediaSrc(fresh.el) || fresh.src;
+        let copied = await copyLocally(url, kind);
+        if (copied.error && url.startsWith('blob:')) {
+          const link = videoLinkNear(fresh.el);
+          if (link) { url = link; copied = await copyLocally(link, kind); }
+        }
+        if (copied.url.startsWith('blob:')) throw flowError(`Flow đã tạo xong ${kindVi(kind)} nhưng phát nó theo dạng luồng nên TheKey.studio chưa chép ra được. ${kindVi(kind)} vẫn nằm trong dự án Flow của bạn.${diagnosis()}`);
         if (copied.error) warnings.push(copied.error);
         const size = await mediaSize(copied.url, kind);
         return { ok: true, url: copied.url, remoteUrl: url, width: size.width, height: size.height, warnings, trustedInput: usedTrustedInput };
@@ -483,17 +619,23 @@
       }
       const reply = newPanelText().trim();
       const alert = alertTexts().find(text => !baselineAlerts.has(text)) || '';
+      if (BLOCKED_RX.test(reply) || BLOCKED_RX.test(alert)) throw flowError('Google Flow đã chặn lượt này vì phát hiện "hoạt động bất thường" (tiện ích điều khiển trang). TheKey.studio đã dừng cả lượt chạy và không thử lại. Đừng bấm chạy liên tục; nếu Flow vẫn báo như vậy, hãy tạm nghỉ hoặc chuyển sang Gemini API trong Cài đặt.', 'FLOW_BLOCKED');
       if (CREDIT_RX.test(reply) || CREDIT_RX.test(alert)) throw flowError(`Flow: ${(alert || reply).slice(-300)}`, 'NO_CREDITS');
       if (POLICY_RX.test(alert)) throw flowError(`Flow từ chối câu lệnh này: ${alert}`, 'SCENE_REFUSED');
       // The agent answered in words that it cannot make this; wait until its reply stops changing.
       if (POLICY_RX.test(reply)) {
         if (reply !== refusalText) { refusalText = reply; refusalSince = Date.now(); }
-        else if (Date.now() - refusalSince > 10000) throw flowError(`Trợ lý Flow không tạo ${kindVi(kind)} này: "${reply.slice(-300)}"`, 'SCENE_REFUSED');
+        else if (Date.now() - refusalSince > (kind === 'video' ? 45000 : 10000)) throw flowError(`Trợ lý Flow không tạo ${kindVi(kind)} này: "${reply.slice(-300)}"${diagnosis()}`, 'SCENE_REFUSED');
+      }
+      // The agent asked something back (no approve button to press) and is waiting: say so instead of waiting out the timeout.
+      else if (!confirmations && reply.slice(-400).includes('?') && !workingElsewhere(currentPanel)) {
+        if (reply !== questionText) { questionText = reply; questionSince = Date.now(); }
+        else if (Date.now() - questionSince > 60000) throw flowError(`Trợ lý Flow hỏi lại thay vì tạo ${kindVi(kind)}: "${reply.slice(-300)}". TheKey.studio không tự trả lời. Bạn có thể trả lời ngay trong tab Flow (kết quả sẽ nằm trong dự án Flow), hoặc sửa node rồi chạy lại.`, 'AGENT_QUESTION');
       }
       await delay(1000, signal);
     }
     const last = newPanelText().trim().slice(-300);
-    throw flowError(`Đã chờ ${Math.round(timeoutMs / 1000)} giây mà Flow chưa trả ${kindVi(kind)} mới. Tin nhắn chỉ gửi một lần. Lời cuối của trợ lý Flow: "${last}"`, POLICY_RX.test(last) ? 'SCENE_REFUSED' : 'TIMEOUT');
+    throw flowError(`Đã chờ ${Math.round(timeoutMs / 1000)} giây mà Flow chưa trả ${kindVi(kind)} mới. Tin nhắn chỉ gửi một lần. Lời cuối của trợ lý Flow: "${last}"${diagnosis()}`, POLICY_RX.test(last) ? 'SCENE_REFUSED' : 'TIMEOUT');
   }
   function findSubmit() {
     return firstVisible(SEL.submitButtons || []) || withIcon(SEL.submitIcons, SEL.submitScopes)[0] || null;

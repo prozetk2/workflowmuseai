@@ -276,7 +276,7 @@
     scenes.forEach((scene,index)=>{
       const column=index%4,row=Math.floor(index/4),x=80+column*650,y=baseY+row*1100,label=`Scene ${scene.number}${scene.title?`: ${scene.title}`:''}`;
       let imageNode=null,videoNode=null;
-      if(scene.imagePrompt){const prompt=makeNode('prompt',x,y);prompt.data={text:scene.imagePrompt,sceneLabel:label};const image=makeNode('generateImage',x+330,y);image.data={model:'',size:scene.size,status:'idle',sceneLabel:label};state.nodes.push(prompt,image);state.edges.push({id:uid('edge'),source:prompt.id,sourcePort:'text',target:image.id,targetPort:'prompt'});imageNode=image;made+=2;}
+      if(scene.imagePrompt){const prompt=makeNode('prompt',x,y);prompt.data={text:scene.imagePrompt,sceneLabel:label};const image=makeNode('generateImage',x+330,y);image.data={model:'',size:scene.size,status:'idle',outputRole:'startFrame',sceneLabel:label};state.nodes.push(prompt,image);state.edges.push({id:uid('edge'),source:prompt.id,sourcePort:'text',target:image.id,targetPort:'prompt'});imageNode=image;made+=2;}
       if(scene.videoPrompt){const prompt=makeNode('prompt',x,y+540);prompt.data={text:scene.videoPrompt,sceneLabel:label};const requestedDuration=[4,6,8].reduce((best,value)=>Math.abs(value-scene.seconds)<Math.abs(best-scene.seconds)?value:best,8);videoNode=makeNode('generateVideo',x+330,y+540);videoNode.data={model:'',size:videoAspect(scene.size),duration:requestedDuration,referenceMode:'firstFrame',continuity:createdVideos.length>0,status:'idle',sceneLabel:label};state.nodes.push(prompt,videoNode);state.edges.push({id:uid('edge'),source:prompt.id,sourcePort:'text',target:videoNode.id,targetPort:'prompt'});if(imageNode)state.edges.push({id:uid('edge'),source:imageNode.id,sourcePort:'image',target:videoNode.id,targetPort:'reference'});made+=2;createdVideos.push({node:videoNode,seconds:scene.seconds});}
     });
     let references=state.nodes.find(node=>node.type==='references');if(!references){const minX=Math.min(80,...state.nodes.filter(node=>!node.data?.dockOnly).map(node=>node.x));references=makeNode('references',minX-360,baseY);references.data={};state.nodes.push(references);made++;}syncReferenceFanOut(references);
@@ -1077,7 +1077,7 @@
           try{
 const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenceImages,continuityStartFrame},abortController.signal);
             if(abortController.signal.aborted)throw new DOMException('Đã dừng theo yêu cầu.','AbortError');
-            if(!reply?.ok)throw new Error(reply?.error||`Không nhận được ${isVideo?'video':'ảnh'}.`);
+            if(!reply?.ok)throw Object.assign(new Error(reply?.error||`Không nhận được ${isVideo?'video':'ảnh'}.`),{code:reply?.code||''});
             const kind=isVideo?'video':'image';
             const url=isVideo?await persistVideo(reply.url):await persistImage(reply.url);
             if(!url)throw new Error(`Kết quả trả về bị rỗng.`);
@@ -1094,6 +1094,8 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
           }catch(err){if(err?.name==='AbortError'||abortController.signal.aborted){n.data.status='stopped';n.data.error='Đã dừng theo yêu cầu.';render();throw new DOMException('Đã dừng theo yêu cầu.','AbortError');}n.data.status='error';n.data.error=err?.message||String(err);render();throw err;}
           }catch(err){
             if(targetId||err?.name==='AbortError'||abortController.signal.aborted)throw err;
+            // Flow blocked the session or ran out of credits: stop the whole run instead of sending more requests.
+            if(['FLOW_BLOCKED','NO_CREDITS'].includes(err?.code)){failed.add(n.id);throw err;}
             failed.add(n.id);if(n.data.status!=='error'){n.data.status='error';n.data.error=err?.message||String(err);render();}
             setRunStatus(`${n.data.customName||n.id} bị lỗi; tiếp tục các node còn lại…`,'warn');
           }
@@ -1111,7 +1113,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
       const failed=state.nodes.find(n=>['generateImage','generateVideo'].includes(n.type)&&n.data.status==='running');
       if(failed){failed.data.status='error';failed.data.error=err?.message||String(err);render();}
       const message=err?.message||String(err);
-      setRunStatus(/failed to fetch/i.test(message)?'Không kết nối được với tab Flow. Hãy tải lại TheKey.studio Flow rồi kiểm tra tab Flow.':'TheKey.studio Flow 0.3.0 · '+message,'error');
+      setRunStatus(/failed to fetch/i.test(message)?'Không kết nối được với tab Flow. Hãy tải lại TheKey.studio Flow rồi kiểm tra tab Flow.':'TheKey.studio Flow 0.3.7 · '+message,'error');
       try{clearTimeout(autoSaveTimer);await queueWorkflowSave();}catch(saveError){setRunStatus(`${runStatus.textContent} · Tự lưu thất bại: ${saveError?.message||String(saveError)}`,'error');}
     }
     finally{state.isRunning=false;state.activeGenerationId=null;state.generationAbortController=null;state.generationRequestId=null;$('#runBtn').disabled=false;$('#runBtn').textContent='▶ Chạy tất cả';$('#runBtn').title='Chạy mọi node theo đúng thứ tự nối dây';render();}
@@ -1143,12 +1145,15 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
     let firstFrame=continuityStartFrame?.url||'',items=[];
     if(isVideo){
       if(!firstFrame&&startItems.length)firstFrame=startItems[0].url;
-      const plainAsStart=!firstFrame&&plain.length&&(n.data.referenceMode||'firstFrame')==='firstFrame';
-      if(plainAsStart){firstFrame=plain[0].url;if(plain.length>1)warnings.push(`Chỉ ảnh đầu tiên trong ${plain.length} ảnh không có vai trò được dùng làm khung đầu.`);}
-      items=[...characterItems,...roleItems,...(plainAsStart?[]:plain)];
+      items=[...characterItems,...roleItems,...plain];
+      // Veo (Flow and Gemini API) animates either one start frame or a set of reference images, never both.
+      if(!firstFrame&&plain.length&&(n.data.referenceMode||'firstFrame')==='firstFrame'){
+        if(items.length===1){firstFrame=plain[0].url;items=[];}
+        else warnings.push(`Có ${items.length} ảnh nên cả ${items.length} ảnh được gửi làm ảnh tham chiếu. Veo không dùng khung đầu cùng lúc với ảnh tham chiếu.`);
+      }
+      if(firstFrame&&items.length){warnings.push(`Video bắt đầu từ khung đầu nên ${items.length} ảnh tham chiếu không được gửi kèm (Veo không dùng khung đầu cùng lúc với ảnh tham chiếu).`);items=[];}
     }else items=[...characterItems,...roleItems,...plain,...startItems];
-    if(provider==='api'&&isVideo&&firstFrame&&items.length){warnings.push(`Gemini API không gửi được khung đầu cùng ảnh tham chiếu, nên ${items.length} ảnh tham chiếu chỉ được mô tả bằng chữ.`);items=[];}
-    const maxRefs=provider==='api'?3:5;
+    const maxRefs=provider==='api'||isVideo?3:5;
     if(items.length>maxRefs){warnings.push(`Mỗi cảnh gửi tối đa ${maxRefs} ảnh tham chiếu; đã gửi ${maxRefs} ảnh đầu trong ${items.length} ảnh.`);items=items.slice(0,maxRefs);}
     const references=items.map(item=>item.url);
     const roleText=item=>item.role==='character'?`the character ${item.name}: keep exactly this person (same face, hair, body and outfit)`:IMAGE_ROLES[item.role]?.prompt||'a reference image';
@@ -1282,7 +1287,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
         }catch{externalMedia++;return url;}
       };
       for(const node of workflow.nodes){const data=node.data||{};if(data.localDataUrl)data.localDataUrl=await packageUrl(data.localDataUrl);for(const field of ['asset','endFrame'])if(data[field]?.url)data[field].url=await packageUrl(data[field].url);}
-      const file={format:'26flow-workflow',version:1,appVersion:'flow-0.3.0',exportedAt:new Date().toISOString(),workflow};
+      const file={format:'26flow-workflow',version:1,appVersion:'flow-0.3.7',exportedAt:new Date().toISOString(),workflow};
       const blob=new Blob([JSON.stringify(file)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`TheKey-Workflow-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
       setRunStatus(externalMedia?`Đã lưu file; ${externalMedia} ảnh/video không nhúng được vào file và cần phiên Flow gốc để mở.`:'Đã lưu workflow kèm ảnh/video.','ok');
     }catch(error){setRunStatus(`Không lưu được file workflow: ${error?.message||String(error)}`,'error');}
@@ -1308,7 +1313,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
   function toggleProviderFields(){const provider=$('#providerSelect').value==='api'?'api':'flow';document.querySelectorAll('[data-provider]').forEach(el=>el.classList.toggle('hidden',el.dataset.provider!==provider));}
   function syncSettingsUI(){
     const s=state.settings||{};
-    backendStatus.textContent=providerName()==='api'?'Tạo bằng: Gemini API (Veo) · v0.3.0':'Tạo bằng: tab Google Flow · v0.3.0';
+    backendStatus.textContent=providerName()==='api'?'Tạo bằng: Gemini API (Veo) · v0.3.7':'Tạo bằng: tab Google Flow · v0.3.7';
     $('#providerSelect').value=providerName();$('#inputModeSelect').value=s.inputMode||'auto';$('#timeoutSelect').value=String(s.timeoutSec||900);
     $('#flowVideoModel').value=s.flowVideoModel||'';$('#flowImageModel').value=s.flowImageModel||'';$('#flowSelectors').value=s.flowSelectors||'';
     $('#apiVideoModel').value=s.apiVideoModel||'veo-3.1-fast-generate-preview';$('#apiImageModel').value=s.apiImageModel||'gemini-nano-banana-2.1';$('#apiResolution').value=s.apiResolution||'720p';
@@ -1350,7 +1355,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
     const videoPrompt=makeNode('prompt',x+320,y+400);videoPrompt.data={text:'Người mẫu bước chậm về phía máy quay rồi xoay người khoe trọn bộ trang phục, vải chuyển động tự nhiên, máy quay lia nhẹ, ánh sáng studio, phong cách quảng cáo thời trang cao cấp.'};
     const video=makeNode('generateVideo',x+960,y+400);video.data={model:'',size:'9:16',duration:8,continuity:false,status:'idle',referenceMode:'firstFrame',customName:'Tạo video · Quảng cáo'};
     state.nodes.push(model,outfit,photoPrompt,photo,videoPrompt,video);
-    state.edges.push(edge(model,'image',photo,'reference'),edge(outfit,'image',photo,'reference'),edge(photoPrompt,'text',photo,'prompt'),edge(photo,'image',video,'reference'),edge(outfit,'image',video,'reference'),edge(videoPrompt,'text',video,'prompt'));
+    state.edges.push(edge(model,'image',photo,'reference'),edge(outfit,'image',photo,'reference'),edge(photoPrompt,'text',photo,'prompt'),edge(photo,'image',video,'reference'),edge(videoPrompt,'text',video,'prompt'));
     render();const rect=$('#viewport').getBoundingClientRect();if(rect.width){state.zoom=Math.max(.35,Math.min(state.zoom,(rect.width-80)/1300));state.panX=40-x*state.zoom;state.panY=40-y*state.zoom;applyCanvasTransform();}saveState();
     setRunStatus('Đã thêm mẫu Quảng cáo thời trang: thả ảnh người mẫu và ảnh trang phục vào 2 node Ảnh đầu vào, rồi bấm Chạy tất cả.','ok');
   }

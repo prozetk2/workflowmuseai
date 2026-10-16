@@ -40,6 +40,10 @@ async function runCdp(tabId, message) {
     await chrome.debugger.sendCommand(target, 'Input.dispatchMouseEvent', { type: 'mouseReleased', ...base, button: 'left', buttons: 0, clickCount: 1 });
     return;
   }
+  if (message.op === 'move') {
+    await chrome.debugger.sendCommand(target, 'Input.dispatchMouseEvent', { type: 'mouseMoved', x: message.x, y: message.y, modifiers: 0, button: 'none' });
+    return;
+  }
   if (message.op === 'insertText') {
     await chrome.debugger.sendCommand(target, 'Input.insertText', { text: String(message.text || '') });
     return;

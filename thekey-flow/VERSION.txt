@@ -1,3 +1,3 @@
-TheKey.studio Flow 0.3.0
+TheKey.studio Flow 0.3.7
 Build type: Chrome Extension Manifest V3, zero dependency
 Integration: signed-in Google Flow tab (flow.google.com) or the Gemini API (Veo); no local backend

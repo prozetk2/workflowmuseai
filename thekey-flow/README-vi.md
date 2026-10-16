@@ -20,7 +20,7 @@ Nếu bạn đã cài TheKey.studio (bản muse.ai), hai bản chạy song song 
 
 ## Khác bản muse.ai ở đâu
 
-- Video: chỉ 16:9 hoặc 9:16, dài 4, 6 hoặc 8 giây. Mỗi cảnh nhận tối đa 5 ảnh khi tạo qua tab Flow, tối đa 3 ảnh khi dùng Gemini API (khi đó clip luôn dài 8 giây).
+- Video: chỉ 16:9 hoặc 9:16, dài 4, 6 hoặc 8 giây. Tạo ảnh trên Flow nhận tối đa 5 ảnh; tạo video nhận tối đa 3 ảnh tham chiếu (qua Gemini API thì clip có ảnh tham chiếu luôn dài 8 giây). Video dùng hoặc 1 khung đầu, hoặc các ảnh tham chiếu (Reference-to-Video), không dùng cả hai cùng lúc.
 - Mỗi node Ảnh đầu vào có ô "Ảnh này là:" (người mẫu, trang phục, sản phẩm, bối cảnh, phong cách, khung đầu video). Mẫu "👗 Quảng cáo thời trang" ở cột trái dựng sẵn quy trình người mẫu + trang phục → ảnh 9:16 → video 8 giây.
 - Node Generate Video có thêm ô **Model** và ô **Images → start frame / ingredients**.
 - Continuity dùng khung cuối của clip trước làm **khung đầu** (Frames to Video), không còn là lời dặn trong prompt.
