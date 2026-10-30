@@ -6,9 +6,22 @@
 
 **TheKey.studio** là tiện ích mở rộng tạo quy trình trực quan bằng phiên Muse.ai bạn đã đăng nhập. Bạn có thể nối các node trên canvas, tạo ảnh/video và sắp xếp clip video trên timeline.
 
-**Bản Google Flow:** thư mục `thekey-flow/` là **TheKey.studio Flow**, một extension riêng tạo ảnh/video qua Google Flow (Veo) hoặc Gemini API. Cài bằng cách Load unpacked thư mục đó; xem `thekey-flow/README-vi.md`.
-
 **Hướng dẫn chi tiết:** trong app, bấm nút **📖 Hướng dẫn** trên thanh công cụ (hoặc mở file `guide.html`).
+
+### Có gì mới ở 0.6.0
+
+Đưa các nâng cấp của TheKey.studio Flow sang bản Muse.ai:
+
+- Giao diện và thông báo lỗi bằng tiếng Việt, hướng dẫn 18 mục (nút 📖 Hướng dẫn).
+- Cột node bên trái, thu gọn được.
+- Kéo thả hoặc dán (Ctrl+V) ảnh vào canvas để tạo node Ảnh đầu vào.
+- Vai trò ảnh "Ảnh này là:" (người mẫu, trang phục, sản phẩm, bối cảnh, phong cách, khung đầu video); app nói với Muse ảnh nào là gì.
+- Node 🔒 Khóa nhân vật: giữ một nhân vật giống nhau ở mọi cảnh.
+- Mẫu có sẵn 👗 Quảng cáo thời trang.
+- Hết credit Muse thì dừng cả lượt chạy ngay.
+- Cài đặt: chọn thời gian chờ tối đa mỗi lượt tạo.
+
+Workflow cũ (0.5.x) vẫn mở được bình thường.
 
 ### Tính năng
 

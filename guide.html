@@ -10,160 +10,281 @@
 <body>
 <header class="top">
   <img src="icons/thekey-logo.png" alt="" />
-  <div><h1>Hướng dẫn sử dụng TheKey.studio</h1><p>Từ ý tưởng đến video hoàn chỉnh bằng tài khoản Muse.ai của bạn</p></div>
+  <div><h1>Hướng dẫn sử dụng TheKey.studio</h1><p>Từ ý tưởng đến video hoàn chỉnh bằng Muse.ai</p></div>
 </header>
 
 <div class="layout">
 <nav class="toc" aria-label="Mục lục">
   <strong>Mục lục</strong>
   <a href="#gioi-thieu">1. TheKey.studio là gì</a>
-  <a href="#chuan-bi">2. Chuẩn bị và cài đặt</a>
+  <a href="#chuan-bi">2. Cài đặt và chuẩn bị Muse</a>
   <a href="#giao-dien">3. Làm quen giao diện</a>
-  <a href="#bat-dau">4. Video đầu tiên trong 5 phút</a>
+  <a href="#bat-dau">4. Ảnh và video đầu tiên</a>
   <a href="#node">5. Các loại node</a>
-  <a href="#noi-day">6. Nối dây giữa các node</a>
-  <a href="#thao-tac">7. Thao tác trên canvas và phím tắt</a>
-  <a href="#kich-ban">8. Làm phim nhiều cảnh từ kịch bản</a>
-  <a href="#lien-mach">9. Giữ nhân vật và cảnh liền mạch</a>
-  <a href="#timeline">10. Timeline và xuất video</a>
-  <a href="#chay">11. Chạy, dừng, tạo lại</a>
-  <a href="#luu">12. Lưu và chia sẻ workflow</a>
-  <a href="#prompt">13. Bí quyết viết prompt</a>
-  <a href="#y-tuong">14. Ý tưởng sáng tạo có sẵn công thức</a>
-  <a href="#su-co">15. Xử lý sự cố</a>
-  <a href="#hoi-dap">16. Câu hỏi thường gặp</a>
+  <a href="#noi-day">6. Nối dây và thao tác canvas</a>
+  <a href="#anh-dau-vao">7. Đưa ảnh vào và chọn vai trò</a>
+  <a href="#thoi-trang">8. Mẫu Quảng cáo thời trang</a>
+  <a href="#khoa-nhan-vat">9. Khóa nhân vật</a>
+  <a href="#kich-ban">10. Video dài nhiều cảnh</a>
+  <a href="#timeline">11. Timeline và xuất video</a>
+  <a href="#chay">12. Chạy, dừng, tạo lại</a>
+  <a href="#luu">13. Lưu và chia sẻ workflow</a>
+  <a href="#cai-dat">14. Cài đặt</a>
+  <a href="#prompt">15. Bí quyết viết câu lệnh</a>
+  <a href="#y-tuong">16. Ý tưởng sáng tạo có sẵn công thức</a>
+  <a href="#su-co">17. Xử lý sự cố</a>
+  <a href="#hoi-dap">18. Câu hỏi thường gặp</a>
 </nav>
 
 <main>
-
 <section id="gioi-thieu">
 <h2>1. TheKey.studio là gì</h2>
-<p>TheKey.studio là một "bàn dựng" trực quan chạy ngay trong trình duyệt Chrome. Bạn đặt các <b>node</b> (khối chức năng) lên canvas, nối chúng lại thành một quy trình, rồi bấm chạy. TheKey.studio sẽ tự gõ prompt vào tab chat Muse.ai của bạn, chờ Muse tạo ảnh hoặc video, lấy kết quả về và xếp lên Timeline để ghép thành phim.</p>
+<p>TheKey.studio (make by Cos_alpha) là một bàn dựng dạng sơ đồ, chạy ngay trong một tab Chrome. Bạn đặt các <b>node</b> (khối chức năng) lên canvas, nối chúng lại thành một quy trình, rồi bấm <b>▶ Chạy tất cả</b>.</p>
+<p>Extension tự gõ câu lệnh và gắn ảnh vào tab chat <b>Muse.ai</b> bạn đã đăng nhập, chờ Muse tạo ảnh hoặc video, rồi lấy kết quả về đúng node. Video xong thì bạn xếp lên <b>Timeline</b> và xuất thành một file MP4 hoặc WebM.</p>
 <ul>
-  <li>Không cần API key, không cần máy chủ: mọi thứ dùng chính phiên Muse.ai bạn đã đăng nhập.</li>
-  <li>Không cần biết lập trình: chỉ kéo, thả và nối dây.</li>
-  <li>Ghép phim MP4 ngay trên máy bạn, video không bị gửi đi đâu khác.</li>
+  <li>Không cần biết lập trình. Chỉ kéo, thả và nối dây.</li>
+  <li>Không cần API key, không cần máy chủ: dùng chính phiên Muse.ai của bạn.</li>
+  <li>Phim được ghép ngay trên máy bạn.</li>
 </ul>
-<p class="note"><b>Lưu ý:</b> mỗi lượt tạo ảnh hoặc video đều dùng credit trong tài khoản Muse.ai của bạn. Kết quả cuối cùng (nội dung, tỷ lệ khung hình, âm thanh) do Muse.ai quyết định.</p>
+<p class="note"><b>Lưu ý:</b> mỗi lượt tạo ảnh hoặc video đều dùng credit trong tài khoản Muse.ai của bạn. Kết quả cuối cùng (nội dung, tỉ lệ khung hình, âm thanh) do Muse.ai quyết định. Hãy thử một cảnh trước khi chạy cả kịch bản.</p>
 </section>
 
 <section id="chuan-bi">
-<h2>2. Chuẩn bị và cài đặt</h2>
+<h2>2. Cài đặt và chuẩn bị Muse</h2>
 <h3>Bạn cần có</h3>
 <ul>
-  <li>Trình duyệt Google Chrome (hoặc Edge, Brave, Cốc Cốc… nền Chromium).</li>
+  <li>Google Chrome (hoặc Edge, Brave, Cốc Cốc… nền Chromium) trên máy tính.</li>
+  <li>Thư mục <code>TheKey-studio-extension</code> (đã giải nén).</li>
   <li>Một tài khoản Muse.ai còn credit tạo ảnh/video.</li>
 </ul>
-<h3>Cài extension (chỉ làm một lần)</h3>
-<ol>
-  <li>Giải nén file <code>TheKey-studio-extension.zip</code> vào một thư mục cố định, ví dụ <code>C:\TheKey.studio</code>. Đừng xóa thư mục này sau khi cài.</li>
-  <li>Mở trang <code>chrome://extensions</code>.</li>
-  <li>Bật <b>Developer mode</b> (Chế độ nhà phát triển) ở góc trên bên phải.</li>
-  <li>Bấm <b>Load unpacked</b> (Tải tiện ích đã giải nén) và chọn thư mục có chứa file <code>manifest.json</code>.</li>
-  <li>Bấm biểu tượng mảnh ghép trên thanh Chrome và ghim (📌) TheKey.studio để mở nhanh.</li>
+<h3>Cài lần đầu</h3>
+<ol class="steps">
+  <li>Đặt thư mục <code>TheKey-studio-extension</code> ở một chỗ cố định, ví dụ <code>C:\TheKey.studio</code>. Đừng xóa hay đổi tên thư mục này sau khi cài.</li>
+  <li>Mở Chrome, gõ <code>chrome://extensions</code> vào thanh địa chỉ rồi nhấn <kbd>Enter</kbd>.</li>
+  <li>Bật <b>Chế độ dành cho nhà phát triển</b> ở góc trên bên phải.</li>
+  <li>Bấm <b>Tải tiện ích đã giải nén</b> và chọn thư mục <code>TheKey-studio-extension</code> (thư mục có file <code>manifest.json</code>).</li>
+  <li>Bấm biểu tượng mảnh ghép trên thanh Chrome và ghim (📌) TheKey.studio cho dễ tìm.</li>
 </ol>
 <h3>Mỗi lần sử dụng</h3>
-<ol>
+<ol class="steps">
   <li>Mở <b>muse.ai</b>, đăng nhập và vào trang chat (nơi có ô nhập tin nhắn).</li>
-  <li>Bấm biểu tượng α của TheKey.studio. Canvas mở trong một tab mới.</li>
-  <li>Nhìn thanh trạng thái ngay dưới thanh công cụ. Dòng <span class="ok">● Muse session ready</span> nghĩa là đã sẵn sàng.</li>
+  <li>Bấm biểu tượng <b>α màu cam</b>. App mở ra trong một tab mới.</li>
+  <li>Nhìn dòng trạng thái dưới thanh trên cùng. Chấm xanh <span class="ok">●</span> <b>Muse sẵn sàng</b> là xong. Nếu chưa, vào <b>Cài đặt</b> và bấm <b>Kiểm tra phiên Muse</b>.</li>
 </ol>
-<p class="tip"><b>Mẹo:</b> kéo tab TheKey.studio ra thành cửa sổ riêng. Trên Windows, nhấn <kbd>Win</kbd> + <kbd>←</kbd> cho cửa sổ TheKey.studio và <kbd>Win</kbd> + <kbd>→</kbd> cho cửa sổ Muse.ai để xem cả hai cùng lúc. Bạn sẽ thấy Muse đang làm gì trong lúc workflow chạy.</p>
-<p class="note"><b>Khi cập nhật bản mới:</b> chép đè file mới vào thư mục cũ, vào <code>chrome://extensions</code> bấm <b>Reload</b> (↻) ở TheKey.studio, rồi tải lại tab Muse.ai.</p>
+<h3>Khi cập nhật bản mới</h3>
+<ol>
+  <li>Chép đè các file mới vào đúng thư mục cũ.</li>
+  <li>Vào <code>chrome://extensions</code>, bấm nút <b>Reload</b> (mũi tên tròn ↻) ở TheKey.studio.</li>
+  <li>Nhấn <kbd>F5</kbd> ở <b>cả hai tab</b>: tab app và tab Muse.ai.</li>
+</ol>
+<p class="tip"><b>Mẹo:</b> kéo tab app ra cửa sổ riêng. Trên Windows, nhấn <kbd>Win</kbd> + <kbd>←</kbd> cho cửa sổ app và <kbd>Win</kbd> + <kbd>→</kbd> cho cửa sổ Muse để xem Muse đang làm gì. Trong lúc chạy, đừng gõ vào ô chat của Muse. Workflow được lưu trong trình duyệt nên cập nhật không làm mất bài; cho chắc, hãy bấm <b>Lưu file workflow</b> trước khi cập nhật.</p>
 </section>
 
 <section id="giao-dien">
 <h2>3. Làm quen giao diện</h2>
 <div class="grid">
-  <div class="card"><h4>Thanh công cụ (trên cùng)</h4><p>Các nút <b>+ Prompt</b>, <b>+ Generate Image</b>… để thêm node. Bên phải là <b>Save</b>, <b>Save workflow</b>, <b>Import workflow</b>, <b>Settings</b>, <b>Reset</b>, <b>📖 Hướng dẫn</b> và nút lớn <b>▶ Run workflow</b>.</p></div>
-  <div class="card"><h4>Thanh trạng thái</h4><p>Bên trái là tình trạng kết nối Muse. Bên phải là thông báo mới nhất: đang tạo node nào, lỗi gì, đã lưu chưa. Hãy liếc nhìn dòng này mỗi khi bấm nút.</p></div>
-  <div class="card"><h4>Canvas (giữa màn hình)</h4><p>Nơi đặt và nối các node. Góc trên bên phải có công cụ ✋ (kéo canvas), ▱ (vẽ nhóm), − / + (thu phóng) và <b>Fit</b> (thu gọn để thấy mọi node).</p></div>
-  <div class="card"><h4>Timeline (dưới cùng)</h4><p>Bấm ▲ để mở. Đây là nơi xếp các clip video theo thứ tự, chỉnh thời lượng, xem trước và xuất phim.</p></div>
+  <div class="card"><h4>Thanh trên cùng</h4><p>Logo, rồi các nút <b>Lưu</b>, <b>Lưu file workflow</b>, <b>Mở file workflow</b>, <b>Cài đặt</b>, <b>Làm mới</b>. Nút lớn <b>▶ Chạy tất cả</b> chạy cả quy trình. <b>📖 Hướng dẫn</b> mở trang này. <b>✦ The Key studio</b> mở lời giới thiệu.</p></div>
+  <div class="card"><h4>Dòng trạng thái</h4><p>Ngay dưới thanh trên cùng. Bên trái cho biết Muse đã sẵn sàng chưa. Bên phải là tin mới nhất: đang chạy node nào, lỗi gì (chữ đỏ), đã lưu chưa. Hãy liếc dòng này mỗi khi bấm nút.</p></div>
+  <div class="card"><h4>Cột node (bên trái)</h4><p>Bấm một nút để thêm node. Trên cùng là <b>📜 Kịch bản → Cảnh</b>. Bên dưới chia nhóm: Văn bản, Hình ảnh đầu vào, Nhân vật, Tạo trên Muse, Xem &amp; xuất, Mẫu có sẵn. Bấm <b>« Thu gọn</b> để thu cột lại chỉ còn biểu tượng.</p></div>
+  <div class="card"><h4>Canvas (giữa màn hình)</h4><p>Nơi đặt và nối các node. Góc trên bên phải có ✋ (kéo canvas), ▱ (vẽ nhóm), − / + (thu phóng) và <b>Vừa</b> (Fit, để thấy mọi node). Chuột phải vào chỗ trống để mở menu.</p></div>
+  <div class="card"><h4>Timeline (dưới cùng)</h4><p>Bấm ▲ để mở. Có các nút <b>＋ Thêm tất cả video</b>, <b>＋ Thêm clip</b>, <b>▶ Xem thử</b>, ô chọn WebM / MP4 và <b>⇩ Xuất</b>.</p></div>
 </div>
 </section>
 
 <section id="bat-dau">
-<h2>4. Video đầu tiên trong 5 phút</h2>
-<p>Lần đầu mở, canvas đã có sẵn 3 node mẫu: <b>Prompt → Generate Image → Preview</b>. Ta sẽ biến nó thành một video ngắn.</p>
+<h2>4. Ảnh và video đầu tiên</h2>
+<p>Lần đầu mở, canvas có sẵn 3 node: <b>Câu lệnh → Tạo ảnh → Xem trước</b>. Ta sẽ làm một ảnh, rồi biến nó thành video.</p>
 <ol class="steps">
-  <li><b>Viết ý tưởng.</b> Bấm vào ô chữ trong node <b>Prompt</b>, xóa nội dung mẫu và gõ, ví dụ: <span class="ex">Một chú mèo cam ngồi bên cửa sổ ngày mưa, ánh đèn vàng ấm, phong cách phim hoạt hình</span></li>
-  <li><b>Chọn khung hình.</b> Trong node <b>Generate Image</b>, chọn <i>Landscape 16:9</i> (ngang, hợp YouTube) hoặc <i>Portrait 9:16</i> (dọc, hợp TikTok/Reels).</li>
-  <li><b>Tạo ảnh.</b> Bấm <b>▶ Run Image</b> trên node. Trạng thái chuyển thành <i>running</i>; sau khi Muse trả ảnh, node báo <i>success</i> và hiện ảnh. Node Preview cũng hiện ảnh đó.</li>
-  <li><b>Thêm video.</b> Bấm <b>+ Generate Video</b> trên thanh công cụ. Kéo từ chấm tròn bên phải node Prompt (cổng <i>text</i>) sang chấm <i>prompt</i> bên trái node Generate Video. Kéo tiếp từ cổng <i>image</i> của Generate Image sang cổng <i>reference</i> của Generate Video.</li>
-  <li><b>Chọn thời lượng</b> (5, 6, 8 hoặc 10 giây) và tỷ lệ khung hình trên node video, rồi bấm <b>▶ Run Video</b>.</li>
-  <li><b>Đưa vào Timeline.</b> Bấm nút <b>⠿ Drag output to Timeline</b> trên node video (bấm hoặc kéo đều được). Mở Timeline bằng nút ▲ ở góc dưới bên phải.</li>
-  <li><b>Xuất phim.</b> Ở Timeline chọn <b>MP4 (H.264)</b> rồi bấm <b>⇩ Export</b>. File được tải về thư mục Downloads.</li>
+  <li><b>Kiểm tra Muse.</b> Tab chat Muse đang mở và dòng trạng thái báo sẵn sàng (xem mục 2).</li>
+  <li><b>Viết ý tưởng.</b> Bấm vào ô chữ trong node <b>Câu lệnh</b>, xóa chữ mẫu và gõ, ví dụ: <span class="ex">Một chú mèo cam ngồi bên cửa sổ ngày mưa, ánh đèn vàng ấm, phong cách phim hoạt hình</span></li>
+  <li><b>Chọn khung hình.</b> Trong node <b>Tạo ảnh</b>, chọn tỉ lệ <b>9:16</b> (dọc, hợp TikTok/Reels) hoặc <b>16:9</b> (ngang, hợp YouTube). Định làm video từ ảnh này thì chọn luôn tỉ lệ của video.</li>
+  <li><b>Tạo ảnh.</b> Bấm nút chạy ▶ trên node <b>Tạo ảnh</b>. App gửi câu lệnh sang tab Muse và Muse bắt đầu làm. Xong, ảnh hiện trong node và trong <b>Xem trước</b>.</li>
+  <li><b>Thêm video.</b> Ở cột node, bấm <b>🎬 Tạo video</b>. Thêm một <b>✏️ Câu lệnh</b> mới để tả chuyển động, ví dụ <span class="ex">Chú mèo quay đầu nhìn ra cửa sổ, mưa rơi chậm, máy quay đẩy nhẹ vào</span></li>
+  <li><b>Nối dây.</b> Kéo từ chấm bên phải của Câu lệnh mới sang chấm <i>câu lệnh</i> của Tạo video. Kéo từ chấm bên phải của Tạo ảnh sang chấm <i>ảnh tham chiếu</i> của Tạo video.</li>
+  <li><b>Chỉnh video.</b> Trên node Tạo video, chọn cùng tỉ lệ với ảnh và độ dài (5, 6, 8 hoặc 10 giây). Ảnh vừa tạo được gửi kèm làm ảnh tham chiếu.</li>
+  <li><b>Chạy.</b> Bấm <b>▶ Chạy tất cả</b>. Ảnh đã xong được giữ nguyên, chỉ video được tạo.</li>
+  <li><b>Xuất phim.</b> Bấm ▲ ở đáy màn hình để mở Timeline. Bấm <b>＋ Thêm tất cả video</b>, chọn <b>MP4</b> rồi bấm <b>⇩ Xuất</b>. File nằm trong thư mục Downloads.</li>
 </ol>
-<p class="tip">Bạn vừa đi trọn một vòng: <b>ý tưởng → ảnh → video → phim</b>. Mọi quy trình phức tạp hơn đều chỉ là nhiều vòng như vậy nối với nhau.</p>
+<p class="tip">Bạn vừa đi trọn một vòng: <b>ý tưởng → ảnh → video → phim</b>. Quy trình lớn hơn chỉ là nhiều vòng như vậy nối với nhau.</p>
 </section>
 
 <section id="node">
 <h2>5. Các loại node</h2>
-<p>Mỗi node có <b>cổng vào</b> (chấm tròn bên trái) và <b>cổng ra</b> (chấm tròn bên phải). Màu của chấm cho biết loại dữ liệu:
-<span class="pill c-text">tím: văn bản</span> <span class="pill c-neg">hồng: negative</span> <span class="pill c-img">xanh dương: ảnh</span> <span class="pill c-vid">xanh lá: video</span> <span class="pill c-media">tím nhạt: ảnh hoặc video</span></p>
+<p>Mỗi node có <b>cổng vào</b> (chấm tròn bên trái) và <b>cổng ra</b> (chấm tròn bên phải). Màu chấm cho biết loại dữ liệu:
+<span class="pill c-text">tím: chữ</span> <span class="pill c-neg">hồng: tránh</span> <span class="pill c-img">xanh dương: ảnh</span> <span class="pill c-vid">xanh lá: video</span> <span class="pill c-media">tím nhạt: ảnh hoặc video</span></p>
 <table>
   <thead><tr><th>Node</th><th>Dùng để</th><th>Vào → Ra</th></tr></thead>
   <tbody>
-    <tr><td><b>Prompt</b></td><td>Viết mô tả nội dung muốn tạo.</td><td>— → text</td></tr>
-    <tr><td><b>Negative Prompt</b></td><td>Liệt kê những thứ <i>không</i> muốn xuất hiện (mờ, méo, chữ, watermark…). Được gửi kèm dưới dạng "Avoid: …".</td><td>— → negative</td></tr>
-    <tr><td><b>Text Append</b></td><td>Nối thêm một đoạn cố định vào sau prompt đầu vào. Rất hợp để gắn "phong cách chung" cho mọi cảnh.</td><td>text → text</td></tr>
-    <tr><td><b>Text Merge</b></td><td>Gộp nhiều nguồn văn bản thành một, theo thứ tự nối dây, cách nhau bằng dấu phân cách bạn chọn (mặc định <code>, </code>).</td><td>nhiều text → text</td></tr>
-    <tr><td><b>Text note</b></td><td>Ghi chú tự do trên canvas, không tham gia chạy. Dùng để ghi kịch bản, ý tưởng, nhắc việc.</td><td>—</td></tr>
-    <tr><td><b>Image Input</b></td><td>Tải một ảnh từ máy bạn lên (khuôn mặt nhân vật, sản phẩm, phác thảo…).</td><td>— → image</td></tr>
-    <tr><td><b>References</b></td><td>Gom tối đa 8 ảnh tham chiếu và <b>tự động nối tới mọi node Generate</b>. Dùng khi cả bộ phim cần chung một nhân vật hoặc phong cách.</td><td>8 × image → images</td></tr>
-    <tr><td><b>Generate Image</b></td><td>Gửi prompt (và ảnh tham chiếu nếu có) tới Muse để tạo ảnh. Tỷ lệ: 1:1, 16:9, 9:16, 4:3, 3:4.</td><td>prompt, negative, reference → image</td></tr>
-    <tr><td><b>Generate Video</b></td><td>Tạo một clip video. Tỷ lệ: 16:9, 9:16, 1:1. Thời lượng: 5, 6, 8, 10 giây. Có tùy chọn nối cảnh liền mạch.</td><td>prompt, negative, reference → video, end frame</td></tr>
-    <tr><td><b>Image Resize</b></td><td>Đổi kích thước ảnh (tối đa 4096 px) với 3 kiểu: <i>Crop to fill</i> (cắt cho đầy), <i>Fit inside</i> (vừa khung, có viền), <i>Stretch</i> (kéo giãn). Có nút tải ảnh về.</td><td>image → image</td></tr>
-    <tr><td><b>Preview</b></td><td>Xem lớn ảnh hoặc video. Chuột phải → <i>Download preview</i> để tải về.</td><td>media → —</td></tr>
-    <tr><td><b>Timeline</b></td><td>Xếp clip video thành phim. Thường bạn chỉ cần dùng Timeline ở dưới đáy màn hình.</td><td>video → —</td></tr>
+    <tr><td><b>✏️ Câu lệnh (Prompt)</b></td><td>Viết mô tả thứ bạn muốn tạo.</td><td>— → chữ</td></tr>
+    <tr><td><b>🗒️ Ghi chú</b></td><td>Ghi chú tự do trên canvas, không tham gia chạy. Dùng để ghi kịch bản, ý tưởng, nhắc việc.</td><td>—</td></tr>
+    <tr><td><b>⛔ Tránh (Negative)</b></td><td>Liệt kê những thứ <i>không</i> muốn có (mờ, méo, chữ, logo…). Được gửi kèm câu lệnh.</td><td>— → tránh</td></tr>
+    <tr><td><b>➕ Nối thêm chữ</b></td><td>Thêm một đoạn cố định vào sau câu lệnh. Hợp để gắn "phong cách chung" cho mọi cảnh.</td><td>chữ → chữ</td></tr>
+    <tr><td><b>🔗 Gộp chữ</b></td><td>Gộp nhiều đoạn chữ thành một, theo thứ tự nối dây.</td><td>nhiều chữ → chữ</td></tr>
+    <tr><td><b>🖼️ Ảnh đầu vào</b></td><td>Đưa một ảnh từ máy vào, và cho biết ảnh đó là gì (người mẫu, trang phục, sản phẩm…). Xem mục 7.</td><td>— → ảnh</td></tr>
+    <tr><td><b>🧩 Gom ảnh tham chiếu</b></td><td>Gom tối đa 8 ảnh và <b>tự nối tới mọi node Tạo ảnh / Tạo video</b>. Dùng khi cả phim cần chung một ảnh mẫu.</td><td>8 ảnh → ảnh</td></tr>
+    <tr><td><b>📐 Đổi kích thước ảnh</b></td><td>Đổi kích thước ảnh (tối đa 4096 px): cắt cho đầy khung, thu vừa khung, hoặc kéo giãn. Có nút tải ảnh về.</td><td>ảnh → ảnh</td></tr>
+    <tr><td><b>🔒 Khóa nhân vật</b></td><td>Giữ một nhân vật giống hệt nhau ở mọi cảnh. Không cần nối dây. Xem mục 9.</td><td>—</td></tr>
+    <tr><td><b>🎨 Tạo ảnh</b></td><td>Gửi câu lệnh (và ảnh nếu có) sang Muse để tạo ảnh. Tỉ lệ 1:1, 16:9, 9:16, 4:3, 3:4.</td><td>câu lệnh, tránh, ảnh tham chiếu → ảnh</td></tr>
+    <tr><td><b>🎬 Tạo video</b></td><td>Tạo một clip video. Tỉ lệ 16:9, 9:16 hoặc 1:1. Dài 5, 6, 8 hoặc 10 giây.</td><td>câu lệnh, tránh, ảnh tham chiếu → video, khung cuối</td></tr>
+    <tr><td><b>👁️ Xem trước</b></td><td>Xem lớn ảnh hoặc video. Chuột phải để tải về.</td><td>ảnh/video → —</td></tr>
+    <tr><td><b>🎞️ Timeline</b></td><td>Xếp clip thành phim. Thường bạn chỉ cần thanh Timeline ở đáy màn hình.</td><td>video → —</td></tr>
   </tbody>
 </table>
-<p class="tip">Cổng <b>prompt</b> và <b>reference</b> của node Generate nhận <b>nhiều dây</b> cùng lúc: nhiều prompt sẽ được ghép thành một, nhiều ảnh sẽ được đính kèm hết. Các cổng khác chỉ nhận một dây; nối dây mới sẽ thay dây cũ.</p>
+<p class="tip">Cổng <b>câu lệnh</b> và <b>ảnh tham chiếu</b> nhận <b>nhiều dây</b> cùng lúc. Nhiều câu lệnh sẽ được ghép thành một, nhiều ảnh sẽ được gửi hết. Các cổng khác chỉ nhận một dây; nối dây mới sẽ thay dây cũ.</p>
+<h3>Tùy chọn trên node Tạo video</h3>
+<ul>
+  <li><b>Tỉ lệ:</b> 16:9 (ngang), 9:16 (dọc) hoặc 1:1 (vuông).</li>
+  <li><b>Độ dài:</b> 5, 6, 8 hoặc 10 giây.</li>
+  <li><b>Dùng khung cuối của clip trước làm khung đầu:</b> nối cảnh liền mạch (mục 10).</li>
+  <li><b>🔒 Dùng khóa nhân vật:</b> bỏ tick nếu cảnh này không cần nhân vật đã khóa (mục 9).</li>
+</ul>
+<h3>Tùy chọn trên node Tạo ảnh</h3>
+<ul>
+  <li><b>Tỉ lệ:</b> 1:1, 16:9, 9:16, 4:3 hoặc 3:4. Định làm video từ ảnh này thì chọn 16:9, 9:16 hoặc 1:1.</li>
+  <li><b>Model:</b> để trống thì dùng <code>muse-image</code>.</li>
+  <li><b>Khi nối sang cảnh khác, ảnh kết quả là:</b> gán vai trò cho ảnh tạo ra (mục 7).</li>
+  <li><b>🔒 Dùng khóa nhân vật:</b> như ở node Tạo video.</li>
+</ul>
 </section>
 
 <section id="noi-day">
-<h2>6. Nối dây giữa các node</h2>
+<h2>6. Nối dây và thao tác canvas</h2>
+<h3>Nối dây</h3>
 <ul>
-  <li><b>Kéo thả:</b> nhấn giữ chấm cổng ra, kéo tới chấm cổng vào phù hợp rồi thả. Trong lúc kéo, các cổng nhận được sẽ sáng lên.</li>
-  <li><b>Thả ra chỗ trống:</b> kéo dây từ cổng ra và thả xuống chỗ trống trên canvas. Một menu hiện ra cho bạn chọn nối vào node có sẵn hoặc <b>tạo node mới đã nối sẵn</b>. Đây là cách nhanh nhất để dựng quy trình.</li>
-  <li><b>Kéo ngược từ cổng prompt/negative:</b> kéo từ cổng vào <i>prompt</i> ra chỗ trống sẽ tự tạo một node Prompt đã nối sẵn.</li>
-  <li><b>Bấm-bấm:</b> bấm cổng ra, rồi bấm cổng vào.</li>
-  <li><b>Xóa dây:</b> chuột phải lên dây → <i>Delete connection</i>; hoặc bấm chọn dây (dây chuyển vàng) rồi nhấn <kbd>Delete</kbd>.</li>
-  <li><b>Video vào Timeline:</b> kéo cổng <i>video</i> thả thẳng xuống thanh Timeline ở đáy màn hình.</li>
+  <li><b>Kéo thả:</b> nhấn giữ chấm cổng ra (bên phải node), kéo tới chấm cổng vào (bên trái node khác) rồi thả. Trong lúc kéo, các cổng nhận được sẽ sáng lên.</li>
+  <li><b>Thả ra chỗ trống:</b> kéo dây từ cổng ra rồi thả xuống chỗ trống. Một menu hiện ra để bạn nối vào node có sẵn, hoặc <b>tạo node mới đã nối sẵn</b>. Đây là cách dựng quy trình nhanh nhất.</li>
+  <li><b>Kéo ngược:</b> kéo từ cổng vào <i>câu lệnh</i> ra chỗ trống sẽ tự tạo một node Câu lệnh đã nối sẵn.</li>
+  <li><b>Bấm rồi bấm:</b> bấm cổng ra, rồi bấm cổng vào.</li>
+  <li><b>Xóa dây:</b> chuột phải lên dây và chọn xóa. Hoặc bấm chọn dây (dây chuyển vàng) rồi nhấn <kbd>Delete</kbd>.</li>
 </ul>
-<p class="note">Không thể nối thành vòng lặp (A → B → A). Nếu thấy báo "would create a workflow loop", hãy nối theo một chiều.</p>
-</section>
-
-<section id="thao-tac">
-<h2>7. Thao tác trên canvas và phím tắt</h2>
+<p class="note">Không nối được thành vòng (A → B → A). Hãy nối theo một chiều, từ trái sang phải.</p>
+<h3>Thao tác và phím tắt</h3>
 <table>
   <thead><tr><th>Thao tác</th><th>Cách làm</th></tr></thead>
   <tbody>
     <tr><td>Di chuyển node</td><td>Kéo phần tiêu đề của node.</td></tr>
-    <tr><td>Chọn nhiều node</td><td>Kéo khung chọn trên vùng trống, hoặc giữ <kbd>Shift</kbd>/<kbd>Ctrl</kbd> và bấm từng node.</td></tr>
-    <tr><td>Nhân bản node</td><td>Giữ <kbd>Alt</kbd> rồi kéo node (giữ cả dây đầu vào), hoặc chuột phải → <i>Duplicate node</i>.</td></tr>
-    <tr><td>Hoàn tác</td><td><kbd>Ctrl</kbd> + <kbd>Z</kbd> (tối đa 40 bước).</td></tr>
-    <tr><td>Xóa</td><td>Chọn node hoặc dây rồi nhấn <kbd>Delete</kbd>; hoặc bấm × trên node.</td></tr>
-    <tr><td>Kéo canvas</td><td>Giữ <kbd>Space</kbd> và kéo chuột, kéo bằng chuột giữa, hoặc bật công cụ ✋ (phím <kbd>H</kbd>).</td></tr>
-    <tr><td>Thu phóng</td><td>Lăn chuột; nút − / + ; nút <b>Fit</b> để thấy toàn bộ.</td></tr>
-    <tr><td>Ghi chú</td><td>Nhấn <kbd>T</kbd> để thêm Text note giữa màn hình.</td></tr>
-    <tr><td>Khung nhóm</td><td>Nhấn <kbd>G</kbd> rồi kéo một vùng để vẽ khung, ví dụ "Cảnh 1", "Nhân vật". Nhấn <kbd>G</kbd> hoặc <kbd>Esc</kbd> để hủy.</td></tr>
-    <tr><td>Đổi tên node</td><td>Chuột phải lên node → <i>Rename node…</i>. Tên này xuất hiện trong thông báo, giúp dễ theo dõi.</td></tr>
-    <tr><td>Sắp xếp gọn</td><td>Chuột phải vùng trống → <i>Arrange nodes</i> để xếp node theo thứ tự chạy.</td></tr>
+    <tr><td>Chọn nhiều node</td><td>Kéo khung chọn trên chỗ trống, hoặc giữ <kbd>Shift</kbd> / <kbd>Ctrl</kbd> và bấm từng node.</td></tr>
+    <tr><td>Nhân bản node</td><td>Giữ <kbd>Alt</kbd> rồi kéo node, hoặc chuột phải lên node.</td></tr>
+    <tr><td>Hoàn tác</td><td><kbd>Ctrl</kbd> + <kbd>Z</kbd>.</td></tr>
+    <tr><td>Xóa</td><td>Chọn node hoặc dây rồi nhấn <kbd>Delete</kbd>, hoặc bấm × trên node.</td></tr>
+    <tr><td>Kéo canvas</td><td>Giữ <kbd>Space</kbd> và kéo chuột, kéo bằng chuột giữa, hoặc bật ✋ (phím <kbd>H</kbd>).</td></tr>
+    <tr><td>Thu phóng</td><td>Lăn chuột, nút − / +, hoặc nút <b>Vừa</b> (Fit) để thấy toàn bộ.</td></tr>
+    <tr><td>Thêm ghi chú</td><td>Nhấn <kbd>T</kbd>.</td></tr>
+    <tr><td>Vẽ khung nhóm</td><td>Bấm ▱ hoặc nhấn <kbd>G</kbd>, rồi kéo một vùng, ví dụ "Cảnh 1", "Nhân vật". Nhấn <kbd>G</kbd> hoặc <kbd>Esc</kbd> để thôi.</td></tr>
+    <tr><td>Dán ảnh</td><td>Copy một ảnh, bấm vào canvas rồi nhấn <kbd>Ctrl</kbd> + <kbd>V</kbd>.</td></tr>
+    <tr><td>Đổi tên, chạy, tạo lại</td><td>Chuột phải lên node. Tên node hiện trong thông báo, giúp dễ theo dõi.</td></tr>
+    <tr><td>Sắp xếp gọn</td><td>Chuột phải vào chỗ trống và chọn <b>Sắp xếp node</b>.</td></tr>
   </tbody>
 </table>
 </section>
 
-<section id="kich-ban">
-<h2>8. Làm phim nhiều cảnh từ kịch bản</h2>
-<p>Đây là tính năng mạnh nhất. Bạn dán một kịch bản chia cảnh, TheKey.studio tự dựng toàn bộ node ảnh và video, nối dây và xếp Timeline theo đúng thứ tự.</p>
-<h3>Cách dùng</h3>
+<section id="anh-dau-vao">
+<h2>7. Đưa ảnh vào và chọn vai trò</h2>
+<h3>Ba cách đưa ảnh vào</h3>
+<ul>
+  <li>Bấm <b>🖼️ Ảnh đầu vào</b> ở cột node, rồi bấm <b>Chọn ảnh</b> trên node.</li>
+  <li>Kéo file ảnh từ máy thả thẳng lên canvas. Mỗi file thành một node Ảnh đầu vào. Thả nhiều file một lúc cũng được.</li>
+  <li>Copy một ảnh (từ trang web, ảnh chụp màn hình…), bấm vào canvas rồi nhấn <kbd>Ctrl</kbd> + <kbd>V</kbd>.</li>
+</ul>
+<p>Muốn đổi ảnh? Thả ảnh mới lên node Ảnh đầu vào có sẵn, ảnh cũ sẽ được thay. Nếu bạn đang chọn một node Ảnh đầu vào còn trống, <kbd>Ctrl</kbd> + <kbd>V</kbd> sẽ dán ảnh vào chính node đó.</p>
+<h3>"Ảnh này là:"</h3>
+<p>Mỗi node Ảnh đầu vào có ô <b>Ảnh này là:</b>. Chọn đúng vai trò để Muse hiểu ảnh dùng vào việc gì.</p>
+<table>
+  <thead><tr><th>Vai trò</th><th>Muse sẽ hiểu là</th></tr></thead>
+  <tbody>
+    <tr><td><b>Tự do (ảnh tham chiếu)</b></td><td>Ảnh mẫu chung, gửi kèm để Muse tham khảo.</td></tr>
+    <tr><td><b>👤 Người mẫu / nhân vật</b></td><td>Giữ đúng người này: mặt, tóc, màu da, dáng người.</td></tr>
+    <tr><td><b>👗 Trang phục</b></td><td>Mặc đúng bộ đồ này: kiểu, màu, chất vải, họa tiết, chi tiết.</td></tr>
+    <tr><td><b>👜 Sản phẩm</b></td><td>Hiện đúng sản phẩm này: hình dáng, màu, logo, chi tiết.</td></tr>
+    <tr><td><b>🏙️ Bối cảnh</b></td><td>Dùng nơi này làm bối cảnh.</td></tr>
+    <tr><td><b>🎨 Phong cách / ánh sáng</b></td><td>Bắt chước ánh sáng, màu sắc, không khí, nhưng không chép nội dung ảnh.</td></tr>
+    <tr><td><b>🎬 Khung đầu video</b></td><td>Khung hình mở đầu của video. Ảnh này được gắn đầu tiên. Ở node Tạo ảnh, vai trò này được coi như ảnh Tự do.</td></tr>
+  </tbody>
+</table>
+<h3>Nối nhiều ảnh vào một cảnh</h3>
 <ol>
-  <li>Bấm <b>＋ Script → Nodes</b> trên thanh công cụ.</li>
-  <li>Dán kịch bản theo mẫu bên dưới. Ô trạng thái sẽ báo số cảnh nhận được.</li>
-  <li>Bấm <b>Create scene nodes</b>, rồi bấm <b>▶ Run workflow</b>.</li>
+  <li>Thêm 2–3 node Ảnh đầu vào và chọn vai trò cho từng ảnh.</li>
+  <li>Nối tất cả vào chấm <i>ảnh tham chiếu</i> của cùng một node Tạo ảnh hoặc Tạo video. Chấm này nhận nhiều dây.</li>
+  <li>Viết câu lệnh như bình thường. App tự nói với Muse ảnh nào là gì, kiểu "ảnh 1 là người mẫu, ảnh 2 là trang phục…".</li>
 </ol>
-<h3>Định dạng kịch bản</h3>
+<p class="note">Mỗi cảnh gửi tối đa <b>8 ảnh</b> (tính cả ảnh Khóa nhân vật và khung cuối của clip trước). Nối nhiều hơn thì chỉ các ảnh đầu được gửi, và node hiện cảnh báo. Thứ tự gửi: khung cuối clip trước (nếu bật nối cảnh) hoặc ảnh Khung đầu video, rồi ảnh nhân vật, ảnh có vai trò, cuối cùng là ảnh Tự do.</p>
+<h3>Ảnh kết quả đi tiếp sang cảnh khác</h3>
+<p>Node <b>Tạo ảnh</b> có ô <b>Khi nối sang cảnh khác, ảnh kết quả là:</b>. Ô này gán vai trò cho ảnh nó tạo ra. Ví dụ chọn <b>🎬 Khung đầu video</b> thì video phía sau sẽ được dặn bắt đầu từ ảnh này, kể cả khi video đó có thêm ảnh trang phục làm tham chiếu.</p>
+<p class="tip"><b>Mẹo:</b> mỗi ảnh chỉ nên có một thứ chính, rõ nét, nền đơn giản. Ảnh càng "sạch", Muse càng ít nhầm.</p>
+</section>
+
+<section id="thoi-trang">
+<h2>8. Mẫu Quảng cáo thời trang</h2>
+<p>Bấm <b>👗 Quảng cáo thời trang</b> ở nhóm <b>Mẫu có sẵn</b>. App dựng sẵn cả quy trình chỉ với một lần bấm:</p>
+<pre>Ảnh người mẫu (👤 Người mẫu) + Ảnh trang phục (👗 Trang phục) + Câu lệnh 1
+      → Tạo ảnh "Người mẫu mặc đồ" (9:16, kết quả = khung đầu video)
+
+Ảnh người mẫu mặc đồ + Ảnh trang phục + Câu lệnh 2
+      → Tạo video "Quảng cáo" (9:16, 8 giây)</pre>
+<p>Video nhận thêm ảnh trang phục để giữ đúng chi tiết bộ đồ.</p>
+<h3>Bạn chỉ cần làm</h3>
+<ol class="steps">
+  <li>Bấm <b>👗 Quảng cáo thời trang</b>.</li>
+  <li>Thả ảnh người mẫu vào node Ảnh đầu vào có vai trò <b>👤 Người mẫu / nhân vật</b>.</li>
+  <li>Thả ảnh bộ đồ vào node Ảnh đầu vào có vai trò <b>👗 Trang phục</b>.</li>
+  <li>Đọc 2 câu lệnh có sẵn (một cho ảnh, một cho video). Sửa nếu muốn: chất liệu, màu, bối cảnh, cách người mẫu di chuyển.</li>
+  <li>Bấm <b>▶ Chạy tất cả</b>. Muse tạo ảnh người mẫu mặc đồ trước, rồi dùng ảnh đó làm khung đầu cho video.</li>
+  <li>Xem kết quả. Ưng thì xuất ở Timeline. Chưa ưng thì sửa câu lệnh và tạo lại riêng node đó.</li>
+</ol>
+<p class="note">Mẫu này chạy 2 lượt (1 ảnh + 1 video), nên tốn credit của cả hai.</p>
+<h3>Mẹo cho quảng cáo thời trang</h3>
+<ul>
+  <li><b>Ảnh người mẫu:</b> chụp chính diện, rõ mặt, đủ sáng, thấy cả dáng người.</li>
+  <li><b>Ảnh trang phục:</b> chụp trải phẳng hoặc treo móc, nền trơn, không có người mặc, thấy rõ cả bộ.</li>
+  <li><b>Ghi rõ chất liệu và màu</b> trong câu lệnh, ví dụ <span class="ex">váy lụa màu xanh ngọc, vải rủ mềm, ánh lên dưới đèn</span></li>
+  <li><b>Tỉ lệ:</b> 9:16 cho TikTok, Reels, Shorts. 16:9 cho YouTube. Nhớ đổi ở <b>cả</b> node Tạo ảnh và node Tạo video.</li>
+  <li><b>Thử ảnh trước:</b> bấm nút chạy riêng trên node Tạo ảnh. Ưng ảnh rồi mới chạy video, đỡ tốn credit.</li>
+</ul>
+<h3>Biến thể: quảng cáo sản phẩm</h3>
+<ol>
+  <li>Dùng mẫu như trên. Ở node ảnh thứ hai, đổi <b>Ảnh này là:</b> thành <b>👜 Sản phẩm</b> và thả ảnh sản phẩm vào (túi, giày, mỹ phẩm…).</li>
+  <li>Sửa câu lệnh, ví dụ <span class="ex">Người mẫu cầm chiếc túi da màu nâu bò, đứng trên phố lúc chiều, nắng vàng, logo trên túi rõ nét</span></li>
+  <li>Không cần người mẫu? Xóa node ảnh người mẫu và viết câu lệnh về sản phẩm: xoay chậm trên bục, cận chất liệu, nền studio.</li>
+</ol>
+</section>
+
+<section id="khoa-nhan-vat">
+<h2>9. Khóa nhân vật</h2>
+<p>Dùng khi một nhân vật xuất hiện ở nhiều cảnh và bạn muốn mặt, tóc, dáng, trang phục luôn giống nhau.</p>
+<ol class="steps">
+  <li>Ở cột node, nhóm <b>Nhân vật</b>, bấm <b>🔒 Khóa nhân vật</b>.</li>
+  <li>Đặt tên, ví dụ <i>Lan</i>.</li>
+  <li>Ghi ngoại hình cố định: tuổi, khuôn mặt, tóc, dáng người, trang phục. Ví dụ <span class="ex">cô gái 25 tuổi, tóc đen ngắn ngang vai, áo khoác jean xanh, quần trắng</span></li>
+  <li>Thêm ảnh nhân vật: bấm <b>Chọn ảnh nhân vật</b>, hoặc thả ảnh vào node, hoặc chọn node rồi dán bằng <kbd>Ctrl</kbd> + <kbd>V</kbd>.</li>
+  <li>Giữ tick <b>Khóa nhân vật này cho mọi cảnh</b>.</li>
+</ol>
+<p>Không cần nối dây. Khi chạy, <b>mọi</b> node Tạo ảnh và Tạo video trong workflow đều được gửi kèm:</p>
+<ul>
+  <li><b>Ảnh nhân vật</b>, luôn làm ảnh tham chiếu (không bao giờ làm khung đầu).</li>
+  <li><b>Một câu dặn Muse</b> giữ nguyên mặt, tóc, dáng người và trang phục, kèm phần mô tả bạn ghi.</li>
+</ul>
+<h3>Khi nào bỏ khóa</h3>
+<ul>
+  <li>Cảnh không có nhân vật đó (ví dụ cảnh phong cảnh): bỏ tick <b>🔒 Dùng khóa nhân vật</b> trên node của cảnh đó.</li>
+  <li>Muốn tạm tắt cho cả workflow: bỏ tick <b>Khóa nhân vật này cho mọi cảnh</b>.</li>
+</ul>
+<h3>Hai nhân vật trở lên</h3>
+<p>Tạo mỗi nhân vật một node Khóa nhân vật. Lưu ý ảnh nhân vật cũng tính vào giới hạn ảnh mỗi cảnh (tối đa 8 ảnh mỗi cảnh).</p>
+<p class="tip"><b>Mẹo:</b> ảnh nhân vật nên chụp chính diện, rõ mặt, nền trơn. Bạn cũng có thể tạo ảnh nhân vật bằng một node Tạo ảnh trước, tải ảnh về máy, rồi thả vào node Khóa nhân vật.</p>
+</section>
+
+<section id="kich-ban">
+<h2>10. Video dài nhiều cảnh</h2>
+<p>Mỗi clip của Muse chỉ dài 5–10 giây. Muốn phim dài hơn, bạn ghép nhiều cảnh. Cách gọn nhất:</p>
+<ol class="steps">
+  <li><b>Viết kịch bản</b> theo mẫu bên dưới. Có thể nhờ AI chat viết hộ.</li>
+  <li>Bấm <b>📜 Kịch bản → Cảnh</b> ở đầu cột node, dán kịch bản, rồi bấm <b>Tạo node các cảnh</b>. App dựng node cho mọi cảnh và xếp sẵn Timeline.</li>
+  <li><b>Khóa nhân vật:</b> thêm 🔒 Khóa nhân vật với ảnh nhân vật chính (mục 9).</li>
+  <li><b>Nối cảnh liền mạch:</b> kiểm tra ô <b>Dùng khung cuối của clip trước làm khung đầu</b> đã được tick từ cảnh 2 trở đi.</li>
+  <li><b>Chạy thử cảnh 1</b> bằng nút chạy trên node. Ưng rồi mới bấm <b>▶ Chạy tất cả</b>.</li>
+  <li>Mở <b>Timeline</b>, bấm <b>▶ Xem thử</b>, rồi bấm <b>⇩ Xuất</b>.</li>
+</ol>
+<h3>Mẫu kịch bản</h3>
 <pre>CẢNH 1 (0:00–0:06): Thức dậy
 Prompt ảnh: Cô gái trẻ tóc ngắn thức dậy trong căn phòng nhỏ ngập nắng sớm, phong cách anime, 9:16
 Prompt video: Cô gái vươn vai, kéo rèm cửa, nắng tràn vào phòng, máy quay đẩy chậm vào
@@ -174,154 +295,174 @@ Prompt ảnh: Cô gái đạp xe trên con phố nhỏ đầy hoa giấy, phong 
 Prompt video: Cô gái đạp xe qua phố, hoa giấy bay, máy quay đi song song bên cạnh
 Audio: tiếng chuông xe đạp, nhạc vui tươi</pre>
 <ul>
-  <li>Dòng tiêu đề phải bắt đầu bằng <code>CẢNH</code> + số, theo sau là khoảng thời gian trong ngoặc <code>(phút:giây–phút:giây)</code>, dấu hai chấm và tên cảnh.</li>
-  <li><code>Prompt ảnh:</code> tạo ảnh khóa (keyframe) cho cảnh. <code>Prompt video:</code> mô tả chuyển động. <code>Audio:</code> mô tả âm thanh (không bắt buộc). Một cảnh chỉ cần có ít nhất một trong hai prompt.</li>
-  <li><b>Tỷ lệ khung hình:</b> ghi <code>16:9</code>, <code>9:16</code>, <code>1:1</code>, <code>4:3</code> hoặc <code>3:4</code> ở đâu đó trong prompt. Không ghi thì mặc định là <b>9:16</b> (dọc).</li>
-  <li><b>Thời lượng:</b> tính từ khoảng thời gian, tự làm tròn về 5, 6, 8 hoặc 10 giây cho Muse. Thời lượng phát trên Timeline giữ đúng số giây bạn ghi.</li>
-  <li>Ảnh của mỗi cảnh tự nối vào video của cảnh đó làm ảnh tham chiếu. Từ cảnh 2 trở đi, tùy chọn <b>nối cảnh liền mạch</b> được bật sẵn.</li>
-  <li>Một node <b>References</b> được tạo sẵn và nối tới mọi cảnh. Hãy nối ảnh nhân vật chính của bạn vào đó (xem mục 9).</li>
+  <li>Dòng tiêu đề bắt đầu bằng <code>CẢNH</code> + số, rồi khoảng thời gian trong ngoặc <code>(phút:giây–phút:giây)</code>, dấu hai chấm và tên cảnh.</li>
+  <li><code>Prompt ảnh:</code> tạo ảnh mở đầu cho cảnh. <code>Prompt video:</code> tả chuyển động. <code>Audio:</code> âm thanh (không bắt buộc). Mỗi cảnh cần ít nhất một trong hai dòng prompt.</li>
+  <li><b>Tỉ lệ:</b> ghi <code>16:9</code>, <code>9:16</code> hoặc <code>1:1</code> trong prompt. Không ghi thì mặc định là <b>9:16</b> (dọc).</li>
+  <li><b>Độ dài:</b> tính từ khoảng thời gian, tự làm tròn về 5, 6, 8 hoặc 10 giây cho Muse. Timeline vẫn giữ đúng số giây bạn ghi.</li>
 </ul>
-<p class="tip"><b>Mẹo:</b> nhờ một AI chat viết kịch bản đúng định dạng trên. Ví dụ hỏi: "Viết kịch bản 6 cảnh, mỗi cảnh 6 giây, về một chú chó đi lạc tìm đường về nhà. Mỗi cảnh có dòng CẢNH n (m:ss–m:ss): tên, Prompt ảnh, Prompt video, Audio. Phong cách hoạt hình 3D, 16:9."</p>
-</section>
-
-<section id="lien-mach">
-<h2>9. Giữ nhân vật và cảnh liền mạch</h2>
-<h3>Cùng một nhân vật xuyên suốt phim</h3>
-<ol>
-  <li>Thêm node <b>Image Input</b>, bấm <i>Choose image</i> và chọn ảnh nhân vật (hoặc tạo ảnh nhân vật bằng một node Generate Image).</li>
-  <li>Nối cổng <i>image</i> của nó vào một cổng của node <b>References</b>.</li>
-  <li>References tự gửi ảnh này tới mọi node Generate, nên Muse luôn có ảnh mẫu để giữ khuôn mặt, trang phục, màu sắc.</li>
-</ol>
-<h3>Nối cảnh liền mạch (continuity)</h3>
-<p>Trên node Generate Video, tích ô <b>Use previous clip end frame as start reference</b>. Khi đó, khung hình cuối của clip <b>đứng trước nó trên Timeline</b> được gửi làm ảnh mở đầu, để cảnh sau bắt đầu đúng chỗ cảnh trước kết thúc.</p>
+<p>Với mỗi cảnh, app tạo: Câu lệnh → <b>Tạo ảnh</b> → <b>Tạo video</b> (ảnh làm khung đầu). App cũng tạo một node <b>🧩 Gom ảnh tham chiếu</b> đã nối tới mọi cảnh. Ảnh nào nối vào đó sẽ được gửi kèm mọi cảnh.</p>
+<h3>Nối cảnh liền mạch</h3>
+<p>Tick <b>Dùng khung cuối của clip trước làm khung đầu</b> trên node Tạo video. Khung hình cuối của clip <b>đứng trước nó trên Timeline</b> sẽ thành khung đầu của clip này. Cảnh sau bắt đầu đúng chỗ cảnh trước kết thúc.</p>
 <ul>
   <li>Thứ tự trên Timeline quyết định "clip trước" là clip nào. Hãy xếp Timeline trước khi chạy.</li>
-  <li>Clip trước phải được tạo thành công trước. Run workflow tự chạy đúng thứ tự này.</li>
-  <li>Bạn cũng có thể nối thủ công cổng <i>end frame</i> của video này vào cổng <i>reference</i> của video kế tiếp.</li>
+  <li>Clip trước phải xong trước. <b>▶ Chạy tất cả</b> tự chạy đúng thứ tự này.</li>
+  <li>Khi bật ô này, khung cuối được gắn làm ảnh 1; ảnh riêng của cảnh đó vẫn được gửi kèm làm ảnh tham chiếu.</li>
+  <li>Cách thủ công: nối chấm <i>khung cuối</i> của video này sang chấm <i>ảnh tham chiếu</i> của video kế tiếp.</li>
 </ul>
 <h3>Phong cách thống nhất</h3>
-<p>Tạo một node <b>Text Append</b> chứa câu phong cách, ví dụ <span class="ex">phong cách phim điện ảnh, ánh sáng vàng ấm, màu phim Kodak, độ sâu trường ảnh nông</span>, rồi nối mọi prompt cảnh đi qua nó. Đổi phong cách cả phim chỉ cần sửa một chỗ.</p>
+<p>Thêm một node <b>➕ Nối thêm chữ</b> chứa câu phong cách, ví dụ <span class="ex">phong cách điện ảnh, ánh sáng vàng ấm, màu phim Kodak</span>, rồi cho mọi câu lệnh cảnh đi qua nó. Đổi phong cách cả phim chỉ cần sửa một chỗ.</p>
+<p class="tip"><b>Mẹo:</b> nhờ một AI chat viết kịch bản đúng mẫu. Ví dụ hỏi: "Viết kịch bản 6 cảnh, mỗi cảnh 8 giây, về một chú chó đi lạc tìm đường về nhà. Mỗi cảnh có dòng CẢNH n (m:ss–m:ss): tên, Prompt ảnh, Prompt video, Audio. Phong cách hoạt hình 3D, 16:9."</p>
 </section>
 
 <section id="timeline">
-<h2>10. Timeline và xuất video</h2>
+<h2>11. Timeline và xuất video</h2>
 <ul>
-  <li><b>Thêm clip:</b> kéo cổng video xuống Timeline, bấm <b>⠿ Drag output to Timeline</b> trên node, dùng <b>＋ Add clip</b> để chọn từ danh sách, hoặc <b>＋ Import all videos</b> để thêm tất cả.</li>
+  <li><b>Mở Timeline:</b> bấm ▲ ở góc dưới bên phải.</li>
+  <li><b>Thêm clip:</b> bấm <b>＋ Thêm tất cả video</b> để thêm mọi video, hoặc <b>＋ Thêm clip</b> để chọn từng clip. Bạn cũng có thể kéo chấm <i>video</i> của node thả xuống thanh Timeline, hoặc dùng nút ⠿ trên node video.</li>
   <li><b>Đổi thứ tự:</b> kéo thả clip trên Timeline.</li>
-  <li><b>Thời lượng phát:</b> sửa ô <i>Duration</i> trên từng clip (1–60 giây). Clip ngắn hơn số giây này sẽ giữ khung cuối cho đủ; clip dài hơn sẽ bị cắt.</li>
-  <li><b>Bỏ clip:</b> bấm × trên clip (node video vẫn còn trên canvas).</li>
-  <li><b>Xem trước:</b> bấm <b>▶ Preview</b>, hoặc bấm/kéo trên thước thời gian để xem từ một điểm bất kỳ.</li>
+  <li><b>Thời lượng phát:</b> sửa ô số giây trên từng clip (1–60 giây). Clip ngắn hơn thì giữ khung cuối cho đủ, clip dài hơn thì bị cắt.</li>
+  <li><b>Bỏ clip:</b> bấm × trên clip. Node video vẫn còn trên canvas.</li>
+  <li><b>Xem thử:</b> bấm <b>▶ Xem thử</b>, hoặc bấm / kéo trên thước thời gian để xem từ một điểm bất kỳ.</li>
 </ul>
 <h3>Xuất phim</h3>
+<ol>
+  <li>Chọn <b>MP4 (H.264)</b> hoặc <b>WebM</b>.</li>
+  <li>Bấm <b>⇩ Xuất</b>. Muốn hủy giữa chừng, bấm <b>■ Dừng</b>.</li>
+  <li>File được tải về thư mục Downloads.</li>
+</ol>
 <table>
   <thead><tr><th>Định dạng</th><th>Đặc điểm</th><th>Nên dùng khi</th></tr></thead>
   <tbody>
-    <tr><td><b>MP4 (H.264)</b></td><td>Ghép bằng FFmpeg ngay trên máy. Nếu các clip cùng định dạng thì ghép rất nhanh, giữ nguyên chất lượng; nếu khác thì tự mã hóa lại (tối đa 1280 px, 24 fps) và thêm âm thanh im lặng cho clip không có tiếng.</td><td>Đăng YouTube, TikTok, Facebook, gửi cho người khác. <b>Khuyên dùng.</b></td></tr>
-    <tr><td><b>WebM</b></td><td>Phát lại từng clip và ghi hình theo thời gian thực, nên mất bằng đúng thời lượng phim.</td><td>Khi xuất MP4 gặp lỗi.</td></tr>
+    <tr><td><b>MP4 (H.264)</b></td><td>Ghép bằng FFmpeg đi kèm extension, chạy ngay trên máy bạn. Các clip giống nhau thì ghép nhanh. Clip khác kích thước thì phải mã hóa lại, có thể mất vài phút.</td><td>Đăng YouTube, TikTok, Facebook, gửi cho người khác. <b>Nên dùng.</b></td></tr>
+    <tr><td><b>WebM</b></td><td>Phát lại từng clip và ghi hình theo thời gian thực, nên mất đúng bằng thời lượng phim.</td><td>Khi xuất MP4 gặp lỗi.</td></tr>
   </tbody>
 </table>
-<p class="note">Trong lúc xuất WebM, hãy để tab TheKey.studio mở và hiển thị. Muốn hủy giữa chừng, bấm <b>■ Stop</b>.</p>
+<p class="note">Trong lúc xuất, hãy để tab app mở và đang hiển thị. Máy yếu thì xuất MP4 có thể chậm, cứ kiên nhẫn chờ.</p>
+<p class="tip"><b>Mẹo:</b> để mọi clip cùng một tỉ lệ (đều 9:16 hoặc đều 16:9). Phim sẽ đẹp hơn và xuất nhanh hơn.</p>
 </section>
 
 <section id="chay">
-<h2>11. Chạy, dừng, tạo lại</h2>
+<h2>12. Chạy, dừng, tạo lại</h2>
 <table>
   <thead><tr><th>Nút</th><th>Tác dụng</th></tr></thead>
   <tbody>
-    <tr><td><b>▶ Run workflow</b> (thanh công cụ)</td><td>Chạy cả quy trình theo đúng thứ tự phụ thuộc. <b>Node đã tạo xong được giữ nguyên</b>, chỉ chạy các node chưa có kết quả hoặc bị lỗi. Nếu một node lỗi, các node khác vẫn chạy tiếp; chỉ những node phụ thuộc vào nó bị bỏ qua.</td></tr>
-    <tr><td><b>▶ Run Image / Run Video</b> (trên node)</td><td>Tạo lại riêng node đó, kể cả khi đã có kết quả. Node phía trước nào chưa có kết quả sẽ được chạy trước.</td></tr>
-    <tr><td><b>↻ Again</b> (node video)</td><td>Tạo lại video với yêu cầu bám sát prompt và ảnh tham chiếu hơn. Dùng khi video lạc đề.</td></tr>
-    <tr><td><b>■ Stop</b></td><td>Dừng lượt đang chạy. Muse có thể vẫn hoàn tất lượt đó ở phía họ.</td></tr>
+    <tr><td><b>▶ Chạy tất cả</b></td><td>Chạy cả workflow theo đúng thứ tự: node phía trước chạy trước. <b>Node đã xong được giữ nguyên</b>, chỉ chạy node chưa có kết quả hoặc bị lỗi. Một node lỗi thì các node khác vẫn chạy tiếp, chỉ node phụ thuộc vào nó bị bỏ qua. Cuối cùng app báo node nào bị lỗi.</td></tr>
+    <tr><td><b>Nút chạy ▶ trên node</b></td><td>Mỗi node Tạo ảnh / Tạo video có nút chạy riêng. Bấm để chạy riêng node đó, kể cả khi đã có kết quả. Node phía trước chưa có kết quả sẽ được chạy trước.</td></tr>
+    <tr><td><b>↻ Tạo lại</b></td><td>Tạo lại kết quả với cùng câu lệnh và ảnh. Ở node video, lần tạo lại có thêm lời dặn Muse bám sát câu lệnh hơn.</td></tr>
+    <tr><td><b>■ Dừng tất cả</b> / <b>■ Dừng</b></td><td>Trong lúc chạy, nút <b>▶ Chạy tất cả</b> đổi thành <b>■ Dừng tất cả</b>, nút chạy trên node đổi thành <b>■ Dừng</b>. Bấm để dừng. Muse có thể vẫn làm nốt lượt đang dở và vẫn tính credit.</td></tr>
   </tbody>
 </table>
+<h3>Khi có lỗi</h3>
 <ul>
-  <li>Khi Muse từ chối một cảnh, TheKey.studio tự thử lại <b>một lần</b> với phiên bản an toàn gần nhất. Nếu vẫn bị từ chối, node báo lỗi kèm lời giải thích của Muse; hãy sửa prompt rồi chạy lại.</li>
-  <li>Nếu Muse trả về sai tỷ lệ khung hình, kết quả vẫn được giữ và node hiện cảnh báo màu đỏ "Muse returned a different aspect ratio".</li>
-  <li>Mỗi lượt chờ tối đa 10 phút. Video thường lâu hơn ảnh.</li>
-  <li>Trong lúc workflow chạy, đừng gõ vào ô chat của Muse, để TheKey.studio không lấy nhầm kết quả.</li>
+  <li>Lỗi hiện bằng chữ đỏ trên node và ở dòng trạng thái.</li>
+  <li><b>Muse từ chối nội dung:</b> app tự thử lại <b>một lần</b> với phương án gần giống và an toàn. Vẫn bị từ chối thì node hiện lời nhắn của Muse; hãy sửa câu lệnh rồi chạy lại node đó.</li>
+  <li><b>Hết credit:</b> app <b>dừng cả lượt chạy</b> ngay, không gửi thêm node nào.</li>
+  <li><b>Muse trả kết quả sai tỉ lệ:</b> kết quả vẫn được giữ, node hiện cảnh báo.</li>
+  <li>Mỗi lượt chờ tối đa theo ô <b>Chờ tối đa mỗi lượt tạo</b> trong Cài đặt. Video thường lâu hơn ảnh.</li>
+  <li>Trong lúc chạy, đừng gõ vào ô chat của Muse.</li>
 </ul>
 </section>
 
 <section id="luu">
-<h2>12. Lưu và chia sẻ workflow</h2>
+<h2>13. Lưu và chia sẻ workflow</h2>
 <ul>
-  <li><b>Tự động lưu:</b> mọi thay đổi được lưu vào trình duyệt sau khoảng nửa giây. Đóng tab rồi mở lại, mọi thứ vẫn còn, kể cả ảnh và video đã tạo.</li>
-  <li><b>Save:</b> lưu ngay lập tức.</li>
-  <li><b>Save workflow:</b> tải về một file <code>.json</code> chứa toàn bộ quy trình và media. Dùng để sao lưu, chuyển máy hoặc gửi cho bạn bè làm mẫu.</li>
-  <li><b>Import workflow:</b> mở lại file <code>.json</code>. Lưu ý: canvas hiện tại sẽ bị thay thế (có thể hoàn tác bằng <kbd>Ctrl</kbd>+<kbd>Z</kbd>).</li>
-  <li><b>Reset:</b> xóa canvas về 3 node mẫu. Hãy <i>Save workflow</i> trước nếu muốn giữ lại.</li>
+  <li><b>Tự động lưu:</b> mọi thay đổi được lưu vào trình duyệt sau chốc lát. Đóng tab rồi mở lại, mọi thứ vẫn còn.</li>
+  <li><b>Lưu:</b> lưu ngay vào trình duyệt.</li>
+  <li><b>Lưu file workflow:</b> tải về một file <code>.json</code> chứa cả quy trình, ảnh được đóng gói kèm trong file. Dùng để sao lưu, chuyển máy hoặc gửi cho bạn bè làm mẫu.</li>
+  <li><b>Mở file workflow:</b> mở lại file <code>.json</code>. Canvas hiện tại sẽ bị thay (có thể hoàn tác bằng <kbd>Ctrl</kbd> + <kbd>Z</kbd>).</li>
+  <li><b>Làm mới:</b> xóa canvas, quay về 3 node mẫu. Hãy <b>Lưu file workflow</b> trước nếu muốn giữ bài cũ.</li>
 </ul>
-<p class="tip"><b>Mẹo:</b> tạo sẵn các "workflow mẫu" (ví dụ: <i>mẫu TikTok 6 cảnh</i>, <i>mẫu quảng cáo sản phẩm</i>), lưu thành file. Lần sau chỉ cần Import, sửa prompt và chạy.</p>
-<p class="note">Chỉ Import file workflow từ người bạn tin tưởng.</p>
+<p class="note">Workflow cũ của bản 0.5.x vẫn mở được bình thường. Chỉ mở file workflow từ người bạn tin tưởng.</p>
+<p class="tip"><b>Mẹo:</b> tạo sẵn vài workflow mẫu (ví dụ <i>TikTok 6 cảnh</i>, <i>quảng cáo sản phẩm</i>) và lưu thành file. Lần sau chỉ cần mở file, sửa câu lệnh và chạy.</p>
+</section>
+
+<section id="cai-dat">
+<h2>14. Cài đặt</h2>
+<p>Bấm <b>Cài đặt</b> trên thanh trên cùng. Chỉnh xong, bấm <b>Lưu</b> để áp dụng.</p>
+<table>
+  <thead><tr><th>Mục</th><th>Dùng để</th></tr></thead>
+  <tbody>
+    <tr><td><b>Chờ tối đa mỗi lượt tạo</b></td><td>Thời gian chờ Muse trả kết quả: 5, 10 hoặc 15 phút (mặc định 10). Quá thời gian này, node báo hết giờ. Câu lệnh chỉ được gửi một lần, không tự gửi lại.</td></tr>
+    <tr><td><b>Kiểm tra phiên Muse</b></td><td>Xem tab Muse đã đăng nhập và có ô chat sẵn sàng chưa.</td></tr>
+  </tbody>
+</table>
+<p>Model: ô Model trên node Tạo ảnh để trống thì dùng <code>muse-image</code>.</p>
 </section>
 
 <section id="prompt">
-<h2>13. Bí quyết viết prompt</h2>
-<h3>Công thức prompt ảnh</h3>
+<h2>15. Bí quyết viết câu lệnh</h2>
+<h3>Công thức câu lệnh ảnh</h3>
 <p class="formula">[Chủ thể] + [Hành động/tư thế] + [Bối cảnh] + [Ánh sáng] + [Góc máy] + [Phong cách]</p>
-<p class="ex">Một người đàn ông lớn tuổi đang pha trà, ngồi trong gian bếp gỗ cổ, ánh nắng chiều xuyên qua cửa sổ, cận cảnh ngang tầm mắt, phong cách nhiếp ảnh tài liệu</p>
-<h3>Công thức prompt video</h3>
+<p class="ex">Một người đàn ông lớn tuổi đang pha trà, ngồi trong gian bếp gỗ cổ, nắng chiều xuyên qua cửa sổ, cận cảnh ngang tầm mắt, phong cách nhiếp ảnh tài liệu</p>
+<h3>Công thức câu lệnh video</h3>
 <p class="formula">[Ai làm gì, chuyển động ra sao] + [Máy quay di chuyển thế nào] + [Không khí, nhịp độ]</p>
 <p class="ex">Ông cụ rót trà, hơi nước bốc lên chậm rãi, máy quay đẩy chậm từ trung cảnh vào cận ấm trà, không khí yên bình, nhịp chậm</p>
 <h3>Từ khóa hữu ích</h3>
 <div class="grid">
   <div class="card"><h4>Góc máy</h4><p>cận cảnh, trung cảnh, toàn cảnh, góc từ trên xuống (flycam), góc thấp hất lên, góc qua vai, góc nhìn thứ nhất</p></div>
-  <div class="card"><h4>Chuyển động máy</h4><p>đẩy chậm vào (push in), kéo ra (pull out), lia ngang (pan), quay vòng quanh chủ thể (orbit), máy theo sau (tracking), cầm tay rung nhẹ</p></div>
+  <div class="card"><h4>Chuyển động máy</h4><p>đẩy chậm vào, kéo ra, lia ngang, quay vòng quanh chủ thể, máy đi theo sau, cầm tay rung nhẹ</p></div>
   <div class="card"><h4>Ánh sáng</h4><p>giờ vàng, ánh trăng, đèn neon, ánh nến, ngược sáng, ánh sáng studio mềm, sương mù có tia nắng</p></div>
-  <div class="card"><h4>Phong cách</h4><p>điện ảnh, anime, hoạt hình 3D, màu nước, tranh sơn dầu, đất sét (claymation), phim cũ thập niên 90, cyberpunk, tối giản</p></div>
-  <div class="card"><h4>Âm thanh (dòng Audio)</h4><p>nhạc lo-fi, trống dồn dập, tiếng mưa, tiếng sóng biển, tiếng phố đông người, im lặng chỉ có tiếng gió</p></div>
-  <div class="card"><h4>Negative Prompt</h4><p>mờ, méo mặt, thừa ngón tay, chữ, logo, watermark, khung hình bị cắt, nhiễu hạt</p></div>
+  <div class="card"><h4>Phong cách</h4><p>điện ảnh, anime, hoạt hình 3D, màu nước, tranh sơn dầu, đất sét, phim cũ thập niên 90, tối giản</p></div>
+  <div class="card"><h4>Âm thanh</h4><p>nhạc lo-fi, trống dồn dập, tiếng mưa, tiếng sóng biển, tiếng phố đông người, chỉ có tiếng gió</p></div>
+  <div class="card"><h4>⛔ Tránh</h4><p>mờ, méo mặt, thừa ngón tay, chữ, logo, watermark, khung hình bị cắt, nhiễu hạt</p></div>
 </div>
 <ul>
   <li>Viết cụ thể thay vì chung chung: "chiếc váy đỏ dài tới gót" tốt hơn "váy đẹp".</li>
   <li>Mỗi clip chỉ nên có <b>một hành động chính</b>. Clip 5–10 giây không đủ cho cả câu chuyện.</li>
-  <li>Nhắc lại đặc điểm nhân vật trong mọi cảnh (tóc, áo, màu sắc) để Muse giữ nhất quán.</li>
-  <li>Prompt tiếng Anh thường cho kết quả ổn định hơn, nhưng tiếng Việt vẫn dùng được.</li>
+  <li>Nhắc lại đặc điểm nhân vật trong mọi cảnh (tóc, áo, màu sắc), hoặc dùng 🔒 Khóa nhân vật.</li>
+  <li>Muốn dọc hay ngang thì ghi luôn "khung dọc 9:16" hoặc "khung ngang 16:9" trong câu lệnh.</li>
+  <li>Câu lệnh tiếng Việt dùng được. Tiếng Anh đôi khi cho kết quả ổn định hơn.</li>
 </ul>
 </section>
 
 <section id="y-tuong">
-<h2>14. Ý tưởng sáng tạo có sẵn công thức</h2>
+<h2>16. Ý tưởng sáng tạo có sẵn công thức</h2>
 <div class="grid">
-  <div class="card"><h4>🎵 Video ca nhạc (MV) ngắn</h4><p>6–8 cảnh, 16:9. Một node References chứa ảnh ca sĩ hoặc nhân vật. Text Append chung "phong cách MV điện ảnh, ánh sáng mờ ảo". Mỗi cảnh gắn với một câu hát. Dòng Audio ghi "không có lời thoại, chỉ nhạc nền".</p></div>
+  <div class="card"><h4>🎵 Video ca nhạc (MV) ngắn</h4><p>6–8 cảnh, 16:9. Một 🔒 Khóa nhân vật cho ca sĩ. Nối thêm chữ chung "phong cách MV điện ảnh, ánh sáng mờ ảo". Mỗi cảnh gắn với một câu hát. Dòng Audio ghi "không có lời thoại, chỉ nhạc nền".</p></div>
   <div class="card"><h4>📱 TikTok/Reels kể chuyện</h4><p>5 cảnh × 6 giây, 9:16. Cảnh 1 là "cái móc" gây tò mò, cảnh 5 là cú twist. Bật nối cảnh liền mạch cho cảm giác một cú máy.</p></div>
-  <div class="card"><h4>🛍️ Quảng cáo sản phẩm</h4><p>Image Input chứa ảnh sản phẩm thật → References. Cảnh: sản phẩm xoay 360°, cận chất liệu, người dùng sản phẩm, cảnh kết có khoảng trống để chèn logo. Dùng Image Resize xuất ảnh 1:1 cho bài đăng.</p></div>
+  <div class="card"><h4>🛍️ Quảng cáo sản phẩm</h4><p>Dùng mẫu 👗 Quảng cáo thời trang, đổi ảnh thứ hai thành 👜 Sản phẩm. Cảnh: sản phẩm xoay 360°, cận chất liệu, người dùng sản phẩm, cảnh kết có khoảng trống để chèn logo. Dùng Đổi kích thước ảnh để xuất ảnh 1:1 cho bài đăng.</p></div>
   <div class="card"><h4>📚 Truyện tranh động cho bé</h4><p>Phong cách "màu nước, nét vẽ thiếu nhi". Mỗi trang truyện là một cảnh. Audio ghi "nhạc vui nhộn, tiếng động vật". Xuất MP4 rồi ghép giọng đọc bằng phần mềm dựng.</p></div>
-  <div class="card"><h4>🏠 Giới thiệu bất động sản, du lịch</h4><p>Các cảnh flycam, lia chậm, giờ vàng. Mỗi cảnh một không gian: mặt tiền, phòng khách, ban công, view. 16:9, nhịp chậm.</p></div>
-  <div class="card"><h4>🎨 Thử nhiều phong cách</h4><p>Một Prompt nối vào 4 node Text Append, mỗi node ghi một phong cách (anime, sơn dầu, 3D, phim cũ), rồi mỗi Text Append nối tới một Generate Image riêng. Chạy một lần để so sánh và chọn phong cách ưng nhất.</p></div>
+  <div class="card"><h4>🏠 Giới thiệu bất động sản, du lịch</h4><p>Ảnh nơi chốn đặt vai trò 🏙️ Bối cảnh. Các cảnh flycam, lia chậm, giờ vàng: mặt tiền, phòng khách, ban công, view. 16:9, nhịp chậm.</p></div>
+  <div class="card"><h4>🎨 Thử nhiều phong cách</h4><p>Một Câu lệnh nối vào 4 node Nối thêm chữ, mỗi node ghi một phong cách (anime, sơn dầu, 3D, phim cũ), rồi mỗi node nối tới một Tạo ảnh riêng. Hoặc dùng một ảnh mẫu với vai trò 🎨 Phong cách / ánh sáng. Chạy một lần để so sánh.</p></div>
 </div>
-<p class="tip">Đừng ngại thử: kết quả không ưng thì bấm <b>↻ Again</b> hoặc sửa prompt và chạy lại riêng node đó. Các cảnh khác vẫn được giữ nguyên.</p>
+<p class="tip">Đừng ngại thử: kết quả không ưng thì bấm <b>↻ Tạo lại</b> hoặc sửa câu lệnh và chạy lại riêng node đó. Các cảnh khác vẫn được giữ nguyên.</p>
 </section>
 
 <section id="su-co">
-<h2>15. Xử lý sự cố</h2>
+<h2>17. Xử lý sự cố</h2>
 <table>
   <thead><tr><th>Hiện tượng</th><th>Cách xử lý</th></tr></thead>
   <tbody>
-    <tr><td>"Open muse.ai and sign in"</td><td>Mở muse.ai, đăng nhập, vào trang chat. Mở <b>Settings</b> → <b>Check Muse session</b>.</td></tr>
-    <tr><td>"could not attach its page bridge"</td><td>Tải lại tab Muse.ai (F5). Nếu vẫn lỗi, vào <code>chrome://extensions</code>, mở <i>Details</i> của TheKey.studio và kiểm tra quyền truy cập trang muse.ai.</td></tr>
-    <tr><td>"Muse did not confirm the prompt submission"</td><td>Ô chat của Muse chưa sẵn sàng hoặc đang bận. Đợi Muse trả lời xong rồi chạy lại node.</td></tr>
-    <tr><td>"Timed out waiting…"</td><td>Muse chưa trả kết quả sau 10 phút. Xem tab Muse có kết quả chưa, rồi chạy lại node.</td></tr>
-    <tr><td>"insufficient … credits"</td><td>Tài khoản Muse hết credit. Nạp thêm rồi bấm Run workflow (node đã xong được giữ).</td></tr>
-    <tr><td>Video không đúng tỷ lệ, không có tiếng</td><td>Muse quyết định kết quả cuối. Ghi rõ tỷ lệ và âm thanh trong prompt, rồi thử <b>↻ Again</b>.</td></tr>
-    <tr><td>Continuity báo cần clip trước</td><td>Kiểm tra thứ tự Timeline, và chạy clip đứng trước cho thành công trước.</td></tr>
-    <tr><td>Xuất MP4 lỗi</td><td>Tải lại extension rồi thử lại; hoặc chọn WebM.</td></tr>
-    <tr><td>Mọi thứ đơ hoặc không phản hồi</td><td>Tải lại tab TheKey.studio. Workflow đã được tự động lưu.</td></tr>
+    <tr><td>"Hãy mở muse.ai, đăng nhập…"</td><td>Mở muse.ai, đăng nhập, vào trang chat. Vào <b>Cài đặt</b> → <b>Kiểm tra phiên Muse</b>.</td></tr>
+    <tr><td>"không gắn được vào trang"</td><td>Nhấn <kbd>F5</kbd> tab Muse.ai. Nếu vẫn lỗi, vào <code>chrome://extensions</code>, mở <i>Chi tiết</i> của TheKey.studio và kiểm tra quyền truy cập trang muse.ai.</td></tr>
+    <tr><td>App vẫn tiếng Anh hoặc thiếu nút mới</td><td>Chrome còn chạy bản cũ. Vào <code>chrome://extensions</code>, bấm <b>Reload</b> (↻) ở TheKey.studio, rồi <kbd>F5</kbd> cả tab app và tab Muse. Góc trái trên cùng phải ghi <b>0.6.0</b>.</td></tr>
+    <tr><td>"Muse chưa xác nhận đã gửi câu lệnh"</td><td>Ô chat của Muse chưa sẵn sàng hoặc đang bận. Đợi Muse trả lời xong rồi chạy lại node.</td></tr>
+    <tr><td>"Không tìm thấy nút tải ảnh lên" / "Muse chưa xác nhận đã nhận … ảnh"</td><td>Muse không nhận ảnh đính kèm. Câu lệnh chưa được gửi nên không tốn credit. Nhấn <kbd>F5</kbd> tab Muse, mở khung chat mới, rồi chạy lại node. Thử bớt số ảnh nối vào cảnh đó.</td></tr>
+    <tr><td>"Hết thời gian chờ…"</td><td>Muse chưa trả kết quả trong thời gian chờ. Xem tab Muse có kết quả chưa, tăng <b>Chờ tối đa mỗi lượt tạo</b> trong Cài đặt rồi chạy lại node.</td></tr>
+    <tr><td>"Tài khoản Muse đã hết credit"</td><td>App đã dừng cả lượt chạy. Nạp thêm rồi bấm <b>▶ Chạy tất cả</b> (node đã xong được giữ).</td></tr>
+    <tr><td>Muse từ chối nội dung</td><td>App đã tự thử lại một lần. Đọc lời nhắn trên node, viết lại câu lệnh nhẹ nhàng hơn, rồi chạy lại node.</td></tr>
+    <tr><td>Kết quả sai tỉ lệ, video không có tiếng</td><td>Muse quyết định kết quả cuối. Ghi rõ tỉ lệ và âm thanh trong câu lệnh, rồi bấm <b>↻ Tạo lại</b>.</td></tr>
+    <tr><td>Ảnh người mẫu / trang phục bị lẫn</td><td>Kiểm tra ô <b>Ảnh này là:</b> trên từng node Ảnh đầu vào. Dùng ảnh rõ, nền trơn, mỗi ảnh một thứ chính.</td></tr>
+    <tr><td>Nối cảnh liền mạch báo cần clip trước</td><td>Kiểm tra thứ tự trên Timeline, và chạy clip đứng trước cho xong trước.</td></tr>
+    <tr><td>Xuất MP4 lỗi</td><td>Reload extension, <kbd>F5</kbd> tab app rồi thử lại, hoặc chọn WebM.</td></tr>
+    <tr><td>App đơ, không phản hồi</td><td>Nhấn <kbd>F5</kbd> ở tab app. Workflow đã được tự động lưu.</td></tr>
   </tbody>
 </table>
 </section>
 
 <section id="hoi-dap">
-<h2>16. Câu hỏi thường gặp</h2>
+<h2>18. Câu hỏi thường gặp</h2>
 <details><summary>Có tốn tiền không?</summary><p>TheKey.studio miễn phí. Bạn chỉ dùng credit trong tài khoản Muse.ai của mình cho mỗi lượt tạo.</p></details>
-<details><summary>Dữ liệu của tôi có bị gửi đi đâu không?</summary><p>Chỉ prompt và ảnh tham chiếu được gửi tới Muse.ai qua tab bạn đã đăng nhập. Workflow, ảnh, video được lưu trong trình duyệt trên máy bạn. Việc ghép MP4 cũng chạy ngay trên máy.</p></details>
-<details><summary>Có thể tắt máy giữa chừng không?</summary><p>Workflow được lưu liên tục. Lần sau mở lại, bấm Run workflow: các node đã xong được giữ, chỉ chạy tiếp phần còn lại.</p></details>
-<details><summary>Muốn tạo lại toàn bộ phim từ đầu?</summary><p>Bấm Run trên từng node cần tạo lại. Hoặc dùng <i>Save workflow</i> để giữ bản cũ, rồi xóa các node Generate cũ và dựng lại bằng Script → Nodes.</p></details>
-<details><summary>Có thể dùng trên nhiều máy không?</summary><p>Có. Cài extension trên máy mới, rồi dùng Save workflow ở máy cũ và Import workflow ở máy mới.</p></details>
-<details><summary>Có thêm nhạc hoặc giọng đọc riêng được không?</summary><p>TheKey.studio xuất MP4 có âm thanh do Muse tạo. Để lồng nhạc hoặc giọng đọc riêng, hãy mở file MP4 bằng phần mềm dựng như CapCut hoặc Premiere.</p></details>
+<details><summary>Workflow cũ (bản 0.5.x) còn dùng được không?</summary><p>Được. Workflow cũ vẫn mở bình thường; node cũ được hiện với tên tiếng Việt. Ảnh cũ chưa có vai trò thì được coi là <b>Tự do</b>.</p></details>
+<details><summary>Dữ liệu của tôi có bị gửi đi đâu không?</summary><p>Chỉ câu lệnh và ảnh tham chiếu được gửi tới Muse.ai qua tab bạn đã đăng nhập. Workflow, ảnh, video được lưu trong trình duyệt trên máy bạn. Việc ghép MP4 cũng chạy ngay trên máy.</p></details>
+<details><summary>Làm sao tiết kiệm credit?</summary><p>Thử một cảnh trước khi chạy cả kịch bản. Tạo ảnh trước, ưng rồi mới làm video. Khi có lỗi, chỉ chạy lại node lỗi.</p></details>
+<details><summary>Có thể tắt máy giữa chừng không?</summary><p>Workflow được lưu liên tục. Lần sau mở lại, bấm <b>▶ Chạy tất cả</b>: node đã xong được giữ, chỉ chạy tiếp phần còn lại.</p></details>
+<details><summary>Muốn tạo lại toàn bộ phim từ đầu?</summary><p>Bấm nút chạy trên từng node cần làm lại. Hoặc <b>Lưu file workflow</b> để giữ bản cũ, rồi dựng lại bằng <b>📜 Kịch bản → Cảnh</b>.</p></details>
+<details><summary>Có dùng trên nhiều máy được không?</summary><p>Được. Cài extension ở máy mới. Dùng <b>Lưu file workflow</b> ở máy cũ và <b>Mở file workflow</b> ở máy mới.</p></details>
+<details><summary>Có thêm nhạc hoặc giọng đọc riêng được không?</summary><p>App xuất phim có âm thanh do Muse tạo. Để lồng nhạc hoặc giọng đọc riêng, hãy mở file MP4 bằng phần mềm dựng như CapCut hoặc Premiere.</p></details>
 </section>
 
-<footer>TheKey.studio · Chúc bạn sáng tạo vui vẻ ✦</footer>
+<footer>TheKey.studio 0.6.0 · Chúc bạn sáng tạo vui vẻ ✦</footer>
 </main>
 </div>
 </body>

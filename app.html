@@ -1,104 +1,126 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TheKey.studio 0.5.1</title>
+  <title>TheKey.studio 0.6.0</title>
   <link rel="icon" type="image/png" sizes="128x128" href="icons/icon128.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="toolbar">
-    <div class="brand"><img class="brand-logo" src="icons/thekey-logo.png" alt="TheKey.studio" /><strong class="brand-name">TheKey.studio</strong><span class="brand-version">0.5.1</span></div>
-    <div class="toolbar-tools" aria-label="Add workflow nodes">
-      <button id="scriptImportBtn" type="button">＋ Script → Nodes</button>
-      <button data-add="prompt">+ Prompt</button>
-      <button data-add="text">+ Text note</button>
-      <button data-add="negativePrompt">+ Negative</button>
-      <button data-add="textAppend">+ Text Append</button>
-      <button data-add="textConcat">+ Text Merge</button>
-      <button data-add="imageInput">+ Image Input</button>
-      <button data-add="references">+ References</button>
-      <button data-add="generateImage">+ Generate Image</button>
-      <button data-add="generateVideo">+ Generate Video</button>
-      <button data-add="timeline">+ Timeline</button>
-      <button data-add="imageResize">+ Image Resize</button>
-      <button data-add="preview">+ Preview</button>
-    </div>
+    <div class="brand"><img class="brand-logo" src="icons/thekey-logo.png" alt="TheKey.studio" /><strong class="brand-name">TheKey.studio</strong><span class="brand-version">0.6.0</span></div>
     <div class="toolbar-actions">
-      <button id="saveBtn">Save</button>
-      <button id="workflowExportBtn" type="button" title="Save workflow as a reusable JSON file">Save workflow</button>
-      <button id="workflowImportBtn" type="button" title="Import a saved TheKey.studio workflow">Import workflow</button>
+      <button id="saveBtn" title="Lưu workflow trong trình duyệt">Lưu</button>
+      <button id="workflowExportBtn" type="button" title="Lưu workflow ra file JSON để dùng lại hoặc gửi người khác">Lưu file workflow</button>
+      <button id="workflowImportBtn" type="button" title="Mở một file workflow TheKey.studio đã lưu">Mở file workflow</button>
       <input id="workflowFileInput" type="file" accept=".json,application/json" hidden />
-      <button id="settingsBtn">Settings</button>
-      <button id="resetBtn" class="danger">Reset</button>
-      <button id="runBtn" class="primary" title="Run every node in the workflow in dependency order">▶ Run workflow</button>
-      <button id="guideBtn" type="button" title="Open the detailed user guide">📖 Hướng dẫn</button>
-      <button id="welcomeBtn" type="button" title="About The Key studio">✦ The Key studio</button>
+      <button id="settingsBtn">Cài đặt</button>
+      <button id="resetBtn" class="danger" title="Xoá canvas và bắt đầu lại">Làm mới</button>
+      <button id="runBtn" class="primary" title="Chạy mọi node theo đúng thứ tự nối dây">▶ Chạy tất cả</button>
+      <button id="guideBtn" type="button" title="Mở hướng dẫn sử dụng chi tiết">📖 Hướng dẫn</button>
+      <button id="welcomeBtn" type="button" title="Giới thiệu The Key studio">✦ The Key studio</button>
     </div>
   </header>
 
   <div class="statusbar">
-    <span id="museStatus">● Checking muse.ai...</span>
-    <span id="backendStatus">Generation: Muse.ai browser session</span>
+    <span id="museStatus">● Đang kiểm tra Muse...</span>
+    <span id="backendStatus">Tạo bằng: tab Muse.ai</span>
     <span id="runStatus"></span>
   </div>
+
+  <aside id="nodeSidebar" class="node-sidebar" aria-label="Thêm node">
+    <button id="nodeSidebarToggle" class="ns-toggle" type="button" title="Thu gọn / mở rộng cột node"><span class="ns-icon">«</span><span class="ns-label">Thu gọn</span></button>
+    <button id="scriptImportBtn" type="button" class="ns-script" title="Dán kịch bản, tự tạo node cho từng cảnh"><span class="ns-icon">📜</span><span class="ns-label">Kịch bản → Cảnh</span></button>
+    <div class="ns-group"><div class="ns-title">Văn bản</div>
+      <button data-add="prompt" title="Câu mô tả cho node Tạo ảnh / Tạo video"><span class="ns-icon">✏️</span><span class="ns-label">Câu lệnh (Prompt)</span></button>
+      <button data-add="text" title="Ghi chú tự do trên canvas"><span class="ns-icon">🗒️</span><span class="ns-label">Ghi chú</span></button>
+      <button data-add="negativePrompt" title="Những thứ không muốn xuất hiện"><span class="ns-icon">⛔</span><span class="ns-label">Tránh (Negative)</span></button>
+      <button data-add="textAppend" title="Nối thêm chữ vào sau câu lệnh"><span class="ns-icon">➕</span><span class="ns-label">Nối thêm chữ</span></button>
+      <button data-add="textConcat" title="Gộp nhiều đoạn chữ thành một"><span class="ns-icon">🔗</span><span class="ns-label">Gộp chữ</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Hình ảnh đầu vào</div>
+      <button data-add="imageInput" title="Ảnh từ máy (hoặc kéo thả / dán ảnh vào canvas)"><span class="ns-icon">🖼️</span><span class="ns-label">Ảnh đầu vào</span></button>
+      <button data-add="references" title="Gom nhiều ảnh rồi nối một lần"><span class="ns-icon">🧩</span><span class="ns-label">Gom ảnh tham chiếu</span></button>
+      <button data-add="imageResize" title="Đổi kích thước hoặc cắt ảnh"><span class="ns-icon">📐</span><span class="ns-label">Đổi kích thước ảnh</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Nhân vật</div>
+      <button data-add="character" title="Giữ một nhân vật giống hệt nhau ở mọi cảnh (gửi ảnh + mô tả kèm mọi node Tạo)"><span class="ns-icon">🔒</span><span class="ns-label">Khóa nhân vật</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Tạo trên Muse</div>
+      <button data-add="generateImage" title="Tạo ảnh trên Muse.ai"><span class="ns-icon">🎨</span><span class="ns-label">Tạo ảnh</span></button>
+      <button data-add="generateVideo" title="Tạo video trên Muse.ai"><span class="ns-icon">🎬</span><span class="ns-label">Tạo video</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Xem &amp; xuất</div>
+      <button data-add="preview" title="Xem ảnh hoặc video"><span class="ns-icon">👁️</span><span class="ns-label">Xem trước</span></button>
+      <button data-add="timeline" title="Sắp xếp các clip và xuất thành một video"><span class="ns-icon">🎞️</span><span class="ns-label">Timeline</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Mẫu có sẵn</div>
+      <button id="fashionPresetBtn" type="button" title="Ảnh người mẫu + ảnh trang phục → ảnh người mẫu mặc đồ → video quảng cáo"><span class="ns-icon">👗</span><span class="ns-label">Quảng cáo thời trang</span></button>
+    </div>
+    <p class="ns-hint">Mẹo: kéo thả hoặc dán (Ctrl+V) ảnh vào canvas để tạo Image Input.</p>
+  </aside>
 
   <main id="viewport">
     <svg id="edges"></svg>
     <div id="canvas"></div>
-    <div id="canvasTools" class="canvas-tools" aria-label="Canvas controls">
-      <button id="handTool" type="button" title="Hand tool (H) · Hold Space to pan · Alt-drag to copy · Ctrl+Z to undo · G group · T Text note">✋</button>
-      <button id="groupTool" type="button" title="Draw a group region (G)">▱</button>
-      <button id="zoomOut" type="button" title="Zoom out">−</button>
+    <div id="canvasTools" class="canvas-tools" aria-label="Điều khiển canvas">
+      <button id="handTool" type="button" title="Kéo canvas (H) · giữ Space để kéo · Alt-kéo để nhân bản · Ctrl+Z hoàn tác · G nhóm · T ghi chú">✋</button>
+      <button id="groupTool" type="button" title="Vẽ vùng nhóm (G)">▱</button>
+      <button id="zoomOut" type="button" title="Thu nhỏ">−</button>
       <span id="zoomLevel">100%</span>
-      <button id="zoomIn" type="button" title="Zoom in">＋</button>
-      <button id="fitCanvas" type="button" title="Fit all nodes">Fit</button>
+      <button id="zoomIn" type="button" title="Phóng to">＋</button>
+      <button id="fitCanvas" type="button" title="Vừa khít mọi node">Vừa</button>
     </div>
   </main>
-  <section id="timelineDock" class="timeline-dock collapsed" aria-label="Video timeline">
-    <div class="timeline-dock-header"><div class="timeline-heading"><strong>Timeline</strong><span id="timelineClipCount">0 clips</span><small>Arrange scenes · drag clips to reorder</small></div><div class="timeline-dock-actions"><button id="timelineImportAllBtn" type="button" title="Add every Generate Video node to the timeline">＋ Import all videos</button><div class="timeline-output-picker"><button id="timelineAddVideoBtn" type="button" title="Add a video output">＋ Add clip</button><div id="timelineOutputMenu" class="timeline-output-menu hidden"></div></div><button id="timelinePlayBtn" type="button" title="Preview sequence">▶ Preview</button><select id="timelineExportFormat" title="Choose export format"><option value="webm">WebM</option><option value="mp4">MP4 (H.264)</option></select><button id="timelineExportBtn" type="button" title="Export the full stitched timeline video">⇩ Export</button><button id="timelineExportStopBtn" class="timeline-export-stop hidden" type="button" title="Stop timeline export">■ Stop</button><button id="timelineToggleBtn" type="button" aria-expanded="false" title="Show timeline">▲</button></div></div>
-    <div id="timelineDropZone" class="timeline-drop-zone">Drag a Generate Video node or video clip here</div>
+  <section id="timelineDock" class="timeline-dock collapsed" aria-label="Timeline video">
+    <div class="timeline-dock-header"><div class="timeline-heading"><strong>Timeline</strong><span id="timelineClipCount">0 clip</span><small>Sắp xếp cảnh · kéo clip để đổi thứ tự</small></div><div class="timeline-dock-actions"><button id="timelineImportAllBtn" type="button" title="Thêm mọi node Tạo video vào timeline">＋ Thêm tất cả video</button><div class="timeline-output-picker"><button id="timelineAddVideoBtn" type="button" title="Thêm một video">＋ Thêm clip</button><div id="timelineOutputMenu" class="timeline-output-menu hidden"></div></div><button id="timelinePlayBtn" type="button" title="Xem thử cả chuỗi">▶ Xem thử</button><select id="timelineExportFormat" title="Chọn định dạng xuất"><option value="webm">WebM</option><option value="mp4">MP4 (H.264)</option></select><button id="timelineExportBtn" type="button" title="Xuất cả timeline thành một video">⇩ Xuất</button><button id="timelineExportStopBtn" class="timeline-export-stop hidden" type="button" title="Dừng xuất">■ Dừng</button><button id="timelineToggleBtn" type="button" aria-expanded="false" title="Mở timeline">▲</button></div></div>
+    <div id="timelineDropZone" class="timeline-drop-zone">Kéo node Tạo video hoặc clip vào đây</div>
     <div class="timeline-dock-content"><div id="timelineTrack" class="timeline-dock-track"></div></div>
   </section>
 
-  <aside id="timelinePreviewPanel" class="timeline-preview-panel hidden" aria-label="Timeline video preview">
-    <header><strong>Timeline Preview</strong><button id="closeTimelinePreview" type="button" aria-label="Close preview">×</button></header>
+  <aside id="timelinePreviewPanel" class="timeline-preview-panel hidden" aria-label="Xem thử timeline">
+    <header><strong>Xem thử timeline</strong><button id="closeTimelinePreview" type="button" aria-label="Đóng">×</button></header>
     <div class="timeline-preview-stage"><video id="timelinePlayer" class="is-active" controls playsinline preload="auto"></video><video id="timelinePlayerNext" playsinline preload="auto"></video></div>
-    <div class="timeline-preview-caption">Scene playback</div>
+    <div class="timeline-preview-caption">Đang phát cảnh</div>
   </aside>
 
   <div id="canvasMenu" class="canvas-menu hidden" role="menu">
-    <div class="menu-caption">Add node</div>
-    <button data-context-action="add:prompt" role="menuitem">＋ Prompt</button>
-    <button data-context-action="add:negativePrompt" role="menuitem">＋ Negative Prompt</button>
-    <button data-context-action="add:text" role="menuitem">＋ Text note</button>
-    <button data-context-action="add:textAppend" role="menuitem">＋ Text Append</button>
-    <button data-context-action="add:textConcat" role="menuitem">＋ Text Merge</button>
-    <button data-context-action="add:imageInput" role="menuitem">＋ Image Input</button>
-    <button data-context-action="add:references" role="menuitem">＋ References</button>
-    <button data-context-action="add:generateImage" role="menuitem">＋ Generate Image</button>
-    <button data-context-action="add:generateVideo" role="menuitem">＋ Generate Video</button>
+    <div class="menu-caption">Thêm node</div>
+    <button data-context-action="add:prompt" role="menuitem">＋ Câu lệnh</button>
+    <button data-context-action="add:negativePrompt" role="menuitem">＋ Tránh (Negative)</button>
+    <button data-context-action="add:text" role="menuitem">＋ Ghi chú</button>
+    <button data-context-action="add:textAppend" role="menuitem">＋ Nối thêm chữ</button>
+    <button data-context-action="add:textConcat" role="menuitem">＋ Gộp chữ</button>
+    <button data-context-action="add:character" role="menuitem">🔒 Khóa nhân vật</button>
+    <button data-context-action="add:imageInput" role="menuitem">＋ Ảnh đầu vào</button>
+    <button data-context-action="add:references" role="menuitem">＋ Gom ảnh tham chiếu</button>
+    <button data-context-action="add:generateImage" role="menuitem">＋ Tạo ảnh</button>
+    <button data-context-action="add:generateVideo" role="menuitem">＋ Tạo video</button>
     <button data-context-action="add:timeline" role="menuitem">＋ Timeline</button>
-    <button data-context-action="add:imageResize" role="menuitem">＋ Image Resize</button>
-    <button data-context-action="add:preview" role="menuitem">＋ Preview</button>
+    <button data-context-action="add:imageResize" role="menuitem">＋ Đổi kích thước ảnh</button>
+    <button data-context-action="add:preview" role="menuitem">＋ Xem trước</button>
     <div class="menu-divider"></div>
-    <button data-context-action="save" role="menuitem">Save workflow</button>
-    <button data-context-action="run" role="menuitem">▶ Run workflow</button>
-    <button data-context-action="arrange" role="menuitem">Arrange nodes</button>
+    <button data-context-action="save" role="menuitem">Lưu workflow</button>
+    <button data-context-action="run" role="menuitem">▶ Chạy tất cả</button>
+    <button data-context-action="arrange" role="menuitem">Sắp xếp node</button>
     <div class="menu-divider"></div>
-    <button data-context-action="delete-selected" role="menuitem">Delete selected node</button>
-    <button data-context-action="disconnect-all" role="menuitem">Remove all connections</button>
+    <button data-context-action="delete-selected" role="menuitem">Xoá node đang chọn</button>
+    <button data-context-action="disconnect-all" role="menuitem">Gỡ mọi dây nối</button>
   </div>
 
   <div id="settingsModal" class="modal-backdrop hidden">
-    <section class="modal">
-      <h2>Muse.ai session</h2>
-      <p>TheKey.studio uses your signed-in Muse.ai browser tab directly. Keep the Muse chat tab open while a workflow runs.</p>
-      <div class="connection-check"><button id="testMuseBtn" type="button">Check Muse session</button><span id="connectionStatus" role="status"></span></div>
+    <section class="modal settings-modal">
+      <h2>Phiên Muse.ai</h2>
+      <p>TheKey.studio dùng trực tiếp tab Muse.ai bạn đã đăng nhập. Hãy để tab chat Muse mở trong lúc chạy workflow.</p>
+      <div class="settings-grid">
+        <label for="timeoutSelect">Chờ tối đa mỗi lượt tạo</label>
+        <select id="timeoutSelect"><option value="300">5 phút</option><option value="600">10 phút</option><option value="900">15 phút</option></select>
+      </div>
+      <div class="connection-check"><button id="testMuseBtn" type="button">Kiểm tra phiên Muse</button><span id="connectionStatus" role="status"></span></div>
       <div class="modal-actions">
-        <button id="closeSettingsBtn">Cancel</button>
-        <button id="saveSettingsBtn" class="primary">Save</button>
+        <button id="closeSettingsBtn">Huỷ</button>
+        <button id="saveSettingsBtn" class="primary">Lưu</button>
       </div>
     </section>
   </div>
@@ -112,14 +134,14 @@
   </div>
   <div id="scriptModal" class="modal-backdrop hidden">
     <section class="modal script-modal" role="dialog" aria-modal="true" aria-labelledby="scriptModalTitle">
-      <h2 id="scriptModalTitle">Build nodes from a scene script</h2>
-      <p>Paste scenes with “CẢNH”, “Prompt ảnh”, “Prompt video” and optional “Audio”. TheKey.studio will create and connect each scene, then order video clips on the Timeline.</p>
-      <label for="scriptInput">Script</label>
-      <textarea id="scriptInput" placeholder="CẢNH 1 (0:00–0:07): Scene title&#10;&#10;Prompt ảnh: ...&#10;&#10;Prompt video: ...&#10;Audio: ..."></textarea>
+      <h2 id="scriptModalTitle">Tạo node từ kịch bản</h2>
+      <p>Dán kịch bản có “CẢNH”, “Prompt ảnh”, “Prompt video” và “Audio” (tuỳ chọn). TheKey.studio sẽ tạo và nối node cho từng cảnh, rồi xếp các clip vào Timeline.</p>
+      <label for="scriptInput">Kịch bản</label>
+      <textarea id="scriptInput" placeholder="CẢNH 1 (0:00–0:07): Tên cảnh&#10;&#10;Prompt ảnh: ...&#10;&#10;Prompt video: ...&#10;Audio: ..."></textarea>
       <div id="scriptImportStatus" role="status"></div>
       <div class="modal-actions">
-        <button id="cancelScriptImport" type="button">Cancel</button>
-        <button id="buildScriptNodes" type="button" class="primary">Create scene nodes</button>
+        <button id="cancelScriptImport" type="button">Huỷ</button>
+        <button id="buildScriptNodes" type="button" class="primary">Tạo node các cảnh</button>
       </div>
     </section>
   </div>

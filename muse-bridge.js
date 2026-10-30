@@ -60,7 +60,7 @@
       if(signal?.aborted)throw new DOMException('Generation stopped by user.','AbortError');
       await delay(120,signal);
     }
-    if(!findComposer())throw new Error('Muse chat is not ready. Open the Muse chat page and wait for the message box to load.');
+    if(!findComposer())throw new Error('Khung chat Muse chưa sẵn sàng. Hãy mở trang chat Muse và đợi ô nhập tin nhắn hiện ra.');
   }
 
   function attachments() {
@@ -111,11 +111,11 @@
   async function generate({prompt,timeoutSec=600,mediaType='image',referenceImage='',referenceImages=[],size='1:1',requestId},signal) {
     const throwIfAborted=()=>{if(signal?.aborted)throw new DOMException('Generation stopped by user.','AbortError');};
     throwIfAborted();
-    if(!String(prompt||'').trim())throw new Error('Prompt is empty.');
+    if(!String(prompt||'').trim())throw new Error('Câu lệnh đang trống.');
     await waitHydrated(15000,signal);
     throwIfAborted();
     const composer=findComposer();
-    if(!visible(composer))throw new Error('Muse message box is not visible. Open the chat composer and retry.');
+    if(!visible(composer))throw new Error('Không thấy ô nhập tin nhắn của Muse. Hãy mở khung chat rồi thử lại.');
     const referenceList=Array.isArray(referenceImages)&&referenceImages.length?referenceImages:referenceImage?[referenceImage]:[];
     if(referenceList.length)await attachReferences(referenceList,signal);
     throwIfAborted();
@@ -123,7 +123,7 @@
     const priorBubbleTexts=new Map(assistantMessageElements().map(el=>[el,(el.innerText||el.textContent||'').replace(/\s+/g,' ').trim()]));
     composer.scrollIntoView({block:'center'});composer.focus();
     const setter=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value')?.set;
-    if(!setter)throw new Error('Muse message box is unsupported.');
+    if(!setter)throw new Error('Ô nhập tin nhắn của Muse không được hỗ trợ.');
     setter.call(composer,String(prompt));
     composer.dispatchEvent(new Event('input',{bubbles:true}));
     composer.dispatchEvent(new Event('change',{bubbles:true}));
@@ -134,7 +134,7 @@
       if(sendButton&&!sendButton.disabled)break;
       await delay(100,signal);
     }
-    if(!composer.value.trim())throw new Error('Muse did not accept the prompt into its message box. Nothing was submitted.');
+    if(!composer.value.trim())throw new Error('Muse không nhận câu lệnh vào ô nhập. Chưa gửi gì cả.');
     const bubbleCount=()=>document.querySelectorAll('div[class*="hatch-chat-groupable-bubble"]').length;
     const beforeSendCount=bubbleCount();
     let submitted=false;
@@ -156,7 +156,7 @@
       if(!composer.isConnected||!composer.value.trim()||bubbleCount()>beforeSendCount||document.querySelector('[data-testid="hatch-composer-stop-button"],button[aria-label*="Stop" i],button[aria-label*="停止"]')){accepted=true;break;}
       await delay(100,signal);
     }
-    if(!submitted||!accepted)throw new Error('Muse did not confirm the prompt submission. Check the chat box and try again; TheKey.studio will not resubmit automatically.');
+    if(!submitted||!accepted)throw new Error('Muse chưa xác nhận đã gửi câu lệnh. Hãy xem lại khung chat rồi thử lại; TheKey.studio không tự gửi lại.');
     const deadline=Date.now()+Math.min(900,Math.max(30,Number(timeoutSec)||600))*1000;
     let lastProgress=Date.now(),firstWrongRatioAt=0;
     let refusalContext='',refusalContextSince=0;
@@ -196,28 +196,28 @@
         const clearRefusal=inability.test(currentContext)&&sceneContext.test(currentContext)&&offerAlternative.test(currentContext);
         if(clearRefusal||Date.now()-refusalContextSince>=1200){
           if(stop)clickMuseStop();
-          const error=new Error(`Muse could not generate this scene: ${currentContext.slice(-700)}`);error.code='SCENE_REFUSED';throw error;
+          const error=new Error(`Muse không tạo được cảnh này: ${currentContext.slice(-700)}`);error.code='SCENE_REFUSED';throw error;
         }
       }
       else{refusalContext='';refusalContextSince=0;}
       if(!stop&&Date.now()-lastProgress>5000){
         const tail=(document.body?.innerText||'').slice(-800);
-        if(/out of credits|insufficient credits|额度不足|积分不足/i.test(tail))throw new Error('Muse account has insufficient image credits.');
+        if(/out of credits|insufficient credits|额度不足|积分不足/i.test(tail)){const error=new Error('Tài khoản Muse đã hết credit. Đã dừng cả lượt chạy.');error.code='NO_CREDITS';throw error;}
       }
       await waitForAttachmentChange(Math.min(500,deadline-Date.now()),signal);
     }
     throwIfAborted();
-    throw new Error(`Timed out waiting for a new Muse ${mediaType} attachment. Prompt was submitted once; it was not resubmitted.`);
+    throw new Error(`Hết thời gian chờ ${mediaType==='video'?'video':'ảnh'} mới từ Muse. Câu lệnh đã gửi một lần và không gửi lại.`);
   }
 
   async function attachReferences(references,signal){
     const files=await Promise.all(references.map(async(reference,index)=>{
       const url=typeof reference==='string'?reference:reference?.url;
-      if(!url)throw new Error(`Reference image ${index+1} has no URL.`);
+      if(!url)throw new Error(`Ảnh tham chiếu ${index+1} không có đường dẫn.`);
       const response=await fetch(url,{credentials:'include'});
-      if(!response.ok)throw new Error(`Could not load reference image ${index+1} (${response.status}).`);
+      if(!response.ok)throw new Error(`Không tải được ảnh tham chiếu ${index+1} (${response.status}).`);
       const blob=await response.blob();
-      if(!blob.type.startsWith('image/')||!blob.size)throw new Error(`Reference ${index+1} is not a readable image.`);
+      if(!blob.type.startsWith('image/')||!blob.size)throw new Error(`Ảnh tham chiếu ${index+1} không đọc được.`);
       const extension=(blob.type.split('/')[1]||'png').replace('jpeg','jpg').replace(/[^a-z0-9]/gi,'')||'png';
       return new File([blob],`thekey-reference-${String(index+1).padStart(2,'0')}.${extension}`,{type:blob.type});
     }));
@@ -244,7 +244,7 @@
       const uploadButton=roots.flatMap(root=>[...root.querySelectorAll('button,[role="button"],label')]).filter(visible).find(el=>/attach|upload|image|photo|file|đính kèm|tải lên/i.test(`${el.getAttribute('aria-label')||''} ${el.getAttribute('title')||''} ${el.innerText||''}`));
       if(uploadButton){uploadButton.click();await delay(250,signal);input=findInput();}
     }
-    if(!input)throw new Error('Muse image upload control was not found near the chat composer; the prompt was not submitted.');
+    if(!input)throw new Error('Không tìm thấy nút tải ảnh lên cạnh ô chat Muse; câu lệnh chưa được gửi.');
     const previewSelector='img,[role="img"],[data-testid*="attachment" i],[data-testid*="upload" i],[class*="attachment" i],[class*="upload" i]';
     const previewElements=()=>[...document.querySelectorAll(previewSelector)].filter(visible);
     const previewKey=el=>{
@@ -252,7 +252,7 @@
       return `${src}|${el.getAttribute('data-testid')||''}|${el.getAttribute('class')||''}|${el.getAttribute('aria-label')||''}|${el.getAttribute('title')||''}`;
     };
     const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'files')?.set;
-    if(!setter)throw new Error('Browser does not allow setting the Muse attachment input.');
+    if(!setter)throw new Error('Trình duyệt không cho gắn ảnh vào ô đính kèm của Muse.');
     const uploadBatch=async(batch)=>{
       const previousPreviews=new Set(previewElements().map(previewKey));
       const transfer=new DataTransfer();batch.forEach(file=>transfer.items.add(file));
@@ -267,7 +267,7 @@
         return !previousPreviews.has(key)&&Boolean(src);
       });
       while(Date.now()<deadline){if(signal?.aborted)throw new DOMException('Generation stopped by user.','AbortError');if(previewSeen()||accepted()&&Date.now()-started>1000)return;await delay(160,signal);}
-      throw new Error(`Muse did not confirm ${batch.length} reference image${batch.length===1?'':'s'} in the chat composer (upload input accepts: ${input.accept||'any file'}); the prompt was not submitted.`);
+      throw new Error(`Muse chưa xác nhận đã nhận ${batch.length} ảnh tham chiếu trong ô chat (ô tải lên nhận: ${input.accept||'mọi file'}); câu lệnh chưa được gửi.`);
     };
     if(files.length>1&&!input.multiple){
       for(const file of files)await uploadBatch([file]);
