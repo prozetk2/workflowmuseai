@@ -56,6 +56,8 @@ $('#send').onclick = () => {
   log(text, 'user'); $('#box').textContent = ''; $('#atts').innerHTML = '';
   if (/BLOCKME/.test(text)) { setTimeout(() => log('Chúng tôi phát hiện thấy hoạt động bất thường từ trình duyệt của bạn.'), 600); return; }
   if (/SLOWME/.test(text)) { setTimeout(() => log('Đang làm…'), 600); return; }
+  // The tab reloads while working (connection to the extension drops mid-request).
+  if (/RELOADME/.test(text)) { localStorage.setItem('reloadSends', String(Number(localStorage.getItem('reloadSends') || 0) + 1)); setTimeout(() => location.reload(), 1500); return; }
   const kind = /exactly 1 video/.test(text) ? 'video' : 'image';
   if (kind === 'video') {
     setTimeout(() => {

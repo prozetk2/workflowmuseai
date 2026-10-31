@@ -163,7 +163,8 @@
       : `<button data-q="runAll" class="primary"><i data-ic="play"></i>Chạy tất cả</button>${snap.failed ? `<button data-q="runAll" title="Node đã xong được giữ nguyên, chỉ chạy lại node lỗi và node chưa chạy">Chạy lại ${snap.failed} mục lỗi</button>` : ''}`;
     const head = `<div class="cos-q-head"><div class="cos-q-progress"><b>${snap.running ? (snap.paused ? 'Tạm dừng' : 'Đang chạy') : 'Rảnh'}</b> · ${snap.done}/${snap.total} lượt${queue.pending.length ? ` · ${queue.pending.length} xếp hàng thêm` : ''}</div><div class="cos-q-bar"><i style="width:${snap.total ? Math.round(snap.done / snap.total * 100) : 0}%"></i></div><div class="cos-q-controls">${controls}</div><label class="cos-pace">Nghỉ giữa các lượt <select id="cosPace">${[0, 5, 10, 20, 30, 60].map(v => `<option value="${v}" ${extras.pace === v ? 'selected' : ''}>${v ? v + ' giây' : 'không nghỉ'}</option>`).join('')}</select></label><p class="cos-hint">Bảng này cũng hiện nổi ngay trên tab Google Flow. Tạm dừng có hiệu lực từ lượt kế tiếp; lượt đang tạo vẫn chạy cho xong. Bấm Chạy trên một node khi đang chạy để xếp hàng thêm.</p></div>`;
     const row = (node, status) => {
-      const thumb = node.data.asset?.url ? (node.data.asset.kind === 'video' ? `<video src="${esc(node.data.asset.url)}" muted></video>` : `<img src="${esc(node.data.asset.url)}" alt="">`) : `<span class="cos-q-kind">${node.type === 'generateVideo' ? 'Video' : 'Ảnh'}</span>`;
+      // The source is set after the list is built (see fillThumbs): writing multi-MB data: URLs into the HTML on every refresh lagged the app.
+      const thumb = node.data.asset?.url ? (node.data.asset.kind === 'video' ? `<video data-thumb="${esc(node.id)}" muted></video>` : `<img data-thumb="${esc(node.id)}" alt="">`) : `<span class="cos-q-kind">${node.type === 'generateVideo' ? 'Video' : 'Ảnh'}</span>`;
       const action = ['waiting', 'willSkip', 'queued'].includes(status)
         ? `<button data-skip="${esc(node.id)}">${status === 'willSkip' ? 'Không bỏ' : status === 'queued' ? 'Huỷ' : 'Bỏ qua'}</button>`
         : status === 'running' ? '' : `<button data-run="${esc(node.id)}" title="${a.state.isRunning ? 'Xếp vào hàng đợi' : 'Chạy node này'}">${a.state.isRunning ? 'Xếp hàng' : (node.data.asset?.url ? 'Tạo lại' : 'Chạy')}</button>`;
@@ -171,7 +172,17 @@
     };
     const runList = snap.items.map(item => { const node = a.nodeById(item.id); return node ? row(node, item.status) : ''; }).join('');
     const others = allGen.filter(n => !inRun.has(n.id)).map(n => row(n, n.data.status || 'idle')).join('');
+    const previousThumbs = new Map([...body.querySelectorAll('[data-thumb][src]')].map(el => [`${el.tagName}|${el.dataset.thumb}`, el]));
     body.innerHTML = head + (runList ? `<h4>Lượt chạy hiện tại</h4><ul class="cos-q-list">${runList}</ul>` : '') + (others ? `<h4>${runList ? 'Các node tạo khác' : 'Các node tạo ảnh / video'}</h4><ul class="cos-q-list">${others}</ul>` : '') + (!allGen.length ? '<p class="cos-empty">Chưa có node Tạo ảnh / Tạo video nào.</p>' : '');
+    fillThumbs(body, previousThumbs);
+  }
+  function fillThumbs(body, previous) {
+    const a = app();
+    for (const el of body.querySelectorAll('[data-thumb]')) {
+      const url = a.nodeById(el.dataset.thumb)?.data?.asset?.url; if (!url) continue;
+      const key = `${el.tagName}|${el.dataset.thumb}`, old = previous.get(key);
+      if (old && old.getAttribute('src') === url) { previous.delete(key); el.replaceWith(old); } else el.src = url;
+    }
   }
 
   // ---------------- Album ----------------

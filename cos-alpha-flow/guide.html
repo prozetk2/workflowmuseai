@@ -16,6 +16,7 @@
 <div class="layout">
 <nav class="toc" aria-label="Mục lục">
   <strong>Mục lục</strong>
+  <a href="#moi-1-7-1">Mới trong bản 1.7.1</a>
   <a href="#moi-1-7">Mới trong bản 1.7</a>
   <a href="#moi-1-6">Mới trong bản 1.6</a>
   <a href="#moi-1-5">Mới trong bản 1.5</a>
@@ -46,6 +47,16 @@
 </nav>
 
 <main>
+<section id="moi-1-7-1">
+<h2>Mới trong cos_alpha_flow 1.7.1: Chạy tất cả đi hết các video, app bớt lag</h2>
+<ul>
+  <li><b>Chạy tất cả không còn đứng sau video đầu tiên</b>: trước đây, khi tab Flow ở phía trước (lúc tạo video), tab app nằm ở nền và Chrome có thể không mở video trong đó, nên app chờ mãi để đo kích thước video vừa xong và không sang cảnh kế tiếp. Nay tab Flow tự đo kích thước và lấy <i>khung cuối</i> của video ngay khi tạo xong, và app không bao giờ chờ quá 10 giây cho bước này.</li>
+  <li><b>Nối khung cuối</b> ổn định hơn: khung cuối được lấy từ tab Flow; nếu clip trước còn thiếu khung cuối, app thử lấy lại ngay trước khi tạo clip sau.</li>
+  <li><b>Tab Flow tải lại giữa lúc đang tạo</b>: cảnh đó báo <i>Mất kết nối với tab Flow giữa chừng</i> và <b>không gửi lại</b> (tránh tạo trùng, tốn credit); các node sau vẫn chạy tiếp. Xem kết quả trong dự án Flow rồi chạy lại node nếu cần.</li>
+  <li><b>Bớt lag</b>: canvas, Timeline và bảng Hàng đợi giữ nguyên các video/ảnh đã tải thay vì tải lại mỗi lần cập nhật; tự lưu không còn sao chép toàn bộ ảnh/video mỗi lần.</li>
+  <li>Vẫn như cũ: khi Google Flow báo <i>hoạt động bất thường</i>, cos_alpha_flow dừng cả lượt chạy và không thử lại.</li>
+</ul>
+</section>
 <section id="moi-1-7">
 <h2>Mới trong cos_alpha_flow 1.7: ảnh nhiều góc cho người mẫu và trang phục</h2>
 <p>Video giữ đúng gương mặt và trang phục hơn khi Flow được xem người mẫu và bộ đồ từ nhiều phía. Bản 1.7 tự làm bước này cho bạn.</p>
@@ -693,7 +704,7 @@ Audio: tiếng chuông xe đạp, nhạc vui tươi</pre>
 <details><summary>Có thêm nhạc hoặc giọng đọc riêng được không?</summary><p>App xuất phim có âm thanh do Flow tạo. Để lồng nhạc hoặc giọng đọc riêng, hãy mở file MP4 bằng phần mềm dựng như CapCut hoặc Premiere.</p></details>
 </section>
 
-<footer>cos_alpha_flow 1.7.0 · Chúc bạn sáng tạo vui vẻ </footer>
+<footer>cos_alpha_flow 1.7.1 · Chúc bạn sáng tạo vui vẻ </footer>
 </main>
 </div>
 </body>

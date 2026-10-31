@@ -694,8 +694,8 @@
         }
         if (copied.url.startsWith('blob:')) throw flowError(`Flow đã tạo xong ${kindVi(kind)} nhưng phát nó theo dạng luồng nên cos_alpha_flow chưa chép ra được. ${kindVi(kind)} vẫn nằm trong dự án Flow của bạn.${diagnosis()}`);
         if (copied.error) warnings.push(copied.error);
-        const size = await mediaSize(copied.url, kind);
-        return { ok: true, url: copied.url, remoteUrl: url, width: size.width, height: size.height, warnings, trustedInput: usedTrustedInput };
+        const size = kind === 'video' ? await videoInfo(copied.url) : await mediaSize(copied.url, kind);
+        return { ok: true, url: copied.url, remoteUrl: url, width: size.width, height: size.height, endFrame: size.endFrame || '', warnings, trustedInput: usedTrustedInput };
       }
       const currentPanel = agentPanel(findComposer() || composer);
       // "Xác nhận trước khi tạo: Luôn luôn" makes the agent ask first; accept its new Generate/Confirm button once.
@@ -988,6 +988,33 @@
       return { url, error: `Đã thấy ${kindVi(kind)} mới nhưng không chép được từ tab Flow (${error.message}${host ? `, ${host}` : ''}); đang thử tải từ đường link.` };
     }
   }
+  // Size and last frame of a finished video, read here because this tab is in front: the app tab is
+  // usually hidden during a run and Chrome may not decode video there, which broke "Nối khung cuối".
+  function videoInfo(url) {
+    return new Promise(resolve => {
+      const video = document.createElement('video');
+      let finished = false, size = { width: 0, height: 0 };
+      const done = endFrame => { if (finished) return; finished = true; clearTimeout(timer); video.removeAttribute('src'); video.load(); resolve({ ...size, endFrame }); };
+      const timer = setTimeout(() => done(''), 15000);
+      video.muted = true; video.playsInline = true; video.preload = 'auto';
+      if (/^https?:/i.test(url)) video.crossOrigin = 'anonymous';
+      video.onloadedmetadata = () => {
+        size = { width: video.videoWidth || 0, height: video.videoHeight || 0 };
+        if (!Number.isFinite(video.duration) || !size.width) { done(''); return; }
+        video.currentTime = Math.max(0, video.duration - Math.min(0.04, video.duration / 100));
+      };
+      video.onseeked = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = size.width; canvas.height = size.height;
+          canvas.getContext('2d').drawImage(video, 0, 0, size.width, size.height);
+          done(canvas.toDataURL('image/png'));
+        } catch { done(''); }
+      };
+      video.onerror = () => done('');
+      video.src = url;
+    });
+  }
   function mediaSize(url, kind) {
     return new Promise(resolve => {
       const el = document.createElement(kind === 'video' ? 'video' : 'img');
@@ -1061,8 +1088,8 @@
         const url = kind === 'video' ? fresh.video : fresh.image;
         const copied = await copyLocally(url, kind);
         if (copied.error) warnings.push(copied.error);
-        const size = await mediaSize(copied.url, kind);
-        return { ok: true, url: copied.url, remoteUrl: url, width: size.width, height: size.height, warnings, trustedInput: usedTrustedInput };
+        const size = kind === 'video' ? await videoInfo(copied.url) : await mediaSize(copied.url, kind);
+        return { ok: true, url: copied.url, remoteUrl: url, width: size.width, height: size.height, endFrame: size.endFrame || '', warnings, trustedInput: usedTrustedInput };
       }
       for (const tile of current) {
         const isNew = tile.id ? !baselineIds.has(tile.id) : false;
