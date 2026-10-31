@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>cos_alpha_flow 1.6.2</title>
+  <link rel="icon" type="image/png" sizes="128x128" href="icons/icon128.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="toolbar">
+    <div class="brand"><img class="brand-logo" src="icons/thekey-logo.png" alt="cos_alpha_flow" /><strong class="brand-name">cos_alpha_flow</strong><span class="brand-version">1.6.2</span></div>
+    <div class="toolbar-actions">
+      <button id="saveBtn" title="Lưu workflow trong trình duyệt"><i data-ic="save"></i>Lưu</button>
+      <button id="workflowExportBtn" type="button" title="Lưu workflow ra file JSON để dùng lại hoặc gửi người khác"><i data-ic="file-down"></i>Lưu file workflow</button>
+      <button id="workflowImportBtn" type="button" title="Mở một file workflow cos_alpha_flow đã lưu"><i data-ic="file-up"></i>Mở file workflow</button>
+      <input id="workflowFileInput" type="file" accept=".json,application/json" hidden />
+      <button id="viewFullBtn" type="button" class="view-switch" title="Mở cos_alpha_flow toàn màn hình (canvas đầy đủ) trong một tab"><i data-ic="maximize-2"></i>Toàn màn hình</button>
+      <button id="viewPanelBtn" type="button" class="view-switch" title="Thu cos_alpha_flow vào bảng bên cạnh, mở song song với tab Flow"><i data-ic="panel-right"></i>Bảng bên</button>
+      <button id="queueBtn" type="button" data-drawer="queue" title="Hàng đợi: tạm dừng, bỏ qua, xếp hàng thêm, chạy lại mục lỗi (cũng hiện nổi trên tab Flow)"><i data-ic="list-checks"></i>Hàng đợi<span id="cosQueueBadge" class="cos-badge hidden"></span></button>
+      <button id="albumBtn" type="button" data-drawer="album" title="Album ảnh/video theo project"><i data-ic="images"></i>Album</button>
+      <button id="settingsBtn"><i data-ic="settings"></i>Cài đặt</button>
+      <button id="resetBtn" class="danger" title="Xoá canvas và bắt đầu lại"><i data-ic="rotate-ccw"></i>Làm mới</button>
+      <button id="runBtn" class="primary" title="Chạy mọi node theo đúng thứ tự nối dây">Chạy tất cả</button>
+      <button id="guideBtn" type="button" title="Mở hướng dẫn sử dụng chi tiết"><i data-ic="circle-help"></i>Hướng dẫn</button>
+      <button id="welcomeBtn" type="button" title="Giới thiệu cos_alpha_flow">cos_alpha_flow</button>
+    </div>
+  </header>
+
+  <div class="statusbar">
+    <span id="museStatus">Đang kiểm tra Google Flow...</span>
+    <span id="backendStatus">Tạo bằng: tab Google Flow</span>
+    <span id="runStatus"></span>
+  </div>
+
+  <aside id="nodeSidebar" class="node-sidebar" aria-label="Thêm node">
+    <button id="nodeSidebarToggle" class="ns-toggle" type="button" title="Thu gọn / mở rộng cột node"><span class="ns-icon">«</span><span class="ns-label">Thu gọn</span></button>
+    <button id="aiScriptOpen" type="button" class="ns-script ns-ai" title="Nhập ý tưởng, AI (Gemini / ChatGPT) viết kịch bản chia cảnh rồi tự tạo node"><span class="ns-icon"><i data-ic="sparkles"></i></span><span class="ns-label">Viết kịch bản AI</span></button>
+    <button id="scriptImportBtn" type="button" class="ns-script" title="Dán kịch bản, tự tạo node cho từng cảnh"><span class="ns-icon"><i data-ic="scroll-text"></i></span><span class="ns-label">Kịch bản → Cảnh</span></button>
+    <div class="ns-group"><div class="ns-title">Văn bản</div>
+      <button data-add="prompt" title="Câu mô tả cho node Tạo ảnh / Tạo video"><span class="ns-icon"><i data-ic="type"></i></span><span class="ns-label">Câu lệnh (Prompt)</span></button>
+      <button data-add="text" title="Ghi chú tự do trên canvas"><span class="ns-icon"><i data-ic="sticky-note"></i></span><span class="ns-label">Ghi chú</span></button>
+      <button data-add="negativePrompt" title="Những thứ không muốn xuất hiện"><span class="ns-icon"><i data-ic="ban"></i></span><span class="ns-label">Tránh (Negative)</span></button>
+      <button data-add="textAppend" title="Nối thêm chữ vào sau câu lệnh"><span class="ns-icon"><i data-ic="text-cursor-input"></i></span><span class="ns-label">Nối thêm chữ</span></button>
+      <button data-add="textConcat" title="Gộp nhiều đoạn chữ thành một"><span class="ns-icon"><i data-ic="merge"></i></span><span class="ns-label">Gộp chữ</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">AI &amp; xử lý chữ</div>
+      <button data-add="aiAgent" title="Gemini viết lại prompt, dịch, viết N prompt, viết kịch bản, mô tả ảnh"><span class="ns-icon"><i data-ic="bot"></i></span><span class="ns-label">AI Agent</span></button>
+      <button type="button" data-i2popen="1" title="Chọn một ảnh, Gemini mô tả thành prompt (hoặc chuột phải vào ảnh trên web)"><span class="ns-icon"><i data-ic="scan-eye"></i></span><span class="ns-label">Ảnh → Prompt</span></button>
+      <button data-add="textExtract" title="Lấy mục / dòng / đoạn giữa 2 mốc / trường JSON từ chữ đi vào"><span class="ns-icon"><i data-ic="scissors"></i></span><span class="ns-label">Tách chữ</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Hình ảnh đầu vào</div>
+      <button data-add="imageInput" title="Ảnh từ máy (hoặc kéo thả / dán ảnh vào canvas)"><span class="ns-icon"><i data-ic="image"></i></span><span class="ns-label">Ảnh đầu vào</span></button>
+      <button data-add="videoReference" title="Video quay thật / video mẫu: app cắt khung hình + mô tả chuyển động gửi cho Flow"><span class="ns-icon"><i data-ic="film"></i></span><span class="ns-label">Video tham chiếu</span></button>
+      <button data-add="references" title="Gom nhiều ảnh rồi nối một lần"><span class="ns-icon"><i data-ic="layers"></i></span><span class="ns-label">Gom ảnh tham chiếu</span></button>
+      <button data-add="imageResize" title="Đổi kích thước hoặc cắt ảnh"><span class="ns-icon"><i data-ic="crop"></i></span><span class="ns-label">Đổi kích thước ảnh</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Nhân vật</div>
+      <button data-add="character" title="Giữ một nhân vật giống hệt nhau ở mọi cảnh (gửi ảnh + mô tả kèm mọi node Tạo)"><span class="ns-icon"><i data-ic="lock"></i></span><span class="ns-label">Khóa nhân vật</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Tạo trên Flow</div>
+      <button data-add="generateImage" title="Tạo ảnh trên Google Flow"><span class="ns-icon"><i data-ic="image-up"></i></span><span class="ns-label">Tạo ảnh</span></button>
+      <button data-add="generateVideo" title="Tạo video trên Google Flow"><span class="ns-icon"><i data-ic="clapperboard"></i></span><span class="ns-label">Tạo video</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Xem &amp; xuất</div>
+      <button data-add="preview" title="Xem ảnh hoặc video"><span class="ns-icon"><i data-ic="eye"></i></span><span class="ns-label">Xem trước</span></button>
+      <button data-add="download" title="Tự tải ảnh/video kết quả vào thư mục Downloads"><span class="ns-icon"><i data-ic="download"></i></span><span class="ns-label">Tải về máy</span></button>
+      <button data-add="timeline" title="Sắp xếp các clip và xuất thành một video"><span class="ns-icon"><i data-ic="audio-lines"></i></span><span class="ns-label">Timeline</span></button>
+    </div>
+    <div class="ns-group"><div class="ns-title">Mẫu có sẵn</div>
+      <button id="galleryOpenBtn" type="button" title="9 workflow dựng sẵn: quảng cáo thời trang, sản phẩm, truyện nhân vật nhất quán, video nối khung cuối, AI viết nhiều prompt…"><span class="ns-icon"><i data-ic="layout-template"></i></span><span class="ns-label">Kho mẫu workflow</span></button>
+    </div>
+    <p class="ns-hint">Mẹo: nháy đúp lên canvas hoặc bấm phím N để tìm và thêm node. Kéo thả hoặc dán (Ctrl+V) ảnh vào canvas để tạo Ảnh đầu vào.</p>
+  </aside>
+
+  <section id="quickPanel" class="quick-panel" aria-label="Bảng bên">
+    <header class="qp-head">
+      <span class="qp-logo">α</span><strong>cos_alpha_flow</strong><span id="qpVersion" class="qp-ver"></span>
+      <span class="qp-head-actions">
+        <button type="button" class="qp-icon" data-proxy="guideBtn" title="Hướng dẫn"><i data-ic="circle-help"></i></button>
+        <button type="button" class="qp-icon" data-proxy="settingsBtn" title="Cài đặt"><i data-ic="settings"></i></button>
+        <button type="button" class="qp-icon" data-proxy="viewFullBtn" title="Mở toàn màn hình (canvas)"><i data-ic="maximize-2"></i></button>
+      </span>
+    </header>
+    <div class="qp-project"><i data-ic="folder-plus"></i><select id="qpProject" title="Project: ảnh/video tạo ra được lưu vào Album của project này"></select><button type="button" id="qpProjectNew" class="qp-lime-sq" title="Tạo project mới"><i data-ic="plus"></i></button></div>
+    <nav class="qp-tabs">
+      <button data-qp="gen" class="active" title="Tạo nhanh"><i data-ic="sparkles"></i><span>Tạo</span></button>
+      <button data-qp="workflow" title="Mở canvas workflow và Kho mẫu (toàn màn hình)"><i data-ic="workflow"></i><span class="qp-tl">Workflow</span></button>
+      <button data-qp="queue" title="Hàng đợi"><i data-ic="list-checks"></i><span class="qp-tl">Hàng đợi</span><span id="qpQueueBadge" class="cos-badge hidden"></span></button>
+      <button data-qp="album" title="Album project"><i data-ic="images"></i><span class="qp-tl">Album</span></button>
+      <button data-qp="prompts" title="Thư viện prompt"><i data-ic="library"></i><span class="qp-tl">Prompt</span></button>
+      <button data-qp="characters" class="qp-tab-icon" title="Nhân vật"><i data-ic="user-round"></i></button>
+      <button data-qp="history" class="qp-tab-icon" title="Lịch sử"><i data-ic="history"></i></button>
+    </nav>
+    <div id="qpGen" class="qp-gen">
+      <div class="qp-line"><span class="qp-label"><i data-ic="type"></i>Prompt</span><span id="qpCount" class="qp-count">0 prompt</span><label class="qp-switch" title="Bật: mỗi đoạn (cách một dòng trống hoặc đánh số 1. 2. 3.) là một prompt riêng"><input id="qpSplit" type="checkbox" checked><span></span>Nhiều prompt</label></div>
+      <div class="qp-editor">
+        <textarea id="qpPrompts" rows="8" placeholder="Mỗi prompt cách nhau một dòng trống, hoặc đánh số 1. 2. 3.&#10;&#10;vd:&#10;1. Cô gái cầm chai serum, mỉm cười nhìn camera...&#10;&#10;2. Cận cảnh tay xoay chai serum..."></textarea>
+        <div class="qp-editor-bar">
+          <button type="button" id="qpAssistOpen" class="qp-pill" title="Từ ý tưởng, kịch bản hoặc phụ đề SRT: AI viết bộ prompt hoàn chỉnh"><i data-ic="wand-sparkles"></i>Prompt Assistant</button>
+          <button type="button" id="qpAssist" class="qp-pill" title="Viết lại prompt đang có thành prompt tiếng Anh chi tiết (giữ nguyên số lượng)"><i data-ic="square-pen"></i>Viết lại</button>
+          <button type="button" id="qpImportTxt" class="qp-pill" title="Mở file .txt chứa prompt"><i data-ic="file-up"></i>.txt</button>
+          <span class="qp-more"><button type="button" class="qp-pill qp-icon-pill" id="qpMoreBtn" title="Thêm"><i data-ic="ellipsis"></i></button>
+            <span id="qpMoreMenu" class="qp-menu hidden">
+              <button type="button" id="qpAiBtn"><i data-ic="clapperboard"></i>Viết kịch bản nhiều cảnh</button>
+              <button type="button" data-i2popen="1"><i data-ic="scan-eye"></i>Ảnh → Prompt</button>
+              <label><i data-ic="layout-template"></i><select id="qpPreset" title="Điền sẵn bộ prompt mẫu (dùng với 1 ảnh tham chiếu)"><option value="">Bộ prompt mẫu…</option></select></label>
+            </span>
+          </span>
+          <span id="qpChars2" class="qp-charcount">0 ký tự</span>
+        </div>
+        <input id="qpTxtFile" type="file" accept=".txt,text/plain" hidden>
+      </div>
+      <div class="qp-providers" role="radiogroup" aria-label="Tạo bằng">
+        <button type="button" data-qprov="flow" class="active" title="Google Flow (tab đã đăng nhập)"><i data-ic="sparkles"></i>Flow</button>
+        <button type="button" data-qprov="chatgpt" title="ChatGPT (tab đã đăng nhập). Chỉ tạo ảnh."><i data-ic="message-circle"></i>ChatGPT</button>
+        <button type="button" data-qprov="grok" title="Grok (tab đã đăng nhập)"><i data-ic="zap"></i>Grok</button>
+        <button type="button" data-qprov="muse" title="Muse (tab muse.ai đã đăng nhập, mở sẵn một khung chat)"><i data-ic="audio-lines"></i>Muse</button>
+        <button type="button" data-qprov="gemini" title="Gemini web (tab đã đăng nhập)"><i data-ic="sparkle"></i>Gemini</button>
+      </div>
+      <div class="qp-line qp-label-line"><span class="qp-label"><i data-ic="settings"></i>Cài đặt tạo</span></div>
+      <div class="qp-controls">
+        <div class="qp-seg" role="radiogroup" aria-label="Loại"><button data-qkind="image" class="active" title="Ảnh"><i data-ic="image"></i></button><button data-qkind="video" title="Video"><i data-ic="video"></i></button></div>
+        <label class="qp-chip-input" title="Model (để trống = theo Cài đặt)"><i data-ic="sparkles"></i><input id="qpModel" list="qpModelList" placeholder="Model mặc định"></label>
+        <datalist id="qpModelList"></datalist>
+        <label class="qp-chip-select" title="Khung hình"><i data-ic="rectangle-vertical"></i><select id="qpRatio"><option>9:16</option><option>16:9</option><option>1:1</option><option>3:4</option><option>4:3</option></select></label>
+        <span class="qp-stepper" title="Số bản cho mỗi prompt"><button type="button" data-step="-1"><i data-ic="minus"></i></button><select id="qpQty"><option>1</option><option>2</option><option>3</option><option>4</option></select><button type="button" data-step="1"><i data-ic="plus"></i></button></span>
+        <label class="qp-chip-select qp-video-only" title="Độ dài video"><i data-ic="clock"></i><select id="qpDuration"><option value="4">4 giây</option><option value="6">6 giây</option><option value="8" selected>8 giây</option><option value="10">10 giây (Omni)</option></select></label>
+        <label class="qp-chip-select qp-video-only" title="Ảnh tham chiếu dùng thế nào: Ingredients = giữ nhân vật/đồ vật trong ảnh; Frames = ảnh là khung hình đầu"><i data-ic="layers"></i><select id="qpVidMode"><option value="ingredients">Ingredients</option><option value="firstFrame">Frames</option></select></label>
+        <label class="qp-chip-select qp-video-only" title="Độ phân giải video"><i data-ic="monitor"></i><select id="qpRes"><option value="">Độ phân giải</option><option value="720p">720p</option><option value="1080p">1080p</option></select></label>
+        <label class="qp-chip-input qp-video-only" title="Giọng đọc cho video có tiếng (Veo 3.1, Omni). Cần chế độ Flow tắt Agent trong Cài đặt."><i data-ic="mic"></i><input id="qpVoice" list="flowVoices" placeholder="Giọng đọc"></label>
+      </div>
+      <div class="qp-controls">
+        <label class="qp-chip-select" title="Phong cách thêm vào mọi prompt"><i data-ic="palette"></i><select id="qpStyle"></select></label>
+        <label class="qp-check" title="Gửi ảnh + mô tả nhân vật (node Khóa nhân vật) kèm mỗi lượt"><input id="qpUseChar" type="checkbox" checked> Khóa nhân vật</label>
+      </div>
+      <div class="qp-line"><span class="qp-label"><i data-ic="user-round"></i>Nhân vật</span><span class="qp-sub">chọn, hoặc gõ @tên trong prompt</span></div>
+      <div id="qpChars" class="qp-chars"></div>
+      <div class="qp-line"><span class="qp-label"><i data-ic="image-up"></i>Ảnh tham chiếu</span><span id="qpRefCount" class="qp-sub">0/5</span></div>
+      <div id="qpRefs" class="qp-refs" tabindex="0"><span class="qp-drop"><i data-ic="image-up"></i>Chọn ảnh / kéo thả / dán vào đây</span></div>
+      <input id="qpRefFile" type="file" accept="image/*" multiple hidden>
+      <p class="cos-hint qp-video-only">Video: Ingredients = tối đa 3 ảnh tham chiếu (giữ nhân vật, đồ vật); Frames = 1 ảnh làm khung đầu.</p>
+      <p id="qpStatus" class="cos-hint" role="status"></p>
+    </div>
+    <div class="qp-footer" id="qpFooter"><button type="button" class="qp-icon-btn" data-proxy="settingsBtn" title="Cài đặt"><i data-ic="settings"></i></button><button id="qpGo" type="button" class="qp-go"><i data-ic="sparkles"></i>Tạo</button></div>
+    <div id="qpDrawerSlot" class="qp-drawer-slot"></div>
+  </section>
+
+  <main id="viewport">
+    <svg id="edges"></svg>
+    <div id="canvas"></div>
+    <div id="canvasTools" class="canvas-tools" aria-label="Điều khiển canvas">
+      <button id="handTool" type="button" title="Kéo canvas (H) · giữ Space để kéo · Alt-kéo để nhân bản · Ctrl+Z hoàn tác · G nhóm · T ghi chú"><i data-ic="hand"></i>Kéo</button>
+      <button id="groupTool" type="button" title="Vẽ vùng nhóm (G)"><i data-ic="group"></i>Nhóm</button>
+      <button id="zoomOut" type="button" title="Thu nhỏ">−</button>
+      <span id="zoomLevel">100%</span>
+      <button id="zoomIn" type="button" title="Phóng to">+</button>
+      <button id="fitCanvas" type="button" title="Vừa khít mọi node">Vừa</button>
+    </div>
+  </main>
+  <section id="timelineDock" class="timeline-dock collapsed" aria-label="Timeline video">
+    <div class="timeline-dock-header"><div class="timeline-heading"><strong>Timeline</strong><span id="timelineClipCount">0 clip</span><small>Sắp xếp cảnh · kéo clip để đổi thứ tự</small></div><div class="timeline-dock-actions"><button id="timelineImportAllBtn" type="button" title="Thêm mọi node Tạo video vào timeline">Thêm tất cả video</button><div class="timeline-output-picker"><button id="timelineAddVideoBtn" type="button" title="Thêm một video">Thêm clip</button><div id="timelineOutputMenu" class="timeline-output-menu hidden"></div></div><button id="timelinePlayBtn" type="button" title="Xem thử cả chuỗi">Xem thử</button><select id="timelineExportFormat" title="Chọn định dạng xuất"><option value="webm">WebM</option><option value="mp4">MP4 (H.264)</option></select><button id="timelineExportBtn" type="button" title="Xuất cả timeline thành một video">Xuất</button><button id="timelineExportStopBtn" class="timeline-export-stop hidden" type="button" title="Dừng xuất">Dừng</button><button id="timelineToggleBtn" type="button" aria-expanded="false" title="Mở timeline">Mở</button></div></div>
+    <div id="timelineDropZone" class="timeline-drop-zone">Kéo node Tạo video hoặc clip vào đây</div>
+    <div class="timeline-dock-content"><div id="timelineTrack" class="timeline-dock-track"></div></div>
+  </section>
+
+  <aside id="timelinePreviewPanel" class="timeline-preview-panel hidden" aria-label="Xem thử timeline">
+    <header><strong>Xem thử timeline</strong><button id="closeTimelinePreview" type="button" aria-label="Đóng">×</button></header>
+    <div class="timeline-preview-stage"><video id="timelinePlayer" class="is-active" controls playsinline preload="auto"></video><video id="timelinePlayerNext" playsinline preload="auto"></video></div>
+    <div class="timeline-preview-caption">Đang phát cảnh</div>
+  </aside>
+
+  <aside id="cosDrawer" class="cos-drawer hidden" aria-label="Hàng đợi / Album">
+    <header><strong id="cosDrawerTitle">Hàng đợi</strong><button id="cosDrawerClose" type="button" aria-label="Đóng">×</button></header>
+    <nav class="cos-dtabs"><button data-dtab="queue">Hàng đợi</button><button data-dtab="album">Album</button><button data-dtab="prompts">Prompt</button><button data-dtab="characters">Nhân vật</button><button data-dtab="history">Lịch sử</button></nav>
+    <div id="cosDrawerBody" class="cos-drawer-body"></div>
+  </aside>
+
+  <div id="canvasMenu" class="canvas-menu hidden" role="menu">
+    <div class="menu-caption">Thêm node</div>
+    <button data-context-action="add:prompt" role="menuitem">Câu lệnh</button>
+    <button data-context-action="add:negativePrompt" role="menuitem">Tránh (Negative)</button>
+    <button data-context-action="add:text" role="menuitem">Ghi chú</button>
+    <button data-context-action="add:textAppend" role="menuitem">Nối thêm chữ</button>
+    <button data-context-action="add:textConcat" role="menuitem">Gộp chữ</button>
+    <button data-context-action="add:character" role="menuitem">Khóa nhân vật</button>
+    <button data-context-action="add:imageInput" role="menuitem">Ảnh đầu vào</button>
+    <button data-context-action="add:references" role="menuitem">Gom ảnh tham chiếu</button>
+    <button data-context-action="add:generateImage" role="menuitem">Tạo ảnh</button>
+    <button data-context-action="add:generateVideo" role="menuitem">Tạo video</button>
+    <button data-context-action="add:timeline" role="menuitem">Timeline</button>
+    <button data-context-action="add:imageResize" role="menuitem">Đổi kích thước ảnh</button>
+    <button data-context-action="add:preview" role="menuitem">Xem trước</button>
+    <button data-context-action="add:aiAgent" role="menuitem">AI Agent</button>
+    <button data-context-action="add:textExtract" role="menuitem">Tách chữ</button>
+    <button data-context-action="add:download" role="menuitem">Tải về máy</button>
+    <div class="menu-divider"></div>
+    <button data-context-action="save" role="menuitem">Lưu workflow</button>
+    <button data-context-action="run" role="menuitem">Chạy tất cả</button>
+    <button data-context-action="arrange" role="menuitem">Sắp xếp node</button>
+    <div class="menu-divider"></div>
+    <button data-context-action="delete-selected" role="menuitem">Xoá node đang chọn</button>
+    <button data-context-action="disconnect-all" role="menuitem">Gỡ mọi dây nối</button>
+  </div>
+
+  <div id="settingsModal" class="modal-backdrop hidden">
+    <section class="modal settings-modal">
+      <h2>Cài đặt tạo nội dung</h2>
+      <div class="settings-grid">
+        <label for="providerSelect">Tạo bằng</label>
+        <select id="providerSelect"><option value="flow">Google Flow (tab đã đăng nhập)</option><option value="chatgpt">ChatGPT (tab đã đăng nhập, chỉ ảnh)</option><option value="grok">Grok (tab đã đăng nhập)</option><option value="muse">Muse (tab muse.ai đã đăng nhập)</option><option value="gemini">Gemini web (tab đã đăng nhập)</option><option value="api">Gemini API key (nâng cao, trả tiền theo lượt)</option></select>
+        <label for="timeoutSelect">Chờ tối đa mỗi clip</label>
+        <select id="timeoutSelect"><option value="600">10 phút</option><option value="900">15 phút</option><option value="1800">30 phút</option></select>
+
+        <p class="settings-note" data-provider="flow">Mở một project trên Google Flow (flow.google.com) và để tab đó mở trong lúc chạy. Ô nào để trống thì dùng lựa chọn trong "Cài đặt tác nhân" của Flow.</p>
+        <label for="flowVideoModel" data-provider="flow">Model video trên Flow</label>
+        <input id="flowVideoModel" data-provider="flow" list="flowVideoModels" placeholder="vd: Omni 1.1 Flash (trống = mặc định của Flow)" />
+        <datalist id="flowVideoModels"><option value="Omni 1.1 Flash"></option><option value="Veo 3.1 - Fast"></option><option value="Veo 3.1 - Lite"></option><option value="Veo 3.1 - Quality"></option></datalist>
+        <label for="flowImageModel" data-provider="flow">Model ảnh trên Flow</label>
+        <input id="flowImageModel" data-provider="flow" list="flowImageModels" placeholder="vd: Nano Banana Pro (trống = mặc định của Flow)" />
+        <datalist id="flowVoices"><option value="Achernar"></option><option value="Achird"></option><option value="Algenib"></option><option value="Algieba"></option><option value="Alnilam"></option><option value="Aoede"></option><option value="Autonoe"></option><option value="Callirrhoe"></option><option value="Charon"></option><option value="Despina"></option><option value="Enceladus"></option><option value="Erinome"></option><option value="Fenrir"></option><option value="Gacrux"></option><option value="Iapetus"></option><option value="Kore"></option><option value="Laomedeia"></option><option value="Leda"></option><option value="Orus"></option><option value="Puck"></option><option value="Pulcherrima"></option><option value="Rasalgethi"></option><option value="Sadachbia"></option><option value="Sadaltager"></option><option value="Schedar"></option><option value="Sulafat"></option><option value="Umbriel"></option><option value="Vindemiatrix"></option><option value="Zephyr"></option><option value="Zubenelgenubi"></option></datalist>
+        <datalist id="flowImageModels"><option value="Nano Banana Pro"></option><option value="Nano Banana 2"></option></datalist>
+        <label for="flowUiMode" data-provider="flow">Chế độ Flow</label>
+        <select id="flowUiMode" data-provider="flow"><option value="agent">Agent (khung chat bên phải)</option><option value="classic">Tắt Agent: chỉnh thẳng thanh cài đặt của Flow (model, Ingredients/Frames, độ phân giải, giọng)</option></select>
+        <label for="inputModeSelect" data-provider="flow">Kiểu nhập</label>
+        <select id="inputModeSelect" data-provider="flow"><option value="auto">Tự động (nên dùng)</option><option value="dom">Chỉ sự kiện trang</option><option value="cdp">Luôn dùng bàn phím thật (Chrome hiện thanh gỡ lỗi)</option></select>
+        <label for="flowSelectors" data-provider="flow">Selector Flow (JSON, nâng cao)</label>
+        <textarea id="flowSelectors" data-provider="flow" rows="3" placeholder='Chỉ dùng khi Flow đổi giao diện, vd: {"agentSubmitIcons":["arrow_forward"]}'></textarea>
+
+        <p class="settings-note hidden" data-provider="web">Dùng tài khoản web bạn đã đăng nhập trong Chrome, không cần API key. Mỗi lượt app mở một cuộc trò chuyện mới trong tab của trang đó, gắn ảnh tham chiếu, gửi một lần và chờ ảnh/video. ChatGPT chỉ tạo ảnh. Muse: mở sẵn muse.ai và một khung chat.</p>
+        <p class="settings-note hidden" data-provider="api">Dùng Gemini API chính thức của Google. Mỗi clip tính tiền vào project của API key. Google giữ video 2 ngày, cos_alpha_flow tải về ngay khi xong.</p>
+        <label for="apiKeyInput" class="hidden" data-provider="api">Gemini API key</label>
+        <input id="apiKeyInput" class="hidden" data-provider="api" type="password" autocomplete="off" placeholder="Chỉ lưu trong trình duyệt này, không bao giờ ghi vào file workflow" />
+        <label for="apiVideoModel" class="hidden" data-provider="api">Model video</label>
+        <input id="apiVideoModel" class="hidden" data-provider="api" list="apiVideoModels" />
+        <datalist id="apiVideoModels"><option value="veo-3.1-fast-generate-preview"></option><option value="veo-3.1-generate-preview"></option></datalist>
+        <label for="apiResolution" class="hidden" data-provider="api">Độ phân giải video</label>
+        <select id="apiResolution" class="hidden" data-provider="api"><option value="720p">720p</option><option value="1080p">1080p (chỉ 8 giây)</option><option value="4k">4K (chỉ 8 giây)</option></select>
+        <label for="apiImageModel" class="hidden" data-provider="api">Model ảnh</label>
+        <input id="apiImageModel" class="hidden" data-provider="api" list="apiImageModels" />
+        <datalist id="apiImageModels"><option value="gemini-nano-banana-2.1"></option><option value="gemini-3.1-flash-image"></option><option value="gemini-3-pro-image"></option></datalist>
+      </div>
+      <label class="cos-autoflow"><input id="cosAutoFlow" type="checkbox" checked> Tự mở Google Flow khi mở cos_alpha_flow (khi chưa có tab Flow nào), để đăng nhập sẵn</label>
+      <div class="connection-check"><button id="testMuseBtn" type="button">Kiểm tra kết nối</button><button id="diagnoseFlowBtn" type="button" data-provider="flow" title="Liệt kê những phần của trang Flow mà cos_alpha_flow tìm thấy (tự chép vào clipboard)">Kiểm tra trang Flow</button><span id="connectionStatus" role="status"></span></div>
+      <pre id="diagnoseOutput" class="diagnose-output hidden"></pre>
+      <div class="modal-actions">
+        <button id="closeSettingsBtn">Huỷ</button>
+        <button id="saveSettingsBtn" class="primary">Lưu</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="i2pModal" class="modal-backdrop hidden">
+    <section class="modal i2p-modal" role="dialog" aria-modal="true" aria-labelledby="i2pTitle">
+      <header class="i2p-head"><h2 id="i2pTitle">Ảnh → Prompt</h2><button id="i2pClose" type="button" aria-label="Đóng">×</button></header>
+      <img id="i2pImage" alt="Ảnh đang phân tích">
+      <nav class="i2p-tabs"><button data-i2ptab="en" class="active">English</button><button data-i2ptab="vi">Tiếng Việt</button><button data-i2ptab="short">Ngắn</button><button data-i2ptab="json">JSON</button></nav>
+      <textarea id="i2pOut" rows="7" placeholder="Prompt sẽ hiện ở đây"></textarea>
+      <div id="i2pStatus" role="status"></div>
+      <p class="cos-hint">Bản tiếng Việt để đọc hiểu; khi tạo nên dùng bản English hoặc JSON.</p>
+      <div class="modal-actions i2p-actions"><button data-i2p="copy" type="button">Chép</button><button data-i2p="save" type="button">Lưu prompt</button><button data-i2p="ref" type="button">Dùng ảnh làm tham chiếu</button><button data-i2p="use" type="button" class="primary">Đưa vào tạo</button></div>
+    </section>
+  </div>
+  <input id="i2pFile" type="file" accept="image/*" hidden>
+  <div id="instanceModal" class="modal-backdrop hidden">
+    <section class="modal"><h2>cos_alpha_flow đang mở ở chỗ khác</h2><p id="instanceText">Bạn vừa mở cos_alpha_flow ở bảng bên hoặc một tab khác. Chỉ một chỗ được chạy để không gửi trùng lệnh cho Flow.</p><div class="modal-actions"><button id="instanceUseHere" type="button" class="primary">Dùng ở đây</button></div></section>
+  </div>
+  <div id="welcomeModal" class="modal-backdrop hidden">
+    <section class="modal welcome-modal" role="dialog" aria-modal="true" aria-labelledby="welcomeModalTitle">
+      <h2 id="welcomeModalTitle">welcome to cos_alpha_flow</h2>
+      <p>make by Cos_alpha</p>
+      <div class="modal-actions"><button id="welcomeGuideBtn" type="button">Xem hướng dẫn</button><button id="closeWelcomeBtn" type="button" class="primary">OK</button></div>
+    </section>
+  </div>
+  <div id="scriptModal" class="modal-backdrop hidden">
+    <section class="modal script-modal" role="dialog" aria-modal="true" aria-labelledby="scriptModalTitle">
+      <h2 id="scriptModalTitle">Tạo node từ kịch bản</h2>
+      <details class="ai-script" open>
+        <summary>Viết kịch bản bằng AI</summary>
+        <label for="aiIdea">Ý tưởng</label>
+        <textarea id="aiIdea" rows="3" placeholder="vd: Người tiền sử lần đầu phát hiện ra lửa, cả bộ lạc ăn mừng"></textarea>
+        <div class="ai-grid">
+          <label>Phong cách<select id="aiStyle"><option value="clay">Đất sét 3D tiền sử (Prehistoric Clay 3D)</option><option value="fashion">Quảng cáo thời trang</option><option value="product">Quảng cáo sản phẩm</option><option value="cute3d">Hoạt hình 3D dễ thương</option><option value="cinematic">Điện ảnh chân thực</option><option value="anime">Anime</option><option value="custom">Tự mô tả…</option></select></label>
+          <label>Số cảnh<input id="aiScenes" type="number" min="1" max="12" value="4"></label>
+          <label>Giây / cảnh<select id="aiSeconds"><option>4</option><option>6</option><option selected>8</option></select></label>
+          <label>Khung hình<select id="aiAspect"><option>9:16</option><option>16:9</option></select></label>
+          <label>Lời thoại<select id="aiVoice"><option value="vi">Thuyết minh tiếng Việt</option><option value="none">Chỉ nhạc + âm thanh</option></select></label>
+          <label>Model Gemini<input id="aiModel" placeholder="để trống: tự chọn Pro mạnh nhất"></label>
+        </div>
+        <input id="aiStyleCustom" class="hidden" placeholder="Mô tả phong cách bạn muốn (tiếng Việt hoặc Anh)">
+        <label for="aiCharacter">Nhân vật chính (tuỳ chọn, để trống thì AI tự nghĩ)</label>
+        <input id="aiCharacter" placeholder="vd: cậu bé tiền sử 8 tuổi, tóc rối, mặc da thú nâu, mắt to">
+        <div class="ai-actions"><button type="button" class="primary" data-ai-write="gemini-api" title="Dùng Gemini API key trong Cài đặt">Viết bằng Gemini API</button><button type="button" data-ai-write="chatgpt" title="Mở ChatGPT (tài khoản của bạn), tự chọn model mạnh nhất, gửi lệnh và lấy kịch bản về">Viết bằng ChatGPT</button><button type="button" data-ai-write="gemini-web" title="Mở Gemini (tài khoản của bạn), tự chọn model mạnh nhất, gửi lệnh và lấy kịch bản về">Viết bằng Gemini web</button></div>
+        <div id="aiScriptStatus" role="status"></div>
+      </details>
+      <p>Hoặc dán kịch bản có “CẢNH”, “Prompt ảnh”, “Prompt video” và “Audio” (tuỳ chọn). Dòng “NHÂN VẬT: tên — mô tả” sẽ thành node Khóa nhân vật. cos_alpha_flow sẽ tạo và nối node cho từng cảnh, rồi xếp các clip vào Timeline.</p>
+      <label for="scriptInput">Kịch bản</label>
+      <textarea id="scriptInput" placeholder="CẢNH 1 (0:00–0:07): Tên cảnh&#10;&#10;Prompt ảnh: ...&#10;&#10;Prompt video: ...&#10;Audio: ..."></textarea>
+      <div id="scriptImportStatus" role="status"></div>
+      <div class="modal-actions">
+        <button id="cancelScriptImport" type="button">Huỷ</button>
+        <button id="buildScriptNodes" type="button" class="primary">Tạo node các cảnh</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="paModal" class="modal-backdrop hidden">
+    <section class="modal pa-modal" role="dialog" aria-modal="true" aria-labelledby="paTitle">
+      <header class="pa-head"><i data-ic="wand-sparkles" data-size="20"></i><h2 id="paTitle">Prompt Assistant</h2><button type="button" id="paClose" class="qp-icon" aria-label="Đóng"><i data-ic="x"></i></button></header>
+      <div id="paForm" class="pa-body">
+        <div class="pa-engines"><span>Tạo bằng:</span><button type="button" data-paeng="gemini-api" class="active"><span class="dot"></span>Gemini API</button><button type="button" data-paeng="chatgpt"><span class="dot"></span>ChatGPT</button><button type="button" data-paeng="gemini-web"><span class="dot"></span>Gemini web</button></div>
+        <label id="paCleanWrap" class="pa-clean hidden"><input id="paCleanup" type="checkbox" checked> Xoá đoạn chat trên ChatGPT / Gemini sau khi lấy prompt</label>
+        <textarea id="paInput" rows="6" placeholder="Nhập ý tưởng/chủ đề, HOẶC dán kịch bản, HOẶC dán phụ đề SRT (mỗi câu = 1 ảnh)…&#10;VD: 5 lợi ích của chạy bộ buổi sáng"></textarea>
+        <nav id="paCats" class="pa-cats"></nav>
+        <div id="paCards" class="pa-cards"></div>
+        <div class="pa-grid">
+          <label><span><i data-ic="image"></i>Loại</span><select id="paKind"><option value="image">Ảnh</option><option value="video">Video</option></select></label>
+          <label><span><i data-ic="list-checks"></i>Số lượng</span><input id="paCount" placeholder="1 (tốt nhất)" inputmode="numeric"></label>
+        </div>
+        <div class="pa-refs-line"><span class="pa-lab"><i data-ic="image-up"></i>Ảnh tham chiếu</span><span id="paRefCount">0/5</span></div>
+        <div id="paRefs" class="qp-refs pa-refs" tabindex="0"><span class="qp-drop"><i data-ic="image-up"></i>Chọn ảnh / kéo thả</span></div>
+        <input id="paRefFile" type="file" accept="image/*" multiple hidden>
+        <details class="pa-adv"><summary>Nâng cao</summary>
+          <div class="pa-grid">
+            <label><span><i data-ic="languages"></i>Ngôn ngữ prompt</span><select id="paLang"><option value="English">English</option><option value="Vietnamese">Tiếng Việt</option></select></label>
+            <label><span><i data-ic="align-left"></i>Độ chi tiết</span><select id="paDetail"><option value="short">Ngắn gọn</option><option value="medium" selected>Vừa</option><option value="long">Rất chi tiết</option></select></label>
+            <label class="pa-wide"><span><i data-ic="palette"></i>Style</span><input id="paStyle" placeholder="vd: cinematic, đất sét 3D, anime… (để trống = theo mẫu)"></label>
+          </div>
+          <div class="pa-lab"><i data-ic="rectangle-horizontal"></i>Tỷ lệ</div>
+          <div id="paRatio" class="pa-ratios"><button type="button" data-ratio="16:9"><i data-ic="rectangle-horizontal"></i>16:9</button><button type="button" data-ratio="9:16" class="active"><i data-ic="rectangle-vertical"></i>9:16</button><button type="button" data-ratio="1:1"><i data-ic="square"></i>1:1</button><button type="button" data-ratio="4:3"><i data-ic="rectangle-horizontal"></i>4:3</button><button type="button" data-ratio="3:4"><i data-ic="rectangle-vertical"></i>3:4</button></div>
+          <div class="pa-grid">
+            <label><span><i data-ic="sun"></i>Ánh sáng</span><select id="paLight"><option value="">Auto</option><option>soft natural daylight</option><option>golden hour</option><option>blue hour</option><option>dramatic low-key</option><option>bright studio softbox</option><option>neon night</option><option>candlelight / firelight</option><option>overcast moody</option></select></label>
+            <label><span><i data-ic="camera"></i>Góc máy</span><select id="paAngle"><option value="">Auto</option><option>eye level</option><option>low angle hero shot</option><option>high angle</option><option>close-up</option><option>wide establishing shot</option><option>over-the-shoulder</option><option>first-person POV</option><option>drone aerial</option></select></label>
+            <label><span><i data-ic="clock"></i>Tổng (giây)</span><input id="paTotal" inputmode="numeric" placeholder="60"></label>
+            <label><span><i data-ic="clock"></i>Giây / ảnh</span><input id="paPer" inputmode="numeric" placeholder="5"></label>
+            <label class="pa-wide"><span><i data-ic="audio-lines"></i>Tông / thể loại</span><input id="paTone" placeholder="auto (vd: hồi hộp, ấm áp, hài hước)"></label>
+          </div>
+          <div class="pa-checks"><label><input id="paStory" type="checkbox" checked> Nối tiếp (storyboard)</label><label><input id="paConsistent" type="checkbox" checked> Giữ nhất quán nhân vật</label><label><input id="paNumber" type="checkbox" checked> Đánh số</label></div>
+          <input id="paNegative" placeholder="Tránh: … (negative, tuỳ chọn)">
+        </details>
+        <div class="pa-status-line"><p id="paStatus" class="cos-hint" role="status"></p><button type="button" id="paTake" class="pa-ghost hidden" title="Dùng khi ChatGPT / Gemini đã viết xong mà ở đây vẫn chờ">Lấy câu trả lời ngay</button></div>
+      </div>
+      <div id="paResult" class="pa-body pa-result hidden">
+        <div class="pa-result-head"><i data-ic="circle-check" data-size="22"></i><div><b id="paResultTitle">Đã tạo 1 prompt</b><small id="paResultMeta"></small></div></div>
+        <ol id="paResultList" class="pa-result-list"></ol>
+      </div>
+      <footer class="pa-foot">
+        <div id="paFormActions"><button type="button" id="paGo" class="pa-go"><i data-ic="sparkles"></i>Tạo prompt</button></div>
+        <div id="paResultActions" class="pa-actions hidden"><button type="button" id="paBack" class="pa-ghost"><i data-ic="arrow-left"></i>Quay lại</button><button type="button" id="paCopyAll" class="pa-ghost"><i data-ic="copy"></i>Chép tất cả</button><button type="button" id="paUse" class="pa-go"><i data-ic="send"></i>Đưa vào cos_alpha_flow</button></div>
+      </footer>
+    </section>
+  </div>
+  <script src="vendor/ffmpeg/ffmpeg.js"></script>
+  <script src="icons.js"></script>
+  <script src="veo-api.js"></script>
+  <script src="cos-alpha-ai.js"></script>
+  <script src="cos-alpha-nodes.js"></script>
+  <script src="app.js"></script>
+  <script src="cos-alpha.js"></script>
+  <script src="cos-alpha-canvas.js"></script>
+</body>
+</html>

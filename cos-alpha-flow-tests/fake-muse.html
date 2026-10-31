@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"></head><body>
+<div id="msgs"></div>
+<form id="f" onsubmit="return false"><input type="file" accept="image/*" multiple><div id="prev"></div><textarea placeholder="Message Muse"></textarea><button aria-label="Send" type="button" id="send">Send</button></form>
+<script>
+window.__muse = { sent: [] }; let n = 0;
+const $ = s => document.querySelector(s);
+$('input[type=file]').addEventListener('change', e => { for (const f of e.target.files) { const i = document.createElement('img'); i.src = URL.createObjectURL(f); i.width = 40; $('#prev').appendChild(i); } });
+$('#send').onclick = () => {
+  const t = $('textarea').value.trim(); if (!t) return; window.__muse.sent.push({ text: t, images: $('#prev').children.length });
+  $('textarea').value = ''; $('#prev').innerHTML = ''; n++;
+  setTimeout(() => { const d = document.createElement('div'); d.className = 'hatch-chat-groupable-bubble'; d.innerHTML = `<div data-testid="hatch-chat-attachment-presentation-${n}">${/video/.test(t) ? `<video muted src="/gen/${n}.mp4"></video>` : `<img src="/gen/${n}.png">`}</div>`; $('#msgs').appendChild(d); }, 1500);
+};
+</script></body></html>

@@ -1,0 +1,4 @@
+node_modules/
+out-*.txt
+*.png
+timeline-out.mp4

@@ -1,0 +1,54 @@
+// Prompt Assistant dialog: idea → N prompts (Gemini API, best model), SRT → one prompt per line, options in the request.
+const { chromium } = require('playwright');
+const { png, check, summary } = require('./common');
+const EXT = process.argv[2];
+(async () => {
+  const ctx = await chromium.launchPersistentContext('', { headless: false, viewport: { width: 430, height: 940 }, args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, '--headless=new'] });
+  const sw = ctx.serviceWorkers()[0] || await ctx.waitForEvent('serviceworker'); const id = sw.url().split('/')[2];
+  await ctx.route('https://flow.google.com/**', r => r.fulfill({ contentType: 'text/html', body: '<h1>Flow</h1>' }));
+  const calls = [];
+  await ctx.route('https://generativelanguage.googleapis.com/**', r => {
+    if (r.request().method() === 'GET') return r.fulfill({ json: { models: ['gemini-2.5-flash', 'gemini-2.5-pro'].map(n => ({ name: 'models/' + n, supportedGenerationMethods: ['generateContent'] })) } });
+    const body = JSON.parse(r.request().postData()); const sys = body.systemInstruction.parts[0].text; const n = Number(/Write exactly (\d+)/.exec(sys)[1]);
+    calls.push({ model: /models\/([^:]+)/.exec(r.request().url())[1], sys, user: body.contents[0].parts[0].text, images: body.contents[0].parts.length - 1 });
+    return r.fulfill({ json: { candidates: [{ content: { parts: [{ text: '```\n' + Array.from({ length: n }, (_, i) => `${i + 1}. **Prompt** number ${i + 1}`).join('\n\n') + '\n```' }] } }] } });
+  });
+  const errors = []; const p = await ctx.newPage(); p.on('pageerror', e => errors.push(e.message));
+  await p.goto(`chrome-extension://${id}/panel.html`); await p.waitForTimeout(1200);
+  await p.evaluate(() => chrome.storage.local.set({ thekeyGeminiApiKey: 'K' }));
+  check('Icon SVG hiện trong panel', await p.locator('.qp-tabs svg.ic').count() >= 6);
+  await p.click('#qpAssistOpen'); await p.waitForTimeout(300);
+  await p.fill('#paInput', '5 lợi ích của chạy bộ');
+  await p.click('[data-pacat="Thể dục"]'); await p.click('[data-patpl="run"]');
+  await p.selectOption('#paKind', 'video');
+  await p.locator('#paRefFile').setInputFiles({ name: 'r.png', mimeType: 'image/png', buffer: png(40, 40, [9, 9, 9]) }); await p.waitForTimeout(300);
+  await p.evaluate(() => { document.querySelector('.pa-adv').open = true; });
+  await p.fill('#paTotal', '40'); await p.fill('#paPer', '8'); await p.click('[data-ratio="16:9"]'); await p.selectOption('#paLight', 'golden hour');
+  await p.click('#paGo');
+  await p.waitForSelector('#paResult:not(.hidden)', { timeout: 15000 }).catch(() => {});
+  const res = await p.evaluate(() => ({ title: document.querySelector('#paResultTitle').textContent, cards: [...document.querySelectorAll('#paResultList [data-pares]')].map(t => t.value) }));
+  check('Màn hình kết quả: "Đã tạo 5 prompt video", 5 thẻ không còn số thứ tự', res.title === 'Đã tạo 5 prompt video' && res.cards.length === 5 && res.cards[0] === 'Prompt number 1', JSON.stringify(res));
+  await p.screenshot({ path: 'pa-result.png' });
+  await p.click('#paUse');
+  await p.waitForFunction(() => document.querySelector('#paModal').classList.contains('hidden'), null, { timeout: 5000 }).catch(() => {});
+  const c = calls[0] || {};
+  check('Dùng model Pro tốt nhất', c.model === 'gemini-2.5-pro', c.model);
+  check('Số lượng auto = tổng/giây (40/8 = 5), video, 16:9, ánh sáng, mẫu Chạy bộ, có ảnh tham chiếu', /Write exactly 5 VIDEO/.test(c.sys) && /16:9/.test(c.sys) && /golden hour/.test(c.sys) && /outdoor running/.test(c.sys) && c.images === 1, (c.sys || '').slice(0, 160));
+  const st = await p.evaluate(() => ({ text: document.querySelector('#qpPrompts').value, count: document.querySelector('#qpCount').textContent, kind: document.querySelector('[data-qkind].active').dataset.qkind, ratio: document.querySelector('#qpRatio').value, refs: document.querySelector('#qpRefCount').textContent }));
+  check('Kết quả vào ô Prompt: 5 prompt video, 16:9, ảnh tham chiếu chuyển sang', /^1\. Prompt number 1/.test(st.text) && /5 prompt → 5 video/.test(st.count) && st.kind === 'video' && st.ratio === '16:9' && st.refs === '1/5', JSON.stringify(st));
+  // SRT input → one prompt per subtitle
+  await p.click('#qpAssistOpen'); await p.waitForTimeout(200);
+  await p.fill('#paInput', '1\n00:00:01,000 --> 00:00:03,000\nNgày xưa có một cậu bé\n\n2\n00:00:03,000 --> 00:00:06,000\nCậu tìm thấy viên đá phát sáng\n\n3\n00:00:06,000 --> 00:00:09,000\nVà cả làng kéo đến xem');
+  await p.fill('#paTotal', ''); await p.selectOption('#paKind', 'image');
+  await p.click('#paGo');
+  await p.waitForSelector('#paResult:not(.hidden)', { timeout: 15000 }).catch(() => {});
+  check('SRT: 3 thẻ kết quả', await p.locator('#paResultList [data-pares]').count() === 3);
+  await p.click('#paUse');
+  await p.waitForFunction(() => document.querySelector('#paModal').classList.contains('hidden'), null, { timeout: 5000 }).catch(() => {});
+  const c2 = calls[1] || {};
+  check('Phụ đề SRT: 3 câu → 3 prompt ảnh, mỗi câu một prompt', /Write exactly 3 IMAGE/.test(c2.sys) && /2\. Cậu tìm thấy viên đá phát sáng/.test(c2.user) && !/-->/.test(c2.user), (c2.user || '').slice(0, 120));
+  check('Bỏ dấu ** và ``` khỏi kết quả', !/\*\*|```/.test(await p.inputValue('#qpPrompts')));
+  await p.screenshot({ path: 'f9.png' });
+  check('Không có lỗi JavaScript', !errors.length, errors.join(' | '));
+  const failed = summary(); await ctx.close(); process.exit(failed ? 1 : 0);
+})().catch(e => { console.error('FAIL', e); process.exit(1); });

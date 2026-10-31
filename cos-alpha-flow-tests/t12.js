@@ -1,0 +1,33 @@
+// Prompt Assistant with ChatGPT web: a slow "thinking" reply (no stop button, appears after 22 s) is still read; default is 1 best prompt.
+const { chromium } = require('playwright');
+const fs = require('fs');
+const { check, summary } = require('./common');
+const EXT = process.argv[2];
+const CHAT = fs.readFileSync(__dirname + '/fake-chat.html', 'utf8');
+(async () => {
+  const ctx = await chromium.launchPersistentContext('', { headless: false, viewport: { width: 1200, height: 900 }, args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, '--headless=new'] });
+  const sw = ctx.serviceWorkers()[0] || await ctx.waitForEvent('serviceworker'); const id = sw.url().split('/')[2];
+  await ctx.route(/https:\/\/(chatgpt\.com|gemini\.google\.com)\/.*/, r => r.fulfill({ contentType: 'text/html', body: CHAT }));
+  await ctx.route('https://flow.google.com/**', r => r.fulfill({ contentType: 'text/html', body: '<h1>Flow</h1>' }));
+  const chat = await ctx.newPage(); await chat.goto('https://chatgpt.com/');
+  const errors = []; const p = await ctx.newPage(); p.on('pageerror', e => errors.push(e.message));
+  await p.setViewportSize({ width: 430, height: 940 }); await p.goto(`chrome-extension://${id}/panel.html`); await p.waitForTimeout(1200);
+  await p.evaluate(async () => { const t = await chrome.tabs.query({ url: 'https://chatgpt.com/*' }); await chrome.storage.session.set({ cosalphaChatTabs: { chatgpt: t[0].id } }); });
+  await p.click('#qpAssistOpen'); await p.waitForTimeout(300);
+  await p.click('[data-paeng="chatgpt"]'); await p.fill('#paInput', 'SLOWREPLY định luật Newton'); await p.selectOption('#paKind', 'video');
+  await p.click('#paGo');
+  const seen = new Set(); const watch = setInterval(() => p.evaluate(() => document.querySelector('#paStatus').textContent).then(t => seen.add(t.replace(/\d+ giây/, 'N giây')), () => {}), 1500);
+  await p.waitForFunction(() => !document.querySelector('#paResult').classList.contains('hidden') || /lỗi|chưa|không/i.test(document.querySelector('#paStatus').textContent), null, { timeout: 90000 }).catch(() => {});
+  clearInterval(watch);
+  check('Báo tiến độ khi ChatGPT đang suy nghĩ (đếm giây)', [...seen].some(t => /ChatGPT .*N giây/.test(t)), [...seen].join(' | '));
+  const card = await p.evaluate(() => [...document.querySelectorAll('#paResultList [data-pares]')].map(t => t.value));
+  await p.click('#paUse').catch(() => {});
+  await p.waitForTimeout(300);
+  const st = await p.evaluate(() => ({ hidden: document.querySelector('#paModal').classList.contains('hidden'), status: document.querySelector('#paStatus').textContent, text: document.querySelector('#qpPrompts').value, count: document.querySelector('#qpCount').textContent }));
+  check('Thẻ kết quả có đúng 1 prompt', card.length === 1 && /Newton's first law/.test(card[0]), JSON.stringify(card));
+  const sent = await chat.evaluate(() => window.__chat.sent.at(-1) || '');
+  check('Câu trả lời chậm (22 s, không có nút dừng) vẫn được lấy về', st.hidden && /Newton's first law/.test(st.text), JSON.stringify(st));
+  check('Mặc định 1 prompt tốt nhất', /Write exactly 1 VIDEO prompt/.test(sent) && /single strongest/.test(sent) && /1 prompt → 1 video/.test(st.count), sent.slice(0, 200) + ' | ' + st.count);
+  check('Không có lỗi JS', !errors.length, errors.join(' | '));
+  const failed = summary(); await ctx.close(); process.exit(failed ? 1 : 0);
+})().catch(e => { console.error('FAIL', e); process.exit(1); });

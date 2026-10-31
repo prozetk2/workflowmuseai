@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{font:14px sans-serif;margin:0;background:#fff}#msgs{height:70vh;overflow:auto;padding:10px}#msgs img,#msgs video{width:300px}#bar{position:fixed;bottom:0;left:0;right:0;padding:10px;background:#eee}#box{min-height:40px;background:#fff;border:1px solid #999}#prev img{width:48px;height:48px}</style></head><body>
+<div id="msgs"></div>
+<form id="bar" onsubmit="return false"><div id="prev"></div><div id="slot"></div><input type="file" id="file" accept="image/*" multiple hidden><button id="send" type="submit">Send</button></form>
+<script>
+const SITE = location.host.includes('chatgpt') ? 'chatgpt' : location.host.includes('grok') ? 'grok' : 'gemini';
+window.__gen = { sent: [] };
+const $ = s => document.querySelector(s);
+let box, n = 0, pending = [];
+if (SITE === 'grok') { box = document.createElement('textarea'); box.setAttribute('aria-label', 'Ask Grok anything'); $('#send').setAttribute('aria-label', 'Submit'); $('#slot').appendChild(box); }
+else if (SITE === 'chatgpt') { box = document.createElement('div'); box.id = 'prompt-textarea'; box.contentEditable = 'true'; $('#slot').appendChild(box); $('#send').setAttribute('data-testid', 'send-button'); }
+else { const rt = document.createElement('rich-textarea'); box = document.createElement('div'); box.className = 'ql-editor'; box.contentEditable = 'true'; rt.appendChild(box); $('#slot').appendChild(rt); $('#send').className = 'send-button'; $('#send').setAttribute('aria-label', 'Send message'); }
+const addFiles = files => { for (const f of files) { const url = URL.createObjectURL(f); pending.push(url); const i = document.createElement('img'); i.src = url; $('#prev').appendChild(i); } };
+// Gemini fake ignores paste, so the bridge has to use the file input.
+if (SITE !== 'gemini') box.addEventListener('paste', e => { const files = [...(e.clipboardData?.files || [])]; if (files.length) { e.preventDefault(); addFiles(files); } });
+$('#file').addEventListener('change', () => addFiles($('#file').files));
+const text = () => (box.value ?? box.innerText).trim();
+$('#send').onclick = () => {
+  const t = text(); if (!t) return;
+  window.__gen.sent.push({ text: t, images: pending.length });
+  const u = document.createElement(SITE === 'gemini' ? 'user-query' : 'div'); if (SITE === 'chatgpt') u.setAttribute('data-message-author-role', 'user');
+  u.innerHTML = pending.map(src => `<img src="${src}" style="width:300px;height:300px">`).join('') + `<p>${t.slice(0, 40)}</p>`; $('#msgs').appendChild(u);
+  pending = []; $('#prev').innerHTML = ''; if ('value' in box) box.value = ''; else box.textContent = '';
+  const stop = document.createElement('button'); stop.type = 'button'; stop.setAttribute(SITE === 'chatgpt' ? 'data-testid' : 'aria-label', SITE === 'chatgpt' ? 'stop-button' : 'Stop'); stop.textContent = 'stop'; $('#bar').appendChild(stop);
+  const r = document.createElement(SITE === 'gemini' ? 'model-response' : 'div'); if (SITE === 'chatgpt') r.setAttribute('data-message-author-role', 'assistant'); if (SITE === 'grok') r.className = 'message-bubble';
+  r.innerHTML = '<div class="markdown">Đang tạo…</div>'; setTimeout(() => $('#msgs').appendChild(r), 500);
+  n++;
+  const host = SITE === 'gemini' ? 'https://lh3.googleusercontent.com' : '';
+  setTimeout(() => {
+    if (/REFUSE/.test(t)) r.querySelector('.markdown').textContent = "I can't help create that image because it goes against our content policy.";
+    else if (/Create one video/.test(t)) r.innerHTML = `<video muted src="${host}/gen/${n}.mp4"></video>`;
+    else r.innerHTML = `<img src="${host}/gen/${n}.png">`;
+    stop.remove();
+  }, 6000);
+};
+</script></body></html>

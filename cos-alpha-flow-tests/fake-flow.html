@@ -1,0 +1,69 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Fake Flow</title>
+<style>
+body{margin:0;font:14px sans-serif;background:#111;color:#eee}
+#grid{position:fixed;left:0;top:0;width:58vw;height:100vh;overflow:auto;display:flex;flex-wrap:wrap;gap:8px;padding:60px 8px}
+#grid img,#grid video{width:300px}
+#panel{position:fixed;right:0;top:0;width:40vw;height:100vh;background:#222;display:flex;flex-direction:column}
+#log{flex:1;overflow:auto;padding:8px}
+#log .msg{margin:4px 0;padding:4px;background:#333}
+#settings{padding:20px}
+#area{padding:8px;border-top:1px solid #444;position:relative}
+#atts img{width:48px;height:48px}
+#box{min-height:40px;background:#000;padding:6px}
+#menu{position:absolute;bottom:90px;left:8px;background:#444;padding:8px;display:none}
+.spinner{width:20px;height:20px;background:orange}
+button{margin:2px}
+</style></head><body>
+<div id="grid"></div>
+<div id="panel">
+  <div id="settings"><h3>Cài đặt tác nhân</h3><button id="save">Lưu</button></div>
+  <div id="log" style="display:none"></div>
+  <div id="area" style="display:none">
+    <div id="atts"></div>
+    <div id="box" contenteditable="true" aria-label="Bạn muốn tạo gì?"></div>
+    <button id="add" aria-label="Thêm"><i class="material-symbols-outlined">add</i></button>
+    <button id="send" aria-label="Gửi"><i class="material-symbols-outlined">arrow_forward</i></button>
+    <div id="menu"><button id="upload">Tải nội dung lên</button><button>Tệp tải lên</button></div>
+  </div>
+</div>
+<script>
+window.__flowLog = { sent: [], attachments: 0, approvals: 0 };
+let n = 0;
+const $ = s => document.querySelector(s);
+const log = (text, who = 'agent') => { const d = document.createElement('div'); d.className = 'msg ' + who; d.textContent = text; $('#log').appendChild(d); return d; };
+$('#save').onclick = () => { $('#settings').style.display = 'none'; $('#log').style.display = ''; $('#area').style.display = ''; };
+$('#add').onclick = () => { $('#menu').style.display = 'block'; };
+$('#upload').onclick = () => {
+  const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
+  input.addEventListener('change', () => {
+    const file = input.files[0]; if (!file) return;
+    $('#menu').style.display = 'none';
+    // Flow locks the box while the upload is processed
+    $('#box').setAttribute('contenteditable', 'false');
+    const sp = document.createElement('div'); sp.className = 'spinner'; sp.setAttribute('role', 'progressbar'); $('#atts').appendChild(sp);
+    setTimeout(() => { sp.remove(); const img = document.createElement('img'); img.src = URL.createObjectURL(file); $('#atts').appendChild(img); window.__flowLog.attachments++; $('#box').setAttribute('contenteditable', 'true'); }, 700);
+  });
+  input.click();
+};
+function produce(kind) {
+  n++;
+  if (kind === 'video') { const v = document.createElement('video'); v.muted = true; v.src = '/media/clip' + n + '.mp4'; $('#grid').appendChild(v); }
+  else { const i = document.createElement('img'); i.src = '/media/img' + n + '.png'; $('#grid').appendChild(i); }
+}
+$('#send').onclick = () => {
+  const text = $('#box').innerText.trim(); if (!text) return;
+  window.__flowLog.sent.push({ text, attachments: $('#atts').querySelectorAll('img').length });
+  log(text, 'user'); $('#box').textContent = ''; $('#atts').innerHTML = '';
+  if (/BLOCKME/.test(text)) { setTimeout(() => log('Chúng tôi phát hiện thấy hoạt động bất thường từ trình duyệt của bạn.'), 600); return; }
+  if (/SLOWME/.test(text)) { setTimeout(() => log('Đang làm…'), 600); return; }
+  const kind = /exactly 1 video/.test(text) ? 'video' : 'image';
+  if (kind === 'video') {
+    setTimeout(() => {
+      log('Tôi sẽ tạo 1 video theo yêu cầu. Bạn có đồng ý không?');
+      const b = document.createElement('button'); b.textContent = 'Phê duyệt';
+      b.onclick = () => { window.__flowLog.approvals++; b.remove(); setTimeout(() => produce('video'), 1200); };
+      $('#log').appendChild(b);
+    }, 600);
+  } else setTimeout(() => produce('image'), 1200);
+};
+</script></body></html>

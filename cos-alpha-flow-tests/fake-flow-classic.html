@@ -1,0 +1,75 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Fake Flow classic</title>
+<style>
+body{margin:0;font:14px sans-serif;background:#111;color:#eee}
+#grid{display:flex;flex-wrap:wrap;gap:8px;padding:8px;min-height:300px}
+#grid img,#grid video{width:240px}
+flow-base-prompt-box{display:block;position:fixed;bottom:0;left:0;right:0;background:#222;padding:8px}
+flow-ingredient-bar{display:flex;gap:6px;min-height:20px}
+flow-ingredient-bar img{width:40px;height:40px}
+div[role=textbox]{min-height:40px;background:#000;padding:6px}
+flow-prompt-box-settings{display:block;position:fixed;bottom:120px;right:10px;background:#333;padding:10px;width:420px}
+flow-prompt-box-settings button{margin:2px}
+.menu{position:fixed;bottom:300px;right:10px;background:#444;padding:8px;display:flex;flex-direction:column}
+button[aria-pressed=true]{outline:2px solid lime}
+</style></head><body>
+<div id="grid"></div>
+<div id="agentPanel" style="position:fixed;right:0;top:0;width:300px;height:60vh;background:#262626"><div class="row"><button aria-label="Cuộc trò chuyện mới"><i class="material-symbols-outlined">edit_square</i></button><button id="agentClose" aria-label="Đóng"><i class="material-symbols-outlined">close</i></button></div><div id="agentBox" role="textbox" contenteditable="true" aria-label="Bạn muốn tạo gì?"></div></div>
+<flow-base-prompt-box>
+  <flow-ingredient-bar><button class="empty-chip" aria-label="Thêm"><i class="material-symbols-outlined">add</i></button><span id="atts"></span></flow-ingredient-bar>
+  <div id="box" role="textbox" contenteditable="true" data-slate-editor="true"></div>
+  <div class="submit-controls"><button id="agentToggle" aria-pressed="true"><i class="material-symbols-outlined">spark</i>Agent</button><button id="tune"><i class="material-symbols-outlined">tune</i></button><button id="send"><i class="material-symbols-outlined">arrow_forward</i></button></div>
+</flow-base-prompt-box>
+<script>
+window.__flowLog = { sent: [], agentTyped: '' };
+const syncAgent = () => { const on = $('#agentToggle').getAttribute('aria-pressed') === 'true'; $('#box').style.display = on ? 'none' : ''; };
+document.addEventListener('DOMContentLoaded', () => {});
+const S = { kind: 'image', input: 'frames', aspect: '16:9', count: '2', duration: '8', res: '720p', model: 'Veo 3.1 - Fast', voice: 'Kore' };
+const $ = s => document.querySelector(s);
+let panel = null, n = 0;
+function seg(group, values, icons) {
+  return values.map((v, i) => `<button data-g="${group}" data-v="${v}" aria-pressed="${S[group] === v}">${icons && icons[i] ? `<i class="material-symbols-outlined">${icons[i]}</i>` : ''}${icons && icons[i] && group !== 'aspect' ? '' : v}</button>`).join('');
+}
+function renderPanel() {
+  if (!panel) return;
+  panel.innerHTML = `<div>${seg('kind', ['image', 'video'], ['image', 'videocam'])}</div>
+    <div>${S.kind === 'video' ? seg('input', ['Frames', 'Ingredients'].map(x => x), null) : ''}</div>
+    <div>${seg('aspect', ['16:9', '9:16', '1:1'], ['crop_16_9', 'crop_9_16', 'crop_square'])}</div>
+    <div>${seg('count', ['x1', 'x2', 'x4'])}</div>
+    <div>${S.kind === 'video' ? seg('duration', ['4s', '6s', '8s', '10s']) + seg('res', ['720p', '1080p']) : ''}</div>
+    <div><button id="model"><span>${S.model}</span><i class="material-symbols-outlined">arrow_drop_down</i></button>
+    ${S.kind === 'video' ? `<button id="voice"><i class="material-symbols-outlined">record_voice_over</i><span>${S.voice}</span></button>` : ''}</div>`;
+  panel.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const g = b.dataset.g; S[g] = g === 'input' ? b.dataset.v.toLowerCase() : b.dataset.v; renderPanel(); });
+  panel.querySelectorAll('[data-g=input]').forEach(b => b.setAttribute('aria-pressed', String(S.input === b.dataset.v.toLowerCase())));
+  panel.querySelectorAll('[data-g=duration]').forEach(b => b.setAttribute('aria-pressed', String(S.duration + 's' === b.dataset.v || S.duration === b.dataset.v)));
+  $('#model').onclick = () => openMenu(['Omni 1.1 Flash', 'Veo 3.1 - Fast', 'Veo 3.1 - Lite', 'Veo 3.1 - Quality', 'Nano Banana Pro', 'Nano Banana 2'], v => { S.model = v; });
+  if ($('#voice')) $('#voice').onclick = () => openMenu(['Achernar', 'Kore', 'Puck', 'Zephyr', 'Charon'], v => { S.voice = v; }, true);
+}
+function openMenu(items, onPick, search) {
+  document.querySelector('.menu')?.remove();
+  const m = document.createElement('div'); m.className = 'menu';
+  m.innerHTML = (search ? '<input type="search" placeholder="Tìm giọng">' : '') + items.map(v => `<flow-menu-item><button>${v}</button></flow-menu-item>`).join('');
+  document.body.appendChild(m);
+  const filter = () => { const q = (m.querySelector('input')?.value || '').toLowerCase(); m.querySelectorAll('flow-menu-item').forEach(it => it.style.display = it.innerText.toLowerCase().includes(q) ? '' : 'none'); };
+  m.querySelector('input')?.addEventListener('input', filter);
+  m.querySelectorAll('button').forEach(b => b.onclick = () => { onPick(b.innerText.trim()); m.remove(); renderPanel(); });
+}
+$('#agentToggle').onclick = () => { $('#agentToggle').setAttribute('aria-pressed', String($('#agentToggle').getAttribute('aria-pressed') !== 'true')); syncAgent(); };
+$('#agentClose').onclick = () => $('#agentPanel').remove();
+$('#agentBox').addEventListener('input', () => { window.__flowLog.agentTyped = $('#agentBox').innerText; });
+syncAgent();
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelector('.menu')?.remove(); });
+$('#tune').onclick = () => { if (panel) { panel.remove(); panel = null; } else { panel = document.createElement('flow-prompt-box-settings'); document.body.appendChild(panel); renderPanel(); } };
+$('flow-ingredient-bar button').onclick = () => {
+  const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
+  input.addEventListener('change', () => { console.log('CHANGE', input.files.length); const f = input.files[0]; if (!f) return; setTimeout(() => { const img = document.createElement('img'); img.src = URL.createObjectURL(f); $('#atts').appendChild(img); }, 300); });
+  input.click();
+};
+$('#send').onclick = () => {
+  const text = $('#box').innerText.trim(); if (!text) return;
+  console.log('SEND atts', $('#atts').innerHTML.length, document.querySelectorAll('flow-ingredient-bar img').length); window.__flowLog.sent.push({ text, settings: { ...S }, attachments: $('#atts').querySelectorAll('img').length });
+  $('#box').textContent = ''; $('#atts').innerHTML = '';
+  n++; const id = 't' + n, tile = document.createElement('flow-grid-tile-container'); tile.setAttribute('data-tile-id', id);
+  tile.innerHTML = '<flow-pending-tile>50%</flow-pending-tile>'; $('#grid').prepend(tile);
+  setTimeout(() => { tile.innerHTML = S.kind === 'video' ? `<video muted src="/media/clip${n}.mp4"></video>` : `<img src="/media/img${n}.png">`; }, 1200);
+};
+</script></body></html>

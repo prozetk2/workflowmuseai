@@ -1,0 +1,12 @@
+{
+  "name": "cos-alpha-flow-tests",
+  "private": true,
+  "description": "Automated browser tests for the cos_alpha_flow extension (fake pages, no real Google Flow).",
+  "scripts": {
+    "test": "node run-all.js",
+    "setup": "playwright install chromium"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}

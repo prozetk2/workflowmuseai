@@ -1,0 +1,48 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{font:14px sans-serif;margin:0;background:#fff}#msgs{height:70vh;overflow:auto;padding:10px}#bar{position:fixed;bottom:0;left:0;right:0;padding:10px;background:#eee}#box{min-height:40px;background:#fff;border:1px solid #999}.menu{position:absolute;top:40px;left:10px;background:#fff;border:1px solid #333;display:none}.menu div{padding:6px}</style></head><body>
+<header id="hd"><button id="mb">MODEL</button><button id="opts" aria-haspopup="menu">…</button></header><div class="menu" id="optmenu" role="menu"></div><div id="dlg" role="dialog" style="display:none"><p>Delete chat?</p><button id="cfm">Delete</button></div><div class="menu" id="menu" role="menu"></div>
+<div id="msgs"></div>
+<div id="bar"><div id="box" contenteditable="true"></div><button id="send">Send</button></div>
+<script>
+const SITE = location.host.includes('chatgpt') ? 'chatgpt' : 'gemini';
+window.__chat = { sent: [], model: '' };
+const $ = s => document.querySelector(s);
+const SCRIPT = 'NHÂN VẬT: Ugg — clay boy\n\nCẢNH 1 (0:00–0:08): Hang\n\nPrompt ảnh: clay boy in cave, 9:16\n\nPrompt video: Ugg walks\nAudio: wind\n\nCẢNH 2 (0:08–0:16): Lửa\n\nPrompt ảnh: sparks, 9:16\n\nPrompt video: fire starts\nAudio: crackle';
+let models;
+if (SITE === 'chatgpt') { $('#box').id = 'prompt-textarea'; $('#send').setAttribute('data-testid', 'send-button'); $('#mb').setAttribute('data-testid', 'model-switcher-dropdown-button'); $('#mb').textContent = 'ChatGPT Auto'; models = ['Auto', 'Instant', 'Thinking', 'Pro Upgrade to Pro']; }
+else { const rt = document.createElement('rich-textarea'); const b = document.querySelector('#box'); b.className = 'ql-editor'; b.parentNode.insertBefore(rt, b); rt.appendChild(b); $('#send').className = 'send-button'; $('#send').setAttribute('aria-label', 'Send message'); $('#mb').setAttribute('data-test-id', 'bard-mode-menu-button'); $('#mb').textContent = 'Fast'; models = ['Fast', 'Thinking', 'Pro']; }
+const box = () => document.querySelector('[contenteditable="true"]');
+$('#mb').onclick = () => { const m = $('#menu'); m.innerHTML = ''; models.forEach(t => { const d = document.createElement('div'); d.setAttribute('role', 'menuitemradio'); d.textContent = t; d.onclick = () => { window.__chat.model = t; $('#mb').textContent = t; m.style.display = 'none'; }; m.appendChild(d); }); m.style.display = 'block'; };
+// Conversation options → Delete → confirm (ChatGPT layout). Only a saved conversation (/c/<id>) has the button.
+if (SITE === 'chatgpt') { $('#opts').setAttribute('data-testid', 'conversation-options-button'); $('#cfm').setAttribute('data-testid', 'delete-conversation-confirm-button'); }
+$('#opts').style.display = 'none';
+$('#opts').onclick = () => { const m = $('#optmenu'); m.innerHTML = ''; ['Share', 'Archive', 'Delete'].forEach(t => { const d = document.createElement('div'); d.setAttribute('role', 'menuitem'); d.textContent = t; if (t === 'Delete' && SITE === 'chatgpt') d.setAttribute('data-testid', 'delete-chat-menu-item'); d.onclick = () => { m.style.display = 'none'; if (t === 'Delete') $('#dlg').style.display = 'block'; }; m.appendChild(d); }); m.style.display = 'block'; };
+$('#cfm').onclick = () => { $('#dlg').style.display = 'none'; window.__chat.deleted = location.pathname; $('#msgs').innerHTML = ''; $('#opts').style.display = 'none'; history.pushState({}, '', '/'); };
+const saved = () => { if (location.pathname === '/' || location.pathname === '/app') { history.pushState({}, '', SITE === 'chatgpt' ? '/c/68f1a2b3-test' : '/app/abc123def'); $('#opts').style.display = ''; } };
+const turn = r => { if (SITE !== 'chatgpt') return r; const a = document.createElement('article'); a.setAttribute('data-testid', 'conversation-turn-' + ($('#msgs').children.length + 2)); a.appendChild(r); return a; };
+const copyBtn = r => { const b = document.createElement('button'); b.setAttribute('data-testid', 'copy-turn-action-button'); b.setAttribute('aria-label', 'Copy'); b.textContent = 'copy'; (r.closest('article') || r).appendChild(b); };
+$('#send').onclick = () => {
+  const text = box().innerText.trim(); if (!text) return; window.__chat.sent.push(text); box().textContent = ''; saved();
+  if (/STUCKSTOP/.test(text)) { // a "Stop" button that never goes away (wrong match); the turn's copy button shows when done
+    const stop = document.createElement('button'); stop.setAttribute('aria-label', 'Stop streaming'); stop.textContent = 'stop'; $('#bar').appendChild(stop);
+    const r = document.createElement('div'); r.setAttribute('data-message-author-role', 'assistant'); r.innerHTML = '<div class="markdown">Thinking</div>'; setTimeout(() => $('#msgs').appendChild(turn(r)), 600);
+    setTimeout(() => { r.querySelector('.markdown').innerHTML = '<p>A red fox sits in fresh snow at dawn, soft golden light, shallow depth of field.</p>'; }, 3000);
+    setTimeout(() => copyBtn(r), 3500);
+    return;
+  }
+  if (/NEVERDONE/.test(text)) { // keeps "writing" forever: only "Lấy câu trả lời ngay" gets the answer
+    const stop = document.createElement('button'); stop.setAttribute('data-testid', 'stop-button'); stop.textContent = 'stop'; $('#bar').appendChild(stop);
+    const r = document.createElement('div'); r.setAttribute('data-message-author-role', 'assistant'); r.innerHTML = '<div class="markdown"><p>A lighthouse on a cliff in a storm</p></div>'; $('#msgs').appendChild(turn(r));
+    let n = 0; setInterval(() => { r.querySelector('p').textContent = 'A lighthouse on a cliff in a storm' + '.'.repeat(1 + (n++ % 3)); }, 700);
+    return;
+  }
+  if (/SLOWREPLY/.test(text)) { // like real ChatGPT "thinking": no stop button we know, the reply turn appears after 22 s
+    setTimeout(() => { const a = document.createElement('article'); a.setAttribute('data-turn', 'assistant'); a.innerHTML = '<div class="markdown"><p>A clean 3D diagram shows Newton\'s first law: a puck glides on ice at constant speed.</p></div>'; $('#msgs').appendChild(a); }, 22000);
+    return;
+  }
+  const stop = document.createElement('button'); stop.setAttribute(SITE === 'chatgpt' ? 'data-testid' : 'aria-label', SITE === 'chatgpt' ? 'stop-button' : 'Stop response'); stop.textContent = 'stop'; $('#bar').appendChild(stop);
+  const r = document.createElement(SITE === 'chatgpt' ? 'div' : 'model-response'); if (SITE === 'chatgpt') r.setAttribute('data-message-author-role', 'assistant');
+  r.innerHTML = '<div class="markdown">Thinking…</div>'; setTimeout(() => $('#msgs').appendChild(turn(r)), 800);
+  setTimeout(() => { r.querySelector('.markdown').innerHTML = '<p>Đây là kịch bản:</p><pre><div>plaintext</div><button>Copy code</button><code></code></pre>'; r.querySelector('code').textContent = SCRIPT.slice(0, 60); }, 2500);
+  setTimeout(() => { r.querySelector('code').textContent = SCRIPT; stop.remove(); copyBtn(r); }, 4500);
+};
+</script></body></html>
