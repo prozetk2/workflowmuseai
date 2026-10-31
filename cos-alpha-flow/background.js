@@ -73,16 +73,60 @@ async function fetchMediaAsDataUrl(url, maxBytes) {
   const blob = await response.blob();
   if (!blob.size) throw new Error('empty file');
   if (blob.size > maxBytes) return { ok: true, tooLarge: true };
+  return { ok: true, url: await blobAsDataUrl(blob) };
+}
+async function blobAsDataUrl(blob, type = blob.type) {
   const bytes = new Uint8Array(await blob.arrayBuffer());
   let binary = '';
   for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-  return { ok: true, url: `data:${blob.type || 'application/octet-stream'};base64,${btoa(binary)}` };
+  return `data:${type || 'application/octet-stream'};base64,${btoa(binary)}`;
+}
+
+// Last resort for Flow results: Flow's media links need the tab's Google sign-in and can redirect to hosts this
+// extension may not list. DevTools' loader fetches them inside the Flow tab (its cookies, any redirect, no CORS)
+// and the body is read back through the protocol's IO stream. Only for Flow tabs.
+const FLOW_TAB = /^https:\/\/(?:flow\.google\.com|labs\.google)\//i;
+async function fetchMediaViaFlowTab(tabId, url, maxBytes) {
+  const tab = await chrome.tabs.get(tabId);
+  if (!FLOW_TAB.test(tab?.url || '')) throw new Error('not a Flow tab');
+  const target = { tabId }, wasAttached = attachedTabs.has(tabId);
+  await ensureAttached(tabId);
+  let stream = '';
+  try {
+    const { frameTree } = await chrome.debugger.sendCommand(target, 'Page.getFrameTree');
+    const { resource } = await chrome.debugger.sendCommand(target, 'Network.loadNetworkResource', { frameId: frameTree.frame.id, url, options: { disableCache: false, includeCredentials: true } });
+    if (!resource?.success || !resource.stream) throw new Error(resource?.httpStatusCode ? `HTTP ${resource.httpStatusCode}` : resource?.netErrorName || 'load failed');
+    stream = resource.stream;
+    const chunks = []; let total = 0;
+    for (;;) {
+      const part = await chrome.debugger.sendCommand(target, 'IO.read', { handle: stream, size: 1 << 20 });
+      const bytes = part.base64Encoded ? Uint8Array.from(atob(part.data || ''), c => c.charCodeAt(0)) : new TextEncoder().encode(part.data || '');
+      total += bytes.length;
+      if (total > maxBytes) return { ok: true, tooLarge: true };
+      chunks.push(bytes);
+      if (part.eof) break;
+    }
+    if (!total) throw new Error('empty file');
+    const type = Object.entries(resource.headers || {}).find(([key]) => key.toLowerCase() === 'content-type')?.[1]?.split(';')[0] || '';
+    return { ok: true, url: await blobAsDataUrl(new Blob(chunks), type), via: 'flow-tab' };
+  } finally {
+    if (stream) await chrome.debugger.sendCommand(target, 'IO.close', { handle: stream }).catch(() => {});
+    if (!wasAttached) { attachedTabs.delete(tabId); await chrome.debugger.detach(target).catch(() => {}); }
+  }
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === 'THEKEY_FETCH_MEDIA') {
-    if (!sender.tab?.id || !/^https:/i.test(String(message.url || ''))) { sendResponse({ ok: false, error: 'Bad media request.' }); return false; }
-    fetchMediaAsDataUrl(message.url, Number(message.maxBytes) || 40 * 1024 * 1024)
+    if (!/^https:/i.test(String(message.url || ''))) { sendResponse({ ok: false, error: 'Bad media request.' }); return false; }
+    // The Flow tab asking for its own result, or the app naming the Flow tab to load through.
+    const viaTabId = Number(message.viaTabId) || (FLOW_TAB.test(sender.tab?.url || '') ? sender.tab.id : 0);
+    const maxBytes = Number(message.maxBytes) || 40 * 1024 * 1024;
+    fetchMediaAsDataUrl(message.url, maxBytes)
+      .catch(async error => {
+        if (!viaTabId) throw error;
+        try { return await fetchMediaViaFlowTab(viaTabId, message.url, maxBytes); }
+        catch (second) { throw new Error(`${error?.message || error}; qua tab Flow: ${second?.message || second}`); }
+      })
       .then(sendResponse, error => sendResponse({ ok: false, error: error?.message || String(error) }));
     return true;
   }

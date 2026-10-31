@@ -16,6 +16,7 @@
 <div class="layout">
 <nav class="toc" aria-label="Mục lục">
   <strong>Mục lục</strong>
+  <a href="#moi-1-7">Mới trong bản 1.7</a>
   <a href="#moi-1-6">Mới trong bản 1.6</a>
   <a href="#moi-1-5">Mới trong bản 1.5</a>
   <a href="#moi-1-4">Mới trong bản 1.4</a>
@@ -45,6 +46,22 @@
 </nav>
 
 <main>
+<section id="moi-1-7">
+<h2>Mới trong cos_alpha_flow 1.7: ảnh nhiều góc cho người mẫu và trang phục</h2>
+<p>Video giữ đúng gương mặt và trang phục hơn khi Flow được xem người mẫu và bộ đồ từ nhiều phía. Bản 1.7 tự làm bước này cho bạn.</p>
+<ul>
+  <li><b>Tự chuyển thành ảnh nhiều góc</b>: thả ảnh vào node <b>Ảnh đầu vào</b> có vai trò <i>Người mẫu / nhân vật</i> hoặc <i>Trang phục</i> (hoặc chọn vai trò sau khi thả ảnh), app tự chèn một node <b>Ảnh nhiều góc</b> giữa ảnh đó và các cảnh đang dùng nó. Khi chạy, ảnh người mẫu thành bảng 4 ô (cận mặt chính diện, nghiêng, toàn thân trước, toàn thân sau, mặc đồ xám trơn); ảnh trang phục thành bảng nhiều góc do một người mẫu đeo khẩu trang mặc, để chỉ còn bộ đồ là quan trọng.</li>
+  <li>Mỗi ảnh nhiều góc là <b>một lượt tạo ảnh</b>. Không muốn thì bỏ tick <i>Tự tạo khi thả ảnh vào</i> trên node ảnh, hoặc Ctrl+Z ngay sau khi node được chèn. Nút <b>Tạo ảnh nhiều góc</b> trên node ảnh chèn lại bằng tay.</li>
+  <li><b>Ô "Kiểu ảnh"</b> trên node Tạo ảnh: <i>Ảnh thường</i>, <i>Ảnh nhiều góc · Người mẫu</i>, <i>· Trang phục</i>, <i>· Người mẫu mặc đồ</i>. Với kiểu nhiều góc, app tự viết câu lệnh (không cần nối node Câu lệnh); câu lệnh bạn nối vào được thêm làm ghi chú, ví dụ "giữ đôi bông tai".</li>
+  <li><b>Người mẫu mặc đồ nhiều góc</b>: nối ảnh nhiều góc của người mẫu và của trang phục vào, app ghép thành bảng 4 ô người mẫu mặc đúng bộ đồ. Dùng ảnh này làm ảnh tham chiếu (Ingredients) cho video.</li>
+  <li>Mẫu mới trong Kho mẫu: <b>Người mẫu mặc đồ · ảnh nhiều góc</b> (người mẫu + trang phục → 2 ảnh nhiều góc → ảnh ghép 4 góc → video 8 giây). Thêm node lẻ bằng nút <b>Ảnh nhiều góc</b> ở nhóm <i>Tạo trên Flow</i> hoặc phím N rồi gõ <i>nhieu goc</i>.</li>
+  <li>Thay ảnh khác vào node ảnh đã có ảnh nhiều góc: node nhiều góc chuyển về <i>chưa chạy</i> để <b>Chạy tất cả</b> tạo lại.</li>
+  <li>Node ảnh nhiều góc trang phục không nhận ảnh của <b>Khóa nhân vật</b>, để gương mặt không lẫn vào bảng trang phục.</li>
+  <li>Chỉ dùng ảnh người mẫu bạn có quyền sử dụng.</li>
+  <li><b>Sửa lỗi ảnh / video tạo trên Flow</b>: trước đây app báo <i>không chép được từ tab Flow (Failed to fetch)</i>, nên ảnh tạo trên Flow không dùng tiếp làm tham chiếu cho video được và video xong không phát trong node. Nay khi cách tải thường bị chặn, app tải file qua chính tab Flow (Chrome có thể hiện thanh <i>đang gỡ lỗi trình duyệt</i> vài giây). Ảnh cũ còn là đường link Flow cũng được tải lại khi dùng, miễn là tab Flow đang mở.</li>
+</ul>
+</section>
+
 <section id="moi-1-6">
 <h2>Mới trong cos_alpha_flow 1.6: canvas workflow mới và kho mẫu (cập nhật 1.6.2)</h2>
 <ul>
@@ -60,7 +77,7 @@
   <li><b>Bật / tắt node</b> (1.6.1): công tắc nhỏ bên phải tên node Tạo ảnh, Tạo video, AI Agent. Node tắt hiện mờ với chữ <i>Đã tắt</i>, giữ nguyên kết quả cũ, và <b>Chạy tất cả</b> bỏ qua nó. Bấm nút Tạo trên chính node đó vẫn chạy được.</li>
   <li><b>Phóng to thẻ</b> (1.6.1): nút kính lúp trên thanh nổi đổi thẻ Tạo ảnh / Tạo video giữa 1x, 1.5x và 2x để xem kết quả rõ hơn.</li>
   <li><b>Kéo dây ra chỗ trống</b> (1.6.1): thả dây từ một cổng ra (hoặc cổng vào) xuống chỗ trống của canvas, hộp tìm node mở ra và chỉ hiện những node cắm được vào cổng đó, cùng các node có sẵn trên canvas. Chọn một cái là app tạo node (hoặc dùng node có sẵn) và nối dây luôn.</li>
-  <li><b>Kho mẫu workflow</b> (nút ở thanh bên trái hoặc nhóm <i>Mẫu có sẵn</i>): 10 mẫu có sơ đồ thu nhỏ, lọc theo nhóm và tìm kiếm. Gồm: quảng cáo thời trang, sản phẩm → ảnh studio → video, 4 góc chụp sản phẩm, truyện 3 cảnh nhân vật nhất quán, video nối khung cuối, AI viết 3 prompt → 3 ảnh, đổi phong cách ảnh, ảnh bìa YouTube, video TikTok 3 nhịp, và (từ 1.6.2) <i>Idol lên thảm đỏ</i>: ảnh của bạn + ảnh trang phục thành character sheet 4 góc, rồi thành video thảm đỏ theo một video mẫu. Bấm <b>Dùng mẫu</b> để thêm vào canvas (không xoá node đang có); dòng trạng thái nói bước tiếp theo cần làm.</li>
+  <li><b>Kho mẫu workflow</b> (nút ở thanh bên trái hoặc nhóm <i>Mẫu có sẵn</i>): 11 mẫu có sơ đồ thu nhỏ (1.7 thêm mẫu ảnh nhiều góc), lọc theo nhóm và tìm kiếm. Gồm: quảng cáo thời trang, sản phẩm → ảnh studio → video, 4 góc chụp sản phẩm, truyện 3 cảnh nhân vật nhất quán, video nối khung cuối, AI viết 3 prompt → 3 ảnh, đổi phong cách ảnh, ảnh bìa YouTube, video TikTok 3 nhịp, và (từ 1.6.2) <i>Idol lên thảm đỏ</i>: ảnh của bạn + ảnh trang phục thành character sheet 4 góc, rồi thành video thảm đỏ theo một video mẫu. Bấm <b>Dùng mẫu</b> để thêm vào canvas (không xoá node đang có); dòng trạng thái nói bước tiếp theo cần làm.</li>
 </ul>
 </section>
 
@@ -676,7 +693,7 @@ Audio: tiếng chuông xe đạp, nhạc vui tươi</pre>
 <details><summary>Có thêm nhạc hoặc giọng đọc riêng được không?</summary><p>App xuất phim có âm thanh do Flow tạo. Để lồng nhạc hoặc giọng đọc riêng, hãy mở file MP4 bằng phần mềm dựng như CapCut hoặc Premiere.</p></details>
 </section>
 
-<footer>cos_alpha_flow 1.6.2 · Chúc bạn sáng tạo vui vẻ </footer>
+<footer>cos_alpha_flow 1.7.0 · Chúc bạn sáng tạo vui vẻ </footer>
 </main>
 </div>
 </body>

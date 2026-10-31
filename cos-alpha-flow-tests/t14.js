@@ -37,7 +37,9 @@ const EXT = process.argv[2];
   await p.fill('.ts-picker input', 'tao video'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('ArrowUp'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
   const added = await p.evaluate(() => window.__cosAlphaApp.state.nodes.at(-1).type);
   check('Enter thêm node đã chọn vào canvas, hộp tìm đóng lại', (await count()) === before + 1 && added === 'generateVideo' && !(await p.locator('.ts-picker').count()), added);
-  await p.mouse.dblclick(700, 770); await p.waitForTimeout(200);
+  // An empty spot of the canvas (cards grow as features are added, so look for one).
+  const spot = await p.evaluate(() => { const r = document.querySelector('#viewport').getBoundingClientRect(); for (let y = r.bottom - 60; y > r.top + 60; y -= 40) for (let x = r.left + 300; x < r.right - 60; x += 40) { const e = document.elementFromPoint(x, y); if (e && (e.id === 'viewport' || e.id === 'canvas' || e.id === 'edges' || e.closest('#edges'))) return [x, y]; } return [700, 770]; });
+  await p.mouse.dblclick(spot[0], spot[1]); await p.waitForTimeout(200);
   check('Nháy đúp chỗ trống mở hộp tìm node', await p.locator('.ts-picker').isVisible());
   await p.keyboard.press('Escape');
   check('Esc đóng hộp tìm node', !(await p.locator('.ts-picker').count()));
@@ -54,7 +56,7 @@ const EXT = process.argv[2];
   // Gallery UI
   await p.click('[data-ts-tool="layout-template"]'); await p.waitForTimeout(200);
   const total = await p.locator('#galleryGrid .ts-card').count();
-  check('Kho mẫu mở từ thanh công cụ, có 10 mẫu', await p.locator('#galleryModal').isVisible() && total === 10, String(total));
+  check('Kho mẫu mở từ thanh công cụ, có 11 mẫu', await p.locator('#galleryModal').isVisible() && total === 11, String(total));
   await p.click('#galleryCats [data-cat="Sản phẩm"]');
   check('Lọc theo nhóm "Sản phẩm" còn 2 mẫu', await p.locator('#galleryGrid .ts-card').count() === 2);
   await p.click('#galleryCats [data-cat="Tất cả"]'); await p.fill('#gallerySearch', 'khung cuối');

@@ -64,8 +64,25 @@
     product:{label:'Sản phẩm',prompt:'the product: show exactly this product clearly (same shape, colors, logo and details)'},
     background:{label:'Bối cảnh',prompt:'the location/background: use this place as the setting'},
     style:{label:'Phong cách / ánh sáng',prompt:'the style reference: match its lighting, colors and mood without copying its content'},
+    modelSheet:{label:'Người mẫu · ảnh nhiều góc',prompt:'a multi-angle reference sheet of the model/character: keep exactly this person (same face, hair, skin tone and body); its panels only show different angles and its plain grey clothes are a placeholder'},
+    outfitSheet:{label:'Trang phục · ảnh nhiều góc',prompt:'a multi-angle reference sheet of the outfit: dress the person in exactly this outfit (same design, colors, fabric, length and details); its panels only show different angles, and the masked stand-in model is not part of the result'},
+    lookSheet:{label:'Người mẫu mặc đồ · ảnh nhiều góc',prompt:'a multi-angle reference sheet of the model wearing the outfit: keep exactly this person and exactly this outfit; its panels only show different angles'},
     startFrame:{label:'Khung đầu video',prompt:'the start frame of the video'}
   };
+  // Multi-angle sheets: a Tạo ảnh node with data.sheetMode uses this built-in prompt (a connected prompt is added
+  // as extra notes), so one model or outfit photo becomes several views before scenes use it.
+  const SHEET_MODES={
+    model:{label:'Người mẫu nhiều góc',role:'modelSheet',prompt:'Create a character reference sheet of the person in the attached image: one tall 9:16 image split into a clean 2×2 grid on a plain light-grey studio background, soft even lighting. Top row: a head-and-shoulders close-up facing the camera, and a head-and-shoulders side profile. Bottom row (taller panels): full body standing straight, front view with arms relaxed, and full body back view. It is the same person in all four panels: keep exactly the face, hairstyle, hair colour, skin tone and body proportions from the attached image. Dress the person in a plain grey fitted short-sleeve top and plain grey shorts, barefoot, so the face and body shape are easy to read (ignore the clothes in the attached image). Photorealistic, sharp focus, no text, no labels, no borders, no watermark.'},
+    outfit:{label:'Trang phục nhiều góc',role:'outfitSheet',prompt:'Create a product reference sheet of the outfit in the attached image: one tall 9:16 image on a warm off-white studio background, soft even lighting. Layout: one large full-body front view filling the right two-thirds, and a column of four small panels on the left, top to bottom: an upper-body close-up showing the collar, fabric and details; full body front; full body three-quarter turn; full body back. The outfit is worn by a neutral stand-in model whose face is covered by a plain white face mask, so only the clothes matter. Keep every item exactly as in the attached image: same garments, colours, fabric, pattern, length, layers, buttons, shoes and accessories; if part of the outfit is not visible, complete it in the same style. Photorealistic, no text, no labels, no watermark.'},
+    look:{label:'Người mẫu mặc đồ nhiều góc',role:'lookSheet',prompt:'Create a reference sheet of the model wearing the outfit: one tall 9:16 image split into a clean 2×2 grid on a plain light-grey studio background, soft even lighting. Top row: a head-and-shoulders close-up facing the camera, and a head-and-shoulders side profile. Bottom row (taller panels): full body standing straight, front view, and full body back view. The person (face, hairstyle, hair colour, skin tone, body) comes only from the model image. The clothes, shoes and accessories come only from the outfit image, with exactly the same design, colours, fabric, length and details. Do not copy the face mask or the stand-in model of the outfit image. Same person and same outfit in all four panels. Photorealistic, sharp focus, no text, no labels, no borders, no watermark.'}
+  };
+  const SHEET_FOR_ROLE={model:'model',outfit:'outfit'};
+  function applySheet(node,mode){
+    if(node?.type!=='generateImage')return;
+    const sheet=SHEET_MODES[mode];
+    if(!sheet){delete node.data.sheetMode;if(Object.values(SHEET_MODES).some(item=>item.role===node.data.outputRole))node.data.outputRole='';return;}
+    node.data.sheetMode=mode;node.data.size='9:16';node.data.outputRole=sheet.role;
+  }
   const nodeDefs = {
     prompt: { title: 'Câu lệnh', outputs: [{ id: 'text', label: 'chữ', type: 'text' }] },
     negativePrompt: { title: 'Tránh (Negative)', outputs: [{ id: 'text', label: 'tránh', type: 'negative' }] },
@@ -386,7 +403,7 @@
   function roleSelect(n,field,caption){
     const wrap=document.createElement('label');wrap.className='role-select';wrap.onpointerdown=event=>event.stopPropagation();
     const select=document.createElement('select');for(const [value,role] of Object.entries(IMAGE_ROLES)){const option=document.createElement('option');option.value=value;option.textContent=role.label;select.appendChild(option);}
-    select.value=IMAGE_ROLES[n.data[field]]?n.data[field]||'':'';select.onchange=()=>{n.data[field]=select.value;scheduleAutoSave();render();};
+    select.value=IMAGE_ROLES[n.data[field]]?n.data[field]||'':'';select.onchange=()=>{n.data[field]=select.value;if(n.type==='imageInput'&&field==='role')imageInputChanged(n);scheduleAutoSave();render();};
     wrap.append(caption,select);return wrap;
   }
   function characterToggle(n){
@@ -450,10 +467,21 @@
       const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
       input.onchange = () => {
         const f = input.files && input.files[0]; if (!f) return;
-        const r = new FileReader(); r.onload = () => { n.data.localDataUrl = String(r.result || ''); render(); }; r.readAsDataURL(f);
+        const r = new FileReader(); r.onload = () => { n.data.localDataUrl = String(r.result || ''); imageInputChanged(n,{newImage:true}); render(); }; r.readAsDataURL(f);
       };
       label.appendChild(input); body.appendChild(label);
       body.appendChild(roleSelect(n,'role','Ảnh này là:'));
+      const sheetMode=SHEET_FOR_ROLE[n.data.role];
+      if(sheetMode){
+        const row=document.createElement('div');row.className='sheet-row';row.onpointerdown=event=>event.stopPropagation();const sheet=sheetFor(n,sheetMode);
+        if(sheet){const hint=document.createElement('div');hint.className='hint';hint.textContent=`Ảnh này được chuyển thành ảnh nhiều góc ở node “${sheet.data.customName||SHEET_MODES[sheetMode].label}” trước khi dùng.`;row.appendChild(hint);}
+        else{
+          const make=document.createElement('button');make.type='button';make.className='small-btn sheet-btn';make.textContent='Tạo ảnh nhiều góc';make.title='Thêm node chuyển ảnh này thành ảnh nhiều góc (chính diện, nghiêng, toàn thân trước / sau) rồi mới đưa vào các cảnh';make.onclick=event=>{event.stopPropagation();addAngleSheet(n);};
+          const auto=document.createElement('label');auto.className='continuity-toggle';const check=document.createElement('input');check.type='checkbox';check.checked=n.data.autoSheet!==false;check.onchange=()=>{n.data.autoSheet=check.checked;scheduleAutoSave();};auto.append(check,document.createTextNode('Tự tạo khi thả ảnh vào'));
+          row.append(make,auto);
+        }
+        body.appendChild(row);
+      }
       const hint = document.createElement('div'); hint.className = 'hint'; hint.textContent = 'Nối cổng “ảnh” sang “ảnh tham chiếu” của Tạo ảnh / Tạo video. Có thể nối 2–3 ảnh vào cùng một cảnh.'; body.appendChild(hint);
     }
 
@@ -480,6 +508,11 @@
     }
 
     if (n.type === 'generateImage') {
+      const kind=document.createElement('label');kind.className='sheet-select';kind.onpointerdown=event=>event.stopPropagation();
+      const kindSelect=document.createElement('select');[['','Ảnh thường (theo câu lệnh)'],...Object.entries(SHEET_MODES).map(([value,mode])=>[value,`Ảnh nhiều góc · ${mode.label.replace(/ nhiều góc$/,'')}`])].forEach(([value,text])=>{const option=document.createElement('option');option.value=value;option.textContent=text;kindSelect.appendChild(option);});
+      kindSelect.value=SHEET_MODES[n.data.sheetMode]?n.data.sheetMode:'';kindSelect.onchange=()=>{createUndoSnapshot('Đổi kiểu ảnh');applySheet(n,kindSelect.value);scheduleAutoSave();render();};
+      kind.append('Kiểu ảnh:',kindSelect);body.appendChild(kind);
+      if(SHEET_MODES[n.data.sheetMode]){const hint=document.createElement('div');hint.className='hint sheet-hint';hint.textContent=n.data.sheetMode==='look'?'Nối ảnh nhiều góc của người mẫu và của trang phục vào ảnh tham chiếu. App tự viết câu lệnh; câu lệnh nối vào (nếu có) được thêm làm ghi chú.':'App tự viết câu lệnh tạo ảnh nhiều góc từ ảnh nối vào; câu lệnh nối vào (nếu có) được thêm làm ghi chú.';body.appendChild(hint);}
       const controls = document.createElement('div'); controls.className = 'gen-controls';
       const size = document.createElement('select');
       [['1:1','Vuông 1:1'],['16:9','Ngang 16:9'],['9:16','Dọc 9:16'],['4:3','Ngang 4:3'],['3:4','Dọc 3:4']].forEach(([v,label]) => { const o=document.createElement('option'); o.value=v; o.textContent=label; size.appendChild(o); });
@@ -923,7 +956,9 @@
     const source=sourceFor(getIncoming(nodeId,'text')[0]);return source?resolveText(source.id,seen):'';
   }
   function resolvePrompt(nodeId){
-    return getIncoming(nodeId,'prompt').map(edge=>nodeById(edge.source)).filter(Boolean).map(source=>resolveText(source.id).trim()).filter(Boolean).join('\n\n');
+    const text=getIncoming(nodeId,'prompt').map(edge=>nodeById(edge.source)).filter(Boolean).map(source=>resolveText(source.id).trim()).filter(Boolean).join('\n\n');
+    const node=nodeById(nodeId),sheet=node?.type==='generateImage'&&SHEET_MODES[node.data?.sheetMode];
+    return sheet?`${sheet.prompt}${text?`\n\nExtra notes from the user: ${text}`:''}`:text;
   }
   function resolveNegativePrompt(nodeId){const source=sourceFor(getIncoming(nodeId,'negative')[0]);return source?resolveText(source.id):'';}
   function timelinePredecessor(nodeId){const timeline=state.nodes.find(item=>item.type==='timeline'),order=timeline?.data?.clipOrder||[],index=order.indexOf(nodeId);return index>0?nodeById(order[index-1]):null;}
@@ -1133,6 +1168,7 @@
           const continuityPrevious=isVideo&&n.data.continuity?timelinePredecessor(n.id):null,continuityStartFrame=continuityPrevious?.data?.endFrame?.url?continuityPrevious.data.endFrame:null;
           if(isVideo&&n.data.continuity&&!continuityStartFrame)throw new Error(`Nối khung cuối cần clip trước trong Timeline đã tạo xong. Hãy xếp đúng thứ tự và chạy clip trước.`);
           const referenceImages=resolveReferences(n.id);
+          if(!isVideo&&SHEET_MODES[n.data.sheetMode]&&!referenceImages.length){n.data.status='error';n.data.error=`${SHEET_MODES[n.data.sheetMode].label}: hãy nối ảnh ${n.data.sheetMode==='look'?'người mẫu và ảnh trang phục':n.data.sheetMode==='outfit'?'trang phục':'người mẫu'} vào cổng ảnh tham chiếu.`;render();throw new Error(n.data.error);}
           state.activeGenerationId=n.id;n.data.status='running';n.data.error='';n.data.asset=null;n.data.endFrame=null;state.edges.filter(edge=>edge.source===n.id).forEach(edge=>{const target=nodeById(edge.target);if(target?.type==='preview')target.data.asset=null;});render();setRunStatus(`${targetId?'Node đã chọn':`Lượt ${generationStep}/${totalGenerations}`} · đang tạo ${isVideo?'video':'ảnh'}: ${n.id}`,'warn');
           try{
 const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenceImages,continuityStartFrame},abortController.signal);
@@ -1149,7 +1185,10 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
             if(isVideo)n.data.endFrame=await extractVideoEndFrame(url);
             // Keep a mismatched result (credits are already spent) and flag it on the node.
             if(sizeMismatch){n.data.error=`Yêu cầu ${n.data.size}, nhận ${intrinsic.width}×${intrinsic.height}. Kết quả trả về khác tỉ lệ; vẫn giữ kết quả.`;setRunStatus(`${n.data.customName||n.id}: khác tỉ lệ yêu cầu, vẫn giữ kết quả.`,'warn');}
-            if(reply.warnings?.length)n.data.error=[n.data.error,...reply.warnings].filter(Boolean).join(' ');
+            const copyNote=/không chép được từ tab Flow|sẽ tải từ đường link/;
+            const notes=(reply.warnings||[]).filter(note=>!(copyNote.test(note)&&/^(?:data:|blob:)/i.test(url)));
+            if(notes.length)n.data.error=[n.data.error,...notes].filter(Boolean).join(' ');
+            else if(!/^(?:data:|blob:)/i.test(url))n.data.error=[n.data.error,`Chưa chép được ${isVideo?'video':'ảnh'} về máy; app đang dùng đường link của Flow, cần giữ tab Flow mở.`].filter(Boolean).join(' ');
             state.edges.filter(e=>e.source===n.id).forEach(e=>{const target=nodeById(e.target);if(target?.type==='preview')target.data.asset=e.sourcePort==='endFrame'?n.data.endFrame:n.data.asset;});render();
             cosAlphaHook('onResult',{node:n,asset:n.data.asset,prompt});
           }catch(err){if(err?.name==='AbortError'||abortController.signal.aborted){n.data.status='stopped';n.data.error='Đã dừng theo yêu cầu.';render();throw new DOMException('Đã dừng theo yêu cầu.','AbortError');}n.data.status='error';n.data.error=err?.message||String(err);render();cosAlphaHook('onError',{node:n,error:err,prompt});throw err;}
@@ -1174,7 +1213,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
       const failed=state.nodes.find(n=>['generateImage','generateVideo'].includes(n.type)&&n.data.status==='running');
       if(failed){failed.data.status='error';failed.data.error=err?.message||String(err);render();}
       const message=err?.message||String(err);
-      setRunStatus(/failed to fetch/i.test(message)?'Không kết nối được với tab Flow. Hãy tải lại cos_alpha_flow rồi kiểm tra tab Flow.':'cos_alpha_flow 1.6.2 · '+message,'error');
+      setRunStatus(/failed to fetch/i.test(message)?'Không kết nối được với tab Flow. Hãy tải lại cos_alpha_flow rồi kiểm tra tab Flow.':'cos_alpha_flow 1.7.0 · '+message,'error');
       try{clearTimeout(autoSaveTimer);await queueWorkflowSave();}catch(saveError){setRunStatus(`${runStatus.textContent} · Tự lưu thất bại: ${saveError?.message||String(saveError)}`,'error');}
     }
     finally{state.isRunning=false;state.activeGenerationId=null;state.generationAbortController=null;state.generationRequestId=null;$('#runBtn').disabled=false;$('#runBtn').textContent='Chạy tất cả';$('#runBtn').title='Chạy mọi node theo đúng thứ tự nối dây';render();setTimeout(()=>cosAlphaHook('onRunEnd',{aborted:abortController.signal.aborted}),0);}
@@ -1184,10 +1223,23 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
     if(!url)return '';
     if(url.startsWith('data:'))return url;
     let response;
-    try{response=await fetch(url,{credentials:'include'});}
-    catch{throw new Error('Không đọc được một ảnh đã nối vào node (ảnh cũ đã mất hoặc link hết hạn). Hãy chọn lại ảnh đó rồi chạy lại.');}
-    if(!response.ok)throw new Error(`Không đọc được một ảnh đã nối (HTTP ${response.status}).`);
+    try{response=await fetch(url,{credentials:'include'});if(!response.ok)throw new Error(`HTTP ${response.status}`);}
+    catch(error){
+      // A result still on Flow's servers: load it through the extension / the Flow tab.
+      if(/^https:/i.test(url)){try{const copy=await fetchRemoteMedia(url,40*1024*1024);if(copy)return copy;}catch{}}
+      throw new Error(`Không đọc được một ảnh đã nối vào node (${error?.message||error}; ảnh cũ đã mất hoặc link hết hạn). Hãy mở tab Google Flow, hoặc chọn lại ảnh đó rồi chạy lại.`);
+    }
     return blobAsDataUrl(await response.blob());
+  }
+  // Flow's media links need the Flow tab's Google sign-in and can redirect to other Google hosts. The background
+  // fetches them with the extension's host permissions, else loads them inside an open Flow tab.
+  async function fetchRemoteMedia(url,maxBytes){
+    const tabs=await chrome.tabs.query({url:FLOW_TAB_URLS}).catch(()=>[]);
+    const viaTabId=(tabs.find(tab=>tab.id===preferredMuseTabId)||tabs[0])?.id;
+    const reply=await chrome.runtime.sendMessage({type:'THEKEY_FETCH_MEDIA',url,maxBytes,viaTabId});
+    if(reply?.ok&&reply.url)return reply.url;
+    if(reply?.ok&&reply.tooLarge)return '';
+    throw new Error(reply?.error||'Không tải được file từ Flow.');
   }
   const WEB_PROVIDERS={chatgpt:'ChatGPT',grok:'Grok',muse:'Muse',gemini:'Gemini'};
   function providerName(){const p=state.settings?.provider;return p==='api'||WEB_PROVIDERS[p]?p:'flow';}
@@ -1203,7 +1255,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
     // Images sent with this scene. Each one can carry a role (model, outfit, product…) from its Image Input
     // node; Character Lock images are always references, never the start frame. The roles are spelled out
     // in the prompt in the same order the images are attached, so Flow knows what each picture is for.
-    const characters=n.data.useCharacters===false?[]:state.nodes.filter(node=>node.type==='character'&&node.data.enabled!==false&&(node.data.localDataUrl||String(node.data.description||'').trim()));
+    const characters=n.data.useCharacters===false||n.data.sheetMode==='outfit'?[]:state.nodes.filter(node=>node.type==='character'&&node.data.enabled!==false&&(node.data.localDataUrl||String(node.data.description||'').trim()));
     const characterItems=characters.filter(node=>node.data.localDataUrl).map(node=>({url:node.data.localDataUrl,role:'character',name:String(node.data.name||'').trim()||'the main character'}));
     const characterUrls=new Set(characterItems.map(item=>item.url));
     const others=referenceImages.filter(item=>item.url!==continuityStartFrame?.url&&!characterUrls.has(item.url));
@@ -1325,7 +1377,11 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
       const blob=await response.blob();
       if(blob.size>8*1024*1024)return url;
       return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(reader.error);reader.readAsDataURL(blob);});
-    }catch{return url;}
+    }catch{
+      // Keep a local copy so later scenes (and reloads) can still send this image.
+      if(/^https:/i.test(url)){try{return await fetchRemoteMedia(url,20*1024*1024)||url;}catch{}}
+      return url;
+    }
   }
 
   // Remote video links can expire, so keep a local copy that auto-save moves into IndexedDB.
@@ -1337,7 +1393,10 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
       const blob=await response.blob();
       if(!blob.size||blob.size>500*1024*1024)return url;
       return URL.createObjectURL(blob.type?blob:new Blob([blob],{type:'video/mp4'}));
-    }catch{return url;}
+    }catch{
+      if(/^https:/i.test(url)){try{const copy=await fetchRemoteMedia(url,200*1024*1024);if(copy){const blob=await (await fetch(copy)).blob();return URL.createObjectURL(blob.type&&blob.type!=='application/octet-stream'?blob:new Blob([blob],{type:'video/mp4'}));}}catch{}}
+      return url;
+    }
   }
 
   // blob: URLs belong to this extension page and cannot be read from the Flow tab,
@@ -1385,7 +1444,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
         }catch{externalMedia++;return url;}
       };
       for(const node of workflow.nodes){const data=node.data||{};if(data.localDataUrl)data.localDataUrl=await packageUrl(data.localDataUrl);if(data.videoUrl)data.videoUrl=await packageUrl(data.videoUrl);if(Array.isArray(data.frames))for(let i=0;i<data.frames.length;i++)data.frames[i]=await packageUrl(data.frames[i]);for(const field of ['asset','endFrame'])if(data[field]?.url)data[field].url=await packageUrl(data[field].url);}
-      const file={format:'26flow-workflow',version:1,appVersion:'cos_alpha_flow-1.6.2',exportedAt:new Date().toISOString(),workflow};
+      const file={format:'26flow-workflow',version:1,appVersion:'cos_alpha_flow-1.7.0',exportedAt:new Date().toISOString(),workflow};
       const blob=new Blob([JSON.stringify(file)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`cos_alpha_flow-Workflow-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
       setRunStatus(externalMedia?`Đã lưu file; ${externalMedia} ảnh/video không nhúng được vào file và cần phiên Flow gốc để mở.`:'Đã lưu workflow kèm ảnh/video.','ok');
     }catch(error){setRunStatus(`Không lưu được file workflow: ${error?.message||String(error)}`,'error');}
@@ -1411,7 +1470,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
   function toggleProviderFields(){const provider=$('#providerSelect').value==='api'?'api':$('#providerSelect').value==='flow'?'flow':'web';document.querySelectorAll('[data-provider]').forEach(el=>el.classList.toggle('hidden',el.dataset.provider!==provider));}
   function syncSettingsUI(){
     const s=state.settings||{};
-    backendStatus.textContent=`Tạo bằng: ${providerLabel()} · v1.6.2`;
+    backendStatus.textContent=`Tạo bằng: ${providerLabel()} · v1.7.0`;
     $('#providerSelect').value=providerName();$('#inputModeSelect').value=s.inputMode||'auto';$('#timeoutSelect').value=String(s.timeoutSec||900);
     $('#flowVideoModel').value=s.flowVideoModel||'';$('#flowUiMode').value=s.flowUiMode==='classic'?'classic':'agent';$('#flowImageModel').value=s.flowImageModel||'';$('#flowSelectors').value=s.flowSelectors||'';
     $('#apiVideoModel').value=s.apiVideoModel||'veo-3.1-fast-generate-preview';$('#apiImageModel').value=s.apiImageModel||'gemini-nano-banana-2.1';$('#apiResolution').value=s.apiResolution||'720p';
@@ -1440,7 +1499,64 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
     }catch{museStatus.textContent='Không kiểm tra được Flow';museStatus.className='warn';}
   }
 
-  document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>b.dataset.add==='text'?addTextNote():addNode(b.dataset.add));
+  document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{if(b.dataset.add==='text'){addTextNote();return;}addNode(b.dataset.add);if(b.dataset.sheet){applySheet(state.nodes.at(-1),b.dataset.sheet);render();scheduleAutoSave();}});
+
+  // An Image Input marked as model or outfit gets a multi-angle sheet node between it and the scenes it feeds,
+  // so every scene sees the person / outfit from several sides. "Tự tạo khi thả ảnh vào" turns this off per node.
+  function sheetFor(n,mode){return state.edges.filter(edge=>edge.source===n.id).map(edge=>nodeById(edge.target)).find(target=>target?.type==='generateImage'&&target.data?.sheetMode===mode)||null;}
+  // A photo (or the sheet row) makes an Image Input card taller; nodes it would now cover move down, in a chain.
+  function makeRoomBelow(n){
+    setTimeout(async()=>{
+      const el=document.querySelector(`.node[data-id="${CSS.escape(n.id)}"]`),img=el?.querySelector('img');
+      if(img?.decode)await img.decode().catch(()=>{});
+      const box=node=>{const card=document.querySelector(`.node[data-id="${CSS.escape(node.id)}"]`);return card&&{x:node.x,right:node.x+card.offsetWidth,top:node.y-44,bottom:node.y+card.offsetHeight};};
+      const moved=new Set([n.id]),queue=[n];let changed=false;
+      while(queue.length){
+        const b=box(queue.shift());if(!b)continue;
+        for(const other of state.nodes){
+          if(moved.has(other.id)||other.data?.dockOnly)continue;const o=box(other);
+          if(!o||o.right<=b.x||o.x>=b.right||o.top<b.top||o.top>=b.bottom+24)continue;
+          other.y+=Math.round(b.bottom+48-o.top);moved.add(other.id);queue.push(other);changed=true;
+        }
+      }
+      if(changed){render();scheduleAutoSave();}
+    },30);
+  }
+  function imageInputChanged(n,{newImage=false}={}){
+    if(n?.type==='imageInput')makeRoomBelow(n);
+    const mode=n?.type==='imageInput'&&n.data.localDataUrl&&SHEET_FOR_ROLE[n.data.role];if(!mode)return;
+    const sheet=sheetFor(n,mode);
+    // A new photo makes the old sheet stale, so Chạy tất cả creates it again.
+    if(sheet){if(newImage&&sheet.data.status==='success'){sheet.data.status='idle';sheet.data.error='';}return;}
+    if(n.data.autoSheet!==false)addAngleSheet(n);
+  }
+  // The sheet goes right of the input. If the scenes it feeds leave room before them, it takes a free spot in that
+  // column (same row, else lower); otherwise every node right of the input moves over to open a column.
+  const SHEET_TARGETS=['generateImage','generateVideo','references'];
+  function sheetSpot(n){
+    const box=node=>{const el=document.querySelector(`.node[data-id="${CSS.escape(node.id)}"]`);return{x:node.x,top:node.y-44,right:node.x+(el?.offsetWidth||300),bottom:node.y+(el?.offsetHeight||300)};};
+    const W=300,H=760,GAP=110,x=box(n).right+GAP,live=state.nodes.filter(node=>node.id!==n.id&&!node.data?.dockOnly);
+    const consumers=state.edges.filter(edge=>edge.source===n.id).map(edge=>nodeById(edge.target)).filter(node=>SHEET_TARGETS.includes(node?.type));
+    if(x+W+GAP<=Math.min(Infinity,...consumers.map(node=>node.x))){
+      const others=live.map(box);let y=n.y;
+      for(let i=0;i<12&&y<n.y+2400;i++){const hits=others.filter(b=>b.x<x+W+40&&x-40<b.right&&b.top<y+H+48&&y-44-48<b.bottom);if(!hits.length)return{x,y};y=Math.max(...hits.map(b=>b.bottom))+48+44;}
+    }
+    const right=live.filter(node=>node.x>n.x),shift=right.length?x+W+GAP-Math.min(...right.map(node=>node.x)):0;
+    if(shift>0)for(const node of right)node.x+=shift;
+    return{x,y:n.y};
+  }
+  function addAngleSheet(n){
+    const mode=SHEET_FOR_ROLE[n?.data?.role];if(!mode||sheetFor(n,mode))return null;
+    createUndoSnapshot('Thêm ảnh nhiều góc');
+    const spot=sheetSpot(n),sheet=makeNode('generateImage',Math.round(spot.x),Math.round(spot.y));
+    sheet.data={model:'',status:'idle',customName:SHEET_MODES[mode].label};applySheet(sheet,mode);
+    // Scenes that used the photo now use the sheet.
+    for(const edge of state.edges)if(edge.source===n.id&&SHEET_TARGETS.includes(nodeById(edge.target)?.type))edge.source=sheet.id;
+    state.nodes.push(sheet);state.edges.push({id:uid('edge'),source:n.id,sourcePort:'image',target:sheet.id,targetPort:'reference'});
+    render();scheduleAutoSave();
+    setRunStatus(`Đã thêm node “${SHEET_MODES[mode].label}”: ảnh ${mode==='outfit'?'trang phục':'người mẫu'} được chuyển thành ảnh nhiều góc trước khi dùng (thêm 1 lượt tạo ảnh). Ctrl+Z để bỏ.`,'ok');
+    return sheet;
+  }
 
   // Ready-made workflow: model photo + outfit photo → photo of the model wearing the outfit → fashion ad video.
   function addFashionPreset(){
@@ -1482,7 +1598,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
       const url=await readImageFile(file);
       // Dropped on an Image Input (or pasted while an empty one is selected): fill that node instead of adding one.
       const reuse=index===0&&(['imageInput','character'].includes(targetNode?.type)?targetNode:clientX===undefined&&['imageInput','character'].includes(selected?.type)&&!selected.data.localDataUrl?selected:null);
-      if(reuse){createUndoSnapshot('Đổi ảnh');reuse.data.localDataUrl=url;delete reuse.data.asset;filled++;continue;}
+      if(reuse){createUndoSnapshot('Đổi ảnh');reuse.data.localDataUrl=url;delete reuse.data.asset;imageInputChanged(reuse,{newImage:true});filled++;continue;}
       addNode('imageInput',baseX+index*290,baseY);const node=state.nodes.at(-1);node.data.localDataUrl=url;filled++;
     }
     render();saveState();setRunStatus(`Đã thêm ${filled} ảnh. Nối cổng “ảnh” sang “ảnh tham chiếu” của Tạo ảnh / Tạo video, và chọn vai trò cho ảnh.`,'ok');
@@ -1585,6 +1701,6 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
     if(providerName()==='flow'&&FLOW_TAB_RX.test(tab.url||''))setTimeout(()=>testMuseSession(tab.id),1200);
   });
 
-  window.__cosAlphaApp={plugApi,connect,portCompatible,connectionChoices,canConnectTypes,state,render,nodeById,addNode,makeNode,uid,createUndoSnapshot,setRunStatus,execute,executeGenerationNode,stopGeneration,saveState,addImageInputs,buildSceneNodesFromScript,getApiKey,providerName,providerLabel,statusText,nodeDefs,topoOrder,removeNode,duplicateNodesForDrag,fitCanvas,applyCanvasTransform,scheduleDrawEdges,getIncoming,sourceFor,resolveText,undoLastChange,addTextNote,selectNode,scheduleAutoSave};
+  window.__cosAlphaApp={plugApi,connect,portCompatible,connectionChoices,canConnectTypes,state,render,nodeById,addNode,makeNode,uid,createUndoSnapshot,setRunStatus,execute,executeGenerationNode,stopGeneration,saveState,addImageInputs,buildSceneNodesFromScript,getApiKey,providerName,providerLabel,statusText,nodeDefs,topoOrder,removeNode,duplicateNodesForDrag,fitCanvas,applyCanvasTransform,scheduleDrawEdges,getIncoming,sourceFor,resolveText,undoLastChange,addTextNote,selectNode,scheduleAutoSave,sheetModes:SHEET_MODES,applySheet,addAngleSheet,resolvePrompt};
   loadState().then(detectMuse);applyCanvasTransform();$('#welcomeModal').classList.remove('hidden');
 })();

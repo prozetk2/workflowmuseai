@@ -30,7 +30,9 @@
   }
   function promptPreview(n) {
     const a = app();
-    try { return a.getIncoming(n.id, 'prompt').map(edge => a.resolveText(edge.source)).filter(t => String(t).trim()).join(' · ').replace(/\s+/g, ' ').slice(0, 220); } catch { return ''; }
+    let text = ''; try { text = a.getIncoming(n.id, 'prompt').map(edge => a.resolveText(edge.source)).filter(t => String(t).trim()).join(' · ').replace(/\s+/g, ' ').slice(0, 220); } catch {}
+    const sheet = n.type === 'generateImage' && a.sheetModes?.[n.data?.sheetMode];
+    return sheet ? `${sheet.label}${text ? ` · ${text}` : ''}` : text;
   }
   function decorate() {
     const a = app(); if (!a) return;
@@ -43,7 +45,7 @@
       if (scale > 1) el.classList.add(scale >= 2 ? 'ts-z2' : 'ts-z15');
       const head = el.querySelector(':scope > .node-header');
       if (head) {
-        const icon = document.createElement('span'); icon.className = 'ts-icon'; icon.innerHTML = `<i data-ic="${ICON[n.type] || 'square'}" data-size="15"></i>`;
+        const icon = document.createElement('span'); icon.className = 'ts-icon'; icon.innerHTML = `<i data-ic="${n.type === 'generateImage' && n.data?.sheetMode ? 'layout-grid' : ICON[n.type] || 'square'}" data-size="15"></i>`;
         head.prepend(icon);
         const step = order.indexOf(n.id);
         if (step >= 0) { const badge = document.createElement('span'); badge.className = 'ts-order'; badge.textContent = String(step + 1); badge.title = `Bước ${step + 1} khi bấm Chạy tất cả`; head.prepend(badge); }
@@ -86,7 +88,7 @@
     moved.push(...body.querySelectorAll(':scope > .role-select, :scope > .continuity-toggle'));
     if (!moved.length) return;
     const fold = document.createElement('details'); fold.className = 'ts-more'; fold.open = openExtras.has(n.id);
-    const changed = [n.data.model, n.data.outputRole, n.data.resolution, n.data.voice, n.data.continuity, n.data.referenceMode === 'ingredients', n.data.useCharacters === false].filter(Boolean).length;
+    const changed = [n.data.model, !n.data.sheetMode && n.data.outputRole, n.data.resolution, n.data.voice, n.data.continuity, n.data.referenceMode === 'ingredients', n.data.useCharacters === false].filter(Boolean).length;
     fold.innerHTML = `<summary><i data-ic="sliders-horizontal" data-size="13"></i>Tuỳ chọn thêm${changed ? `<span class="ts-more-count">${changed} đã chỉnh</span>` : ''}</summary>`;
     const inner = document.createElement('div'); inner.className = 'ts-more-body'; inner.append(...moved); fold.appendChild(inner);
     fold.onpointerdown = e => e.stopPropagation(); fold.onmousedown = e => e.stopPropagation();
@@ -141,7 +143,7 @@
     let group = '';
     for (const el of document.querySelectorAll('#nodeSidebar .ns-title, #nodeSidebar [data-add]')) {
       if (el.classList.contains('ns-title')) { group = el.textContent.trim(); continue; }
-      items.push({ type: el.dataset.add, label: el.querySelector('.ns-label')?.textContent.trim() || el.dataset.add, desc: el.title || '', icon: el.querySelector('.ns-icon')?.innerHTML || '', group });
+      items.push({ type: el.dataset.add, sheet: el.dataset.sheet || '', label: el.querySelector('.ns-label')?.textContent.trim() || el.dataset.add, desc: el.title || '', icon: el.querySelector('.ns-icon')?.innerHTML || '', group });
     }
     return items;
   }
@@ -167,6 +169,8 @@
     }
     return { items, caption: `Chọn node cấp "${input.label}" cho ${title(dst)}` };
   }
+  // A picker entry such as "Ảnh nhiều góc" is a Tạo ảnh node with a preset.
+  function applyPreset(item, node) { if (item.sheet && node) { app().applySheet(node, item.sheet); app().render(); } }
   function addFromWire(item, wire, at) {
     const a = app(), s = a.state;
     if (item.existing) {
@@ -176,6 +180,7 @@
       const before = new Set(s.nodes.map(n => n.id));
       a.addNode(item.type, wire.direction === 'out' ? at.x + 16 : at.x - 300, at.y - 60);
       const made = s.nodes.find(n => !before.has(n.id)); if (!made) { s.connectingFrom = null; a.setRunStatus('Không tạo được node đã chọn.', 'error'); return; }
+      applyPreset(item, made);
       if (wire.direction === 'out') { s.connectingFrom = { ...wire.from }; a.connect(made.id, item.port); }
       else { s.connectingFrom = { nodeId: made.id, portId: item.port }; a.connect(wire.to.nodeId, wire.to.portId); }
     }
@@ -211,7 +216,7 @@
     const add = item => {
       if (!item) return; picked = true; closePicker();
       if (wire) addFromWire(item, wire, at);
-      else if (item.type === 'text') app().addTextNote(at.x, at.y); else app().addNode(item.type, at.x, at.y);
+      else if (item.type === 'text') app().addTextNote(at.x, at.y); else { app().addNode(item.type, at.x, at.y); applyPreset(item, app().state.nodes.at(-1)); app().scheduleAutoSave(); }
     };
     input.oninput = () => { active = 0; draw(); };
     input.onkeydown = e => {
@@ -335,6 +340,11 @@
     { id: 'fashion', cat: 'Thời trang', name: 'Quảng cáo thời trang', desc: 'Ảnh người mẫu + ảnh trang phục → ảnh người mẫu mặc đồ → video 8 giây khoe trang phục.', how: 'Thả ảnh người mẫu và ảnh trang phục vào 2 node Ảnh đầu vào, rồi bấm Chạy tất cả.',
       nodes: [IN('m', 'model'), IN('o', 'outfit'), P('p1', 'Ảnh quảng cáo thời trang: người mẫu mặc đúng bộ trang phục này, tạo dáng toàn thân trong studio nền sáng, ánh sáng mềm, chi tiết vải rõ nét, phong cách tạp chí thời trang.'), IMG('g', { outputRole: 'startFrame', customName: 'Người mẫu mặc đồ' }), P('p2', 'Người mẫu bước chậm về phía máy quay rồi xoay người khoe trọn bộ trang phục, vải chuyển động tự nhiên, máy quay lia nhẹ, ánh sáng studio, phong cách quảng cáo thời trang cao cấp.'), VID('v', { customName: 'Video quảng cáo' })],
       edges: [['m', 'image', 'g', 'reference'], ['o', 'image', 'g', 'reference'], ['p1', 'text', 'g', 'prompt'], ['g', 'image', 'v', 'reference'], ['p2', 'text', 'v', 'prompt']] },
+    { id: 'lookbook', cat: 'Thời trang', name: 'Người mẫu mặc đồ · ảnh nhiều góc', desc: 'Ảnh người mẫu và ảnh trang phục thành ảnh nhiều góc, ghép thành ảnh 4 góc người mẫu mặc đồ, rồi thành video 8 giây giữ đúng mặt và đồ.', how: 'Thả ảnh người mẫu và ảnh trang phục vào 2 node Ảnh đầu vào, rồi bấm Chạy tất cả. Mỗi ảnh nhiều góc là một lượt tạo ảnh.',
+      nodes: [IN('m', 'model'), IN('o', 'outfit'), IMG('ms', { sheetMode: 'model', outputRole: 'modelSheet', customName: 'Người mẫu nhiều góc' }), IMG('os', { sheetMode: 'outfit', outputRole: 'outfitSheet', customName: 'Trang phục nhiều góc' }), IMG('look', { sheetMode: 'look', outputRole: 'lookSheet', customName: 'Người mẫu mặc đồ nhiều góc' }),
+        P('p', 'Người mẫu trong ảnh tham chiếu bước chậm trên sàn studio về phía máy quay, dừng lại xoay nửa vòng khoe trọn bộ trang phục rồi mỉm cười nhìn ống kính. Giữ đúng gương mặt, kiểu tóc và từng chi tiết của trang phục. Máy quay lia nhẹ theo, ánh sáng studio mềm, phong cách quảng cáo thời trang. Một khung hình liền mạch, không chia ô, không chữ trên hình.'),
+        VID('v', { referenceMode: 'ingredients', customName: 'Video người mẫu mặc đồ' })],
+      edges: [['m', 'image', 'ms', 'reference'], ['o', 'image', 'os', 'reference'], ['ms', 'image', 'look', 'reference'], ['os', 'image', 'look', 'reference'], ['look', 'image', 'v', 'reference'], ['p', 'text', 'v', 'prompt']] },
     { id: 'product-ad', cat: 'Sản phẩm', name: 'Sản phẩm → ảnh studio → video', desc: 'Một ảnh sản phẩm thành ảnh studio sang trọng, rồi thành video xoay quanh sản phẩm.', how: 'Thả ảnh sản phẩm vào node Ảnh đầu vào, sửa câu lệnh nếu muốn, bấm Chạy tất cả.',
       nodes: [IN('s', 'product'), P('p1', 'Ảnh quảng cáo sản phẩm trên bục đá cẩm thạch, nền gradient sang trọng, ánh sáng studio ba điểm, phản chiếu nhẹ, sản phẩm giữ đúng hình dáng, màu sắc và logo.'), IMG('g', { outputRole: 'startFrame', customName: 'Ảnh studio' }), P('p2', 'Máy quay chậm rãi xoay quanh sản phẩm 180 độ, ánh sáng lướt qua bề mặt, vài hạt bụi sáng bay trong không khí, kết thúc cận cảnh logo.'), VID('v', { customName: 'Video sản phẩm' }), { k: 'd', type: 'download', data: {} }],
       edges: [['s', 'image', 'g', 'reference'], ['p1', 'text', 'g', 'prompt'], ['g', 'image', 'v', 'reference'], ['p2', 'text', 'v', 'prompt'], ['v', 'video', 'd', 'media']] },

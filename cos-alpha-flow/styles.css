@@ -565,3 +565,10 @@ body.ts-canvas #edges .edge-active{opacity:1;stroke-width:4;stroke-dasharray:10 
 .ts-picker-caption{display:flex;align-items:center;gap:6px;padding:8px 12px 0;color:#d4f53c;font:600 12px system-ui,sans-serif}
 .ts-node>.node-header .ts-switch{margin-left:auto}
 .ts-node>.node-header .ts-switch+.node-close{margin-left:4px}
+/* 1.7 multi-angle sheets */
+.sheet-select{display:block;margin-top:9px;font-size:10px;color:#b7b9c6}.sheet-select select{margin-top:4px!important}
+.ts-node .sheet-select{display:flex;align-items:center;gap:8px;margin-top:10px;font:600 11px system-ui,sans-serif;color:#a4a6b0}
+.ts-node .sheet-select select{flex:1;height:30px;margin:0!important;padding:4px 10px;border-radius:999px;background:#202125;border:1px solid #33353b;font-size:12px;color:#dcdde2}
+.ts-node[data-type="generateImage"] .sheet-hint{color:#c9b8ff}
+.sheet-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:9px}.sheet-row .hint,.sheet-row .continuity-toggle{margin-top:0}
+.sheet-btn{color:#e6dcff;border-color:#6b56c9;background:#2a2342}.sheet-btn:hover{background:#352b57}

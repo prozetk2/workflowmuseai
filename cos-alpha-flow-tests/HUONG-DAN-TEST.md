@@ -1,4 +1,4 @@
-# Hướng dẫn test cos_alpha_flow 1.6.2
+# Hướng dẫn test cos_alpha_flow 1.7.0
 
 Tài liệu cho tester. Phần A là test bằng tay trên Chrome thật, phần B là chạy bộ test tự động (trang giả, không tốn credit).
 
@@ -9,7 +9,7 @@ Tài liệu cho tester. Phần A là test bằng tay trên Chrome thật, phần
 1. Tải repo về: nút **Code → Download ZIP** trên GitHub rồi giải nén, hoặc `git clone https://github.com/prozetk2/workflowmuseai.git`.
 2. Mở `chrome://extensions`, bật **Developer mode** (góc phải trên).
 3. Bấm **Load unpacked**, chọn thư mục `cos-alpha-flow` (thư mục có `manifest.json`).
-4. Kiểm tra thẻ extension ghi **1.6.2**. Nếu máy còn TheKey.studio Flow hoặc bản cos_alpha_flow cũ, tắt bản đó đi.
+4. Kiểm tra thẻ extension ghi **1.7.0**. Nếu máy còn TheKey.studio Flow hoặc bản cos_alpha_flow cũ, tắt bản đó đi.
 5. Mỗi lần kéo code mới về (`git pull`), quay lại `chrome://extensions` và bấm nút tải lại (mũi tên vòng) trên thẻ cos_alpha_flow, rồi tải lại tab Flow.
 
 ### 2. Chuẩn bị
@@ -46,11 +46,19 @@ Tài liệu cho tester. Phần A là test bằng tay trên Chrome thật, phần
 - [ ] Bấm **Chạy tất cả**: node đã tắt không chạy, không báo lỗi. Ctrl+Z bật lại được.
 - [ ] Nút phóng to trên thanh nổi đổi thẻ 1x → 1.5x → 2x → 1x.
 
-**Kho mẫu (10 mẫu)**
-- [ ] Mở Kho mẫu từ thanh trái: có 10 mẫu, lọc theo nhóm và tìm kiếm được.
+**Kho mẫu (11 mẫu)**
+- [ ] Mở Kho mẫu từ thanh trái: có 11 mẫu, lọc theo nhóm và tìm kiếm được.
 - [ ] Dùng từng mẫu: node không chồng lên nhau, vừa màn hình, dây nối đủ. Ctrl+Z bỏ mẫu vừa thêm.
 - [ ] Mẫu **Idol lên thảm đỏ**: 2 ảnh đầu vào (gương mặt, trang phục) → ảnh character sheet 16:9 → video thảm đỏ. Thử chạy thật với ảnh của bạn.
 - [ ] Dồn các node chồng lên nhau rồi bấm **Tự sắp xếp**: node xếp trái sang phải theo thứ tự chạy, không chồng nhau.
+
+**Ảnh nhiều góc (mới ở 1.7)**
+- [ ] Thả ảnh người mẫu vào node Ảnh đầu vào vai trò "Người mẫu / nhân vật": app tự chèn node "Người mẫu nhiều góc" giữa ảnh và cảnh, không đè lên node khác.
+- [ ] Thả ảnh trước, chọn vai trò "Trang phục" sau: app chèn node "Trang phục nhiều góc".
+- [ ] Ctrl+Z ngay sau đó: node nhiều góc biến mất, ảnh nối thẳng lại vào cảnh.
+- [ ] Bỏ tick "Tự tạo khi thả ảnh vào": thả ảnh không chèn gì; nút "Tạo ảnh nhiều góc" vẫn chèn được.
+- [ ] Ô "Kiểu ảnh" trên node Tạo ảnh đổi qua lại giữa ảnh thường và 3 kiểu nhiều góc.
+- [ ] Mẫu "Người mẫu mặc đồ · ảnh nhiều góc": chạy thật trên Flow với 1 ảnh người mẫu + 1 ảnh trang phục. Ghi lại: ảnh người mẫu nhiều góc có giữ đúng mặt không; ảnh trang phục nhiều góc có đúng đồ không; ảnh ghép có đúng người + đúng đồ không; video có giữ được mặt và đồ không (gửi kèm ảnh kết quả).
 
 **Prompt Assistant và viết kịch bản**
 - [ ] Prompt Assistant với ChatGPT web và Gemini web: ra prompt, màn hình kết quả hiện đúng.
@@ -61,6 +69,7 @@ Tài liệu cho tester. Phần A là test bằng tay trên Chrome thật, phần
 - [ ] Một ảnh từ prompt.
 - [ ] Một video có 1–3 ảnh tham chiếu (Ingredients).
 - [ ] Một video khung đầu (Frames).
+- [ ] Tạo ảnh người mẫu bằng node Tạo ảnh (Flow), nối ảnh đó sang node Tạo video: video chạy được, node ảnh không còn báo "không chép được từ tab Flow", và video xong phát được ngay trong node.
 - [ ] Hàng đợi: tạm dừng, bỏ qua, chạy lại mục lỗi.
 - [ ] Timeline: ghép 2 clip, xuất MP4.
 - [ ] Nếu Google báo "hoạt động bất thường", app phải dừng cả lượt chạy ngay. App không có và sẽ không có cách vượt kiểm tra này; dùng chế độ Gemini API nếu cần.
@@ -86,14 +95,14 @@ Cần Node.js 18 trở lên.
 cd cos-alpha-flow-tests
 npm install
 npx playwright install chromium
-npm test                      # chạy t1..t15 với ../cos-alpha-flow
+npm test                      # chạy t1..t17 với ../cos-alpha-flow
 node run-all.js t14 t15       # chỉ chạy vài test
 node run-all.js D:\duong\dan\ban-khac t15   # test một bản extension khác
 ```
 
 Trên Linux/macOS có thể dùng `./run-all.sh` thay cho `npm test`.
 
-Mỗi test (t4–t15) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out-tN.txt`. Kết quả mong đợi ở bản 1.6.2: tất cả đều qua.
+Mỗi test (t4–t17) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out-tN.txt`. Kết quả mong đợi ở bản 1.7.0: tất cả đều qua.
 
 | Test | Kiểm tra |
 | --- | --- |
@@ -107,5 +116,7 @@ Mỗi test (t4–t15) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out
 | t10 | Flow giao diện cũ (tắt Agent): chọn loại, tỉ lệ, thời lượng, model |
 | t11 | Tạo qua ChatGPT / Grok / Gemini web và Muse |
 | t12–t13 | Prompt Assistant với ChatGPT web: trả lời chậm, nhận biết xong, dọn chat |
-| t14 | Canvas 1.6: thẻ node, hộp tìm node, Kho mẫu 10 mẫu, tự sắp xếp |
+| t14 | Canvas 1.6: thẻ node, hộp tìm node, Kho mẫu 11 mẫu, tự sắp xếp |
 | t15 | Bật/tắt node, phóng to thẻ, kéo dây ra chỗ trống |
+| t16 | Ảnh nhiều góc: tự chèn khi thả ảnh, Ctrl+Z, ô Kiểu ảnh, mẫu mới, chạy cả chuỗi bằng Gemini API giả |
+| t17 | Ảnh / video Flow có link chuyển hướng sang host không cho đọc: vẫn chép về máy qua tab Flow, ảnh Flow → video, video phát trong node (cần lệnh `openssl`; không có thì test tự bỏ qua) |
