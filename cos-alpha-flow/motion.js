@@ -475,6 +475,8 @@
     $('#msVersion').textContent = chrome.runtime.getManifest().version;
     try { state.project = await idb('meta', 'readonly', store => store.get('project')) || newProject(); } catch { state.project = newProject(); }
     state.project.settings = { ...newProject().settings, ...(state.project.settings || {}) };
+    // Only Omni takes the source clip as an ingredient; Veo ignores it (1.8.3 offered Veo here by mistake).
+    state.project.settings.model = 'Omni 1.1 Flash';
     // A clip left "running" by a closed page never finished.
     for (const clip of state.project.clips) if (clip.status === 'running') { clip.status = clip.result ? 'success' : 'idle'; clip.error = 'Lần tạo trước bị ngắt.'; }
     const source = state.project.source ? await getBlob('source').catch(() => null) : null;
