@@ -16,7 +16,8 @@
 <div class="layout">
 <nav class="toc" aria-label="Mục lục">
   <strong>Mục lục</strong>
-  <a href="#moi-1-7-1">Mới trong bản 1.7.2</a>
+  <a href="#moi-1-7-2">Mới trong bản 1.7.2</a>
+  <a href="#moi-1-7-1">Mới trong bản 1.7.1</a>
   <a href="#moi-1-7">Mới trong bản 1.7</a>
   <a href="#moi-1-6">Mới trong bản 1.6</a>
   <a href="#moi-1-5">Mới trong bản 1.5</a>
@@ -47,8 +48,18 @@
 </nav>
 
 <main>
+<section id="moi-1-7-2">
+<h2>Mới trong cos_alpha_flow 1.7.2: chạy video với Flow khi tắt "Tác nhân"</h2>
+<ul>
+  <li><b>Sửa lỗi Chạy tất cả không tạo video</b> (tìm ra khi chạy thử trên Google Flow thật): ở giao diện Flow mới, khi nút <b>Tác nhân</b> trong ô nhập đang tắt, ô nhập gửi thẳng tới mô hình đang chọn ở nút cài đặt (ví dụ 🍌 Nano Banana). Trước đây lệnh tạo video bị Flow làm thành <i>ảnh</i> và app chờ video mãi.</li>
+  <li>Nay app tự mở nút cài đặt của Flow trước mỗi lượt: chọn <b>Hình ảnh</b> hoặc <b>Video</b>; với video chọn <b>Khung hình</b> khi có khung đầu (ảnh vào ô <i>Bắt đầu</i>) hoặc <b>Thành phần</b> khi có ảnh tham chiếu; chọn tỉ lệ, thời lượng, x1. App gửi đúng câu lệnh của cảnh (không kèm lời dặn dành cho trợ lý).</li>
+  <li>Nếu không chuyển được Flow sang đúng chế độ, node báo lỗi và <b>không gửi</b>, để không tốn credit vào nhầm thứ.</li>
+  <li>Bật Tác nhân thì app vẫn nói chuyện với trợ lý Flow như bản trước.</li>
+  <li>Vẫn như cũ: Flow báo <i>hoạt động bất thường</i> thì dừng cả lượt, không thử lại.</li>
+</ul>
+</section>
 <section id="moi-1-7-1">
-<h2>Mới trong cos_alpha_flow 1.7.2: Chạy tất cả đi hết các video, app bớt lag</h2>
+<h2>Mới trong cos_alpha_flow 1.7.1: Chạy tất cả đi hết các video, app bớt lag</h2>
 <ul>
   <li><b>Chạy tất cả không còn đứng sau video đầu tiên</b>: trước đây, khi tab Flow ở phía trước (lúc tạo video), tab app nằm ở nền và Chrome có thể không mở video trong đó, nên app chờ mãi để đo kích thước video vừa xong và không sang cảnh kế tiếp. Nay tab Flow tự đo kích thước và lấy <i>khung cuối</i> của video ngay khi tạo xong, và app không bao giờ chờ quá 10 giây cho bước này.</li>
   <li><b>Nối khung cuối</b> ổn định hơn: khung cuối được lấy từ tab Flow; nếu clip trước còn thiếu khung cuối, app thử lấy lại ngay trước khi tạo clip sau.</li>
