@@ -4,7 +4,7 @@
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
   },
   "name": "cos_alpha_flow",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "cos_alpha_flow: node workflow, queue, AI script writer and project album for Google Flow, ChatGPT, Grok, Muse and Gemini (your signed-in tabs) or the Gemini API.",
   "action": {
     "default_title": "Mở cos_alpha_flow (bảng bên)",

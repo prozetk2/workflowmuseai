@@ -4,7 +4,7 @@ const { spawnSync } = require('child_process');
 const fs = require('fs'), path = require('path');
 const args = process.argv.slice(2);
 const ext = path.resolve(__dirname, args[0] && !/^t\d+$/.test(args[0]) ? args.shift() : '../cos-alpha-flow');
-const tests = args.length ? args : Array.from({ length: 20 }, (_, i) => `t${i + 1}`);
+const tests = args.length ? args : Array.from({ length: 21 }, (_, i) => `t${i + 1}`);
 if (!fs.existsSync(path.join(ext, 'manifest.json'))) { console.error(`Không thấy manifest.json trong ${ext}`); process.exit(2); }
 let failed = [];
 for (const t of tests) {

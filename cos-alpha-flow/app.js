@@ -1129,7 +1129,17 @@
     try{
       // A plugin node upstream (e.g. AI Agent) fills its text during the run, so check the prompt later in that case.
       if(targetId&&!requiredNodeOrder(targetId).some(id=>pluginNodes[nodeById(id)?.type]?.run))validateTargetPrompt(targetId);
-      const order=targetId?requiredNodeOrder(targetId).filter(id=>{const prerequisite=nodeById(id);return id===targetId||!['generateImage','generateVideo'].includes(prerequisite?.type)||!prerequisite.data?.asset?.url;}):topoOrder();
+      let order=targetId?requiredNodeOrder(targetId).filter(id=>{const prerequisite=nodeById(id);return id===targetId||!['generateImage','generateVideo'].includes(prerequisite?.type)||!prerequisite.data?.asset?.url;}):topoOrder();
+      // Running one node used to run, without asking, every unfinished image/video node it depends on
+      // (including the clips before it in a "Nối khung cuối" chain). Ask first; "Cancel" runs this node only.
+      let onlyTarget=false;
+      if(targetId){
+        const extra=order.filter(id=>id!==targetId&&['generateImage','generateVideo'].includes(nodeById(id)?.type)&&nodeById(id)?.data?.disabled!==true);
+        if(extra.length){
+          const names=extra.map(id=>{const item=nodeById(id);return `• ${item.data.customName||item.data.sceneLabel||(item.type==='generateVideo'?'Video':'Ảnh')} (${item.id.slice(-6)})`;}).join('\n');
+          if(!confirm(`Node này cần ${extra.length} node tạo khác chưa có kết quả:\n${names}\n\nOK: chạy các node đó trước rồi tới node này.\nHuỷ: chỉ chạy node này (bỏ qua ảnh/khung chưa có).`)){onlyTarget=true;order=order.filter(id=>!extra.includes(id));}
+        }
+      }
       for(const n of state.nodes){
         if(n.type==='imageInput'&&n.data.localDataUrl)n.data.asset={id:n.data.asset?.id||uid('asset'),kind:'image',url:n.data.localDataUrl,sourceNodeId:n.id};
       }
@@ -1178,7 +1188,8 @@
           const continuityPrevious=isVideo&&n.data.continuity?timelinePredecessor(n.id):null;
           if(continuityPrevious&&!continuityPrevious.data?.endFrame?.url&&continuityPrevious.data?.asset?.url){setRunStatus(`Đang lấy khung cuối của ${continuityPrevious.data.customName||continuityPrevious.id}…`,'warn');continuityPrevious.data.endFrame=await extractVideoEndFrame(continuityPrevious.data.asset.url);}
           const continuityStartFrame=continuityPrevious?.data?.endFrame?.url?continuityPrevious.data.endFrame:null;
-          if(isVideo&&n.data.continuity&&!continuityStartFrame)throw new Error(`Nối khung cuối cần clip trước trong Timeline đã tạo xong. Hãy xếp đúng thứ tự và chạy clip trước.`);
+          if(isVideo&&n.data.continuity&&!continuityStartFrame&&onlyTarget)setRunStatus('Clip trước chưa có khung cuối nên clip này tạo không nối khung.','warn');
+          else if(isVideo&&n.data.continuity&&!continuityStartFrame)throw new Error(`Nối khung cuối cần clip trước trong Timeline đã tạo xong. Hãy xếp đúng thứ tự và chạy clip trước.`);
           const referenceImages=resolveReferences(n.id);
           if(!isVideo&&SHEET_MODES[n.data.sheetMode]&&!referenceImages.length){n.data.status='error';n.data.error=`${SHEET_MODES[n.data.sheetMode].label}: hãy nối ảnh ${n.data.sheetMode==='look'?'người mẫu và ảnh trang phục':n.data.sheetMode==='outfit'?'trang phục':'người mẫu'} vào cổng ảnh tham chiếu.`;render();throw new Error(n.data.error);}
           state.activeGenerationId=n.id;n.data.status='running';n.data.error='';n.data.asset=null;n.data.endFrame=null;state.edges.filter(edge=>edge.source===n.id).forEach(edge=>{const target=nodeById(edge.target);if(target?.type==='preview')target.data.asset=null;});render();setRunStatus(`${targetId?'Node đã chọn':`Lượt ${generationStep}/${totalGenerations}`} · đang tạo ${isVideo?'video':'ảnh'}: ${n.id}`,'warn');
@@ -1227,7 +1238,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
       const failed=state.nodes.find(n=>['generateImage','generateVideo'].includes(n.type)&&n.data.status==='running');
       if(failed){failed.data.status='error';failed.data.error=err?.message||String(err);render();}
       const message=err?.message||String(err);
-      setRunStatus(/failed to fetch/i.test(message)?'Không kết nối được với tab Flow. Hãy tải lại cos_alpha_flow rồi kiểm tra tab Flow.':'cos_alpha_flow 1.8.1 · '+message,'error');
+      setRunStatus(/failed to fetch/i.test(message)?'Không kết nối được với tab Flow. Hãy tải lại cos_alpha_flow rồi kiểm tra tab Flow.':'cos_alpha_flow 1.8.2 · '+message,'error');
       try{clearTimeout(autoSaveTimer);await queueWorkflowSave();}catch(saveError){setRunStatus(`${runStatus.textContent} · Tự lưu thất bại: ${saveError?.message||String(saveError)}`,'error');}
     }
     finally{state.isRunning=false;state.activeGenerationId=null;state.generationAbortController=null;state.generationRequestId=null;$('#runBtn').disabled=false;$('#runBtn').textContent='Chạy tất cả';$('#runBtn').title='Chạy mọi node theo đúng thứ tự nối dây';render();setTimeout(()=>cosAlphaHook('onRunEnd',{aborted:abortController.signal.aborted}),0);}
@@ -1463,7 +1474,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
         }catch{externalMedia++;return url;}
       };
       for(const node of workflow.nodes){const data=node.data||{};if(data.localDataUrl)data.localDataUrl=await packageUrl(data.localDataUrl);if(data.videoUrl)data.videoUrl=await packageUrl(data.videoUrl);if(Array.isArray(data.frames))for(let i=0;i<data.frames.length;i++)data.frames[i]=await packageUrl(data.frames[i]);for(const field of ['asset','endFrame'])if(data[field]?.url)data[field].url=await packageUrl(data[field].url);}
-      const file={format:'26flow-workflow',version:1,appVersion:'cos_alpha_flow-1.8.1',exportedAt:new Date().toISOString(),workflow};
+      const file={format:'26flow-workflow',version:1,appVersion:'cos_alpha_flow-1.8.2',exportedAt:new Date().toISOString(),workflow};
       const blob=new Blob([JSON.stringify(file)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`cos_alpha_flow-Workflow-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
       setRunStatus(externalMedia?`Đã lưu file; ${externalMedia} ảnh/video không nhúng được vào file và cần phiên Flow gốc để mở.`:'Đã lưu workflow kèm ảnh/video.','ok');
     }catch(error){setRunStatus(`Không lưu được file workflow: ${error?.message||String(error)}`,'error');}
@@ -1489,7 +1500,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
   function toggleProviderFields(){const provider=$('#providerSelect').value==='api'?'api':$('#providerSelect').value==='flow'?'flow':'web';document.querySelectorAll('[data-provider]').forEach(el=>el.classList.toggle('hidden',el.dataset.provider!==provider));}
   function syncSettingsUI(){
     const s=state.settings||{};
-    backendStatus.textContent=`Tạo bằng: ${providerLabel()} · v1.8.1`;
+    backendStatus.textContent=`Tạo bằng: ${providerLabel()} · v1.8.2`;
     $('#providerSelect').value=providerName();$('#inputModeSelect').value=s.inputMode||'auto';$('#timeoutSelect').value=String(s.timeoutSec||900);
     $('#flowVideoModel').value=s.flowVideoModel||'';$('#flowUiMode').value=s.flowUiMode==='classic'?'classic':'agent';$('#flowImageModel').value=s.flowImageModel||'';$('#flowSelectors').value=s.flowSelectors||'';
     $('#apiVideoModel').value=s.apiVideoModel||'veo-3.1-fast-generate-preview';$('#apiImageModel').value=s.apiImageModel||'gemini-nano-banana-2.1';$('#apiResolution').value=s.apiResolution||'720p';
