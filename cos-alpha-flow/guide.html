@@ -16,6 +16,7 @@
 <div class="layout">
 <nav class="toc" aria-label="Mục lục">
   <strong>Mục lục</strong>
+  <a href="#moi-1-9">Mới trong bản 1.9: lời thoại Motion Studio</a>
   <a href="#moi-1-8">Mới trong bản 1.8: Motion Studio</a>
   <a href="#moi-1-7-2">Mới trong bản 1.7.2</a>
   <a href="#moi-1-7-1">Mới trong bản 1.7.1</a>
@@ -49,6 +50,17 @@
 </nav>
 
 <main>
+<section id="moi-1-9">
+<h2>Mới trong cos_alpha_flow 1.9: lời thoại trong Motion Studio</h2>
+<p>Giống phần Speech agent / Sync dialogue / Show subtitles / Translate dialogue của TobyFlow.</p>
+<ul>
+  <li><b>Lấy lời thoại</b>: giống TobyFlow, mặc định app gửi từng đoạn video vào <b>tab Gemini bạn đã đăng nhập</b> (gemini.google.com), <b>không cần API key</b>; Gemini nghe và chép lại lời nói (đoạn chat được xoá sau khi lấy xong, như Prompt Assistant). Muốn dùng Gemini API thì chọn <i>Chép lời bằng → Gemini API</i> (cần key trong Cài đặt của canvas). ChatGPT trên web không nghe được âm thanh trong video nên không dùng. Bấm <b>Lấy lời thoại các đoạn</b>, hoặc bấm vào một đoạn → <b>Lấy lời thoại</b>; sửa tay được rồi bấm <b>Lưu lời thoại</b>.</li>
+  <li><b>Đồng bộ lời thoại</b>: Flow cho nhân vật nói lại đúng câu đó, khớp khẩu hình và nhịp của video gốc, bằng <b>giọng mới</b> theo <i>Mô tả giọng</i> (vd "giọng cô gái 24 tuổi") hoặc một <i>giọng có sẵn của Flow</i>. Không dùng giọng của người trong video gốc.</li>
+  <li><b>Hiện phụ đề</b>: Flow chèn phụ đề đúng câu thoại ở cuối khung hình.</li>
+  <li><b>Dịch lời thoại</b>: chọn ngôn ngữ; Gemini dịch và nhân vật nói câu đã dịch (phụ đề cũng theo bản dịch). Đổi ngôn ngữ dịch thì lần tạo sau app tự dịch lại; câu sửa tay thì giữ nguyên.</li>
+  <li>Đoạn không có lời nói thì tạo như thường.</li>
+</ul>
+</section>
 <section id="moi-1-8">
 <h2>Mới trong cos_alpha_flow 1.8: Motion Studio</h2>
 <p><b>1.8.3 · Lỗi "có thể vi phạm chính sách … người nổi tiếng"</b>: Flow đổi mô hình video mặc định sang <b>Omni 1.1 Flash</b>, mô hình này chặn cả ảnh người mẫu do chính Flow tạo. Thử trên Flow thật với cùng ảnh, cùng câu lệnh: <b>Veo 3.1 Lite tạo được</b>, Omni bị chặn. Từ 1.8.3 app tự chọn <b>Veo 3.1 - Lite</b> cho video (10 credit/8 giây). Muốn mô hình khác: <b>Cài đặt → Model video trên Flow</b> (Veo 3.1 - Fast 20 credit, Veo 3.1 - Quality 100 credit, Omni 1.1 Flash 12 credit). <b>1.8.4</b>: Motion Studio chỉ dùng <b>Omni 1.1 Flash</b>, vì chỉ Omni nhận video gốc làm thành phần; Veo bỏ qua video gốc nên kết quả khác hẳn. Omni hay từ chối gương mặt người trông như thật; nhân vật 3D / hoạt hình thường qua được. <b>1.8.5</b>: Motion Studio gửi giống cách TobyFlow gửi: chỉ <b>1 ảnh nhân vật</b> (là "ảnh 1"), ảnh gắn trước rồi mới tới đoạn video, câu lệnh mới kiểu <i>"nhân vật trong ảnh 1 làm đúng chuyển động của video tham chiếu, giữ gương mặt / tóc / trang phục của chính nhân vật"</i> thay cho kiểu "thay người trong video".</p>
@@ -737,7 +749,7 @@ Audio: tiếng chuông xe đạp, nhạc vui tươi</pre>
 <details><summary>Có thêm nhạc hoặc giọng đọc riêng được không?</summary><p>App xuất phim có âm thanh do Flow tạo. Để lồng nhạc hoặc giọng đọc riêng, hãy mở file MP4 bằng phần mềm dựng như CapCut hoặc Premiere.</p></details>
 </section>
 
-<footer>cos_alpha_flow 1.8.5 · Chúc bạn sáng tạo vui vẻ </footer>
+<footer>cos_alpha_flow 1.9.0 · Chúc bạn sáng tạo vui vẻ </footer>
 </main>
 </div>
 </body>

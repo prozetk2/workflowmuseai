@@ -39,7 +39,7 @@
   function saveNow() { clearTimeout(saveTimer); return idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')); }
   function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(() => idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')), 300); }
   function newProject() {
-    return { source: null, chars: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, pace: 5 } };
+    return { source: null, chars: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, pace: 5, sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
   }
 
   // ---------- small helpers ----------
@@ -241,15 +241,100 @@
     return blob ? objectUrl(map, clip.id, blob) : '';
   }
 
+  // ---------- dialogue (speech agent: Gemini) ----------
+  const TRANSCRIBE_SYSTEM = 'You transcribe speech in short video clips for dubbing. Return JSON only: {"has_speech": true|false, "language": "language of the speech in English, e.g. Vietnamese", "text": "exactly what is said, in the original language, no speaker names, no descriptions of sounds", "translation": "the same line translated as asked, or an empty string"}. If nobody speaks, return has_speech false and empty strings.';
+  const needsDialogue = () => Boolean(state.project.settings.sync || state.project.settings.subtitles);
+  // Like TobyFlow's speech agent: by default the clip goes to the user's own signed-in Gemini tab (no API key);
+  // the Gemini API is the other choice. ChatGPT on the web cannot hear the sound of a video, so it is not offered.
+  const GEMINI_WEB = 'https://gemini.google.com/app';
+  const waitTabLoaded = tabId => new Promise(resolve => { const done = (id, info) => { if (id === tabId && info.status === 'complete') { chrome.tabs.onUpdated.removeListener(done); resolve(); } }; chrome.tabs.onUpdated.addListener(done); setTimeout(() => { chrome.tabs.onUpdated.removeListener(done); resolve(); }, 30000); });
+  async function geminiWebAsk(prompt, files, signal) {
+    const [previous] = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => []);
+    const saved = (await chrome.storage.session?.get?.('cosalphaChatTabs').catch(() => ({})))?.cosalphaChatTabs || {};
+    let tab = saved['gemini-web'] ? await chrome.tabs.get(saved['gemini-web']).catch(() => null) : null;
+    if (tab) tab = await chrome.tabs.update(tab.id, { url: GEMINI_WEB, active: true });
+    else tab = await chrome.tabs.create({ url: GEMINI_WEB, active: true, ...(previous?.windowId !== undefined ? { windowId: previous.windowId } : {}) });
+    chrome.storage.session?.set?.({ cosalphaChatTabs: { ...saved, 'gemini-web': tab.id } }).catch(() => {});
+    const back = () => { if (previous?.id && previous.id !== tab.id) chrome.tabs.update(previous.id, { active: true }).catch(() => {}); };
+    try {
+      await waitTabLoaded(tab.id);
+      let ready = await chrome.tabs.sendMessage(tab.id, { type: 'COSALPHA_CHAT_PING' }).catch(() => null);
+      if (!ready) { await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['chat-bridge.js'] }).catch(() => {}); ready = await chrome.tabs.sendMessage(tab.id, { type: 'COSALPHA_CHAT_PING' }).catch(() => null); }
+      if (!ready) throw new Error('Không gắn được vào tab Gemini. Hãy tải lại cos_alpha_flow rồi thử lại.');
+      if (ready.loginNeeded) throw new Error('Hãy đăng nhập Gemini (gemini.google.com) trong tab vừa mở rồi lấy lời thoại lại.');
+      const reply = await sendToTab(tab.id, { type: 'COSALPHA_CHAT_ASK', prompt, best: false, files, timeoutSec: 300 }, signal);
+      if (!reply?.ok) throw new Error(reply?.error || 'Gemini không trả lời.');
+      if ((await chrome.storage.local.get('cosalphaChatCleanup').catch(() => ({}))).cosalphaChatCleanup !== false) await chrome.tabs.sendMessage(tab.id, { type: 'COSALPHA_CHAT_DELETE', url: reply.conversationUrl }).catch(() => {});
+      return reply.text || '';
+    } finally { back(); }
+  }
+  function parseJsonReply(text) {
+    const raw = String(text || ''), match = raw.match(/\{[\s\S]*\}/);
+    try { return JSON.parse(match ? match[0] : raw); } catch { throw new Error('Gemini trả lời không đúng dạng khi chép lời thoại. Hãy thử lại.'); }
+  }
+  async function transcribe(clip, signal) {
+    const blob = await getBlob(`clip:${clip.id}`); if (!blob) throw new Error('Đoạn này mất file gốc. Hãy cắt lại video.');
+    const target = state.project.settings.translate || '';
+    const user = `Transcribe exactly what is spoken in this ${(clip.end - clip.start).toFixed(1)}-second clip.${target ? ` Also translate the line into ${target} as "translation", natural and about the same length so it fits the same timing.` : ' Leave "translation" empty.'}`;
+    const video = await blobToDataUrl(new Blob([blob], { type: 'video/mp4' }));
+    let replyText;
+    if ((state.project.settings.speechAgent || 'gemini-web') === 'gemini-api') {
+      if (!window.CosAlphaAI?.text) throw new Error('Chưa tải được phần Gemini của app. Hãy tải lại trang Motion Studio.');
+      replyText = (await window.CosAlphaAI.text({ system: TRANSCRIBE_SYSTEM, user, images: [video], json: true, temperature: 0.1, signal })).text;
+    } else {
+      replyText = await geminiWebAsk(`${TRANSCRIBE_SYSTEM}\n\n${user} Reply with the JSON object only.`, [{ dataUrl: video, name: `motion-doan-${clip.index + 1}.mp4`, type: 'video/mp4' }], signal);
+    }
+    const data = parseJsonReply(replyText);
+    clip.transcript = { has_speech: Boolean(data.has_speech && String(data.text || '').trim()), language: String(data.language || ''), text: String(data.text || '').trim(), translation: String(data.translation || '').trim(), target };
+    saveSoon();
+    return clip.transcript;
+  }
+  async function ensureTranscript(clip, signal) {
+    const t = clip.transcript;
+    if (t && (t.manual || (t.target || '') === (state.project.settings.translate || ''))) return t;
+    status(`Đang lấy lời thoại đoạn ${clip.index + 1} bằng Gemini…`, 'warn');
+    return transcribe(clip, signal);
+  }
+  // The clip's prompt: the motion prompt, plus the line to speak with a new voice and/or the subtitles.
+  function composePrompt(clip) {
+    const settings = state.project.settings, t = clip.transcript;
+    // With a new voice, the "keep the sound" line of the motion prompt would contradict the dialogue part.
+    const base = settings.prompt || DEFAULT_PROMPT;
+    const parts = [settings.sync && t?.has_speech ? base.replace(/\s*Keep the (original speech and )?sound of the reference video\.?/i, '') : base];
+    if (t?.has_speech && (settings.sync || settings.subtitles)) {
+      const translated = settings.translate && t.translation, line = (translated ? t.translation : t.text).replace(/"/g, "'");
+      const language = translated ? settings.translate : t.language;
+      if (settings.sync) parts.push(`Dialogue: the character says exactly this line${language ? ` in ${language}` : ''}, with natural lip-sync and the same timing and pauses as the speech in the reference video: "${line}". Voice: ${settings.voiceDesc?.trim() || 'a natural voice that suits the character'}. Use this new voice, not the voice of the reference video.`);
+      else if (translated) parts.push(`Dialogue: the character says this line in ${language} with natural lip-sync and the same timing as the reference video: "${line}".`);
+      if (settings.subtitles) parts.push(`Show burned-in subtitles at the bottom of the frame with exactly this text, timed to the speech: "${line}".`);
+    }
+    return parts.join('\n\n');
+  }
+  async function transcribeAll() {
+    if (state.running || !state.project.clips.length) return;
+    state.running = true; state.abort = new AbortController(); setBusy(true);
+    let done = 0;
+    try {
+      for (const clip of state.project.clips) {
+        status(`Đang lấy lời thoại đoạn ${clip.index + 1}/${state.project.clips.length} bằng Gemini…`, 'warn');
+        try { await transcribe(clip, state.abort.signal); done++; renderClips(); }
+        catch (error) { if (error?.name === 'AbortError') throw error; status(error.message, 'error'); if (error.code === 'NO_API_KEY') return; }
+      }
+      status(`Đã lấy lời thoại ${done} đoạn. Bấm vào một đoạn để xem / sửa.`, 'ok');
+    } catch { status('Đã dừng.', 'warn'); }
+    finally { state.running = false; state.abort = null; setBusy(false); renderAll(); await saveNow(); }
+  }
+
   // ---------- generation ----------
   function flowDuration(seconds) { return DURATIONS.find(value => value >= seconds - 0.05) || 10; }
   async function generateClip(clip, signal) {
     const settings = state.project.settings;
     const blob = await getBlob(`clip:${clip.id}`); if (!blob) throw new Error('Đoạn này mất file gốc. Hãy cắt lại video.');
     clip.status = 'running'; clip.error = ''; renderClips(); saveSoon();
+    if (needsDialogue()) await ensureTranscript(clip, signal);
     state.requestId = uid('motion');
     const reply = await flowMessage({
-      type: 'THEKEY_FLOW_GENERATE', requestId: state.requestId, kind: 'video', prompt: settings.prompt || DEFAULT_PROMPT,
+      type: 'THEKEY_FLOW_GENERATE', requestId: state.requestId, kind: 'video', prompt: composePrompt(clip), voice: settings.sync ? (settings.flowVoice || '').trim() : '',
       aspect: settings.aspect, duration: flowDuration(clip.end - clip.start), resolution: settings.resolution, model: settings.model || '', inputType: 'ingredients',
       sourceVideo: await blobToDataUrl(blob), references: state.project.chars.map(item => item.dataUrl), firstFrame: '', uiMode: 'agent', timeoutSec: 1200
     }, signal);
@@ -352,7 +437,7 @@
   function setBusy(busy) {
     $('#msGenerate').disabled = busy || !state.project.clips.length;
     $('#msStop').classList.toggle('hidden', !state.running);
-    for (const id of ['#msSplit', '#msMerge', '#msSourcePick', '#msClear']) $(id).disabled = busy;
+    for (const id of ['#msSplit', '#msMerge', '#msSourcePick', '#msClear', '#msTranscribeAll']) $(id).disabled = busy;
     if (!busy) renderButtons();
   }
   function renderButtons() {
@@ -370,6 +455,9 @@
   function renderSettings() {
     const settings = state.project.settings;
     $('#msAspect').value = settings.aspect; $('#msResolution').value = settings.resolution; $('#msModel').value = settings.model; $('#msClipLen').value = String(settings.clipLen);
+    $('#msSpeechAgent').value = settings.speechAgent || 'gemini-web';
+    $('#msSync').checked = Boolean(settings.sync); $('#msVoiceDesc').value = settings.voiceDesc || ''; $('#msFlowVoice').value = settings.flowVoice || '';
+    $('#msSubtitles').checked = Boolean(settings.subtitles); $('#msTranslate').value = settings.translate || ''; $('#msVoiceBox').classList.toggle('hidden', !settings.sync);
     $('#msPrompt').value = settings.prompt; $('#msKeepAudio').checked = Boolean(settings.keepAudio); $('#msPace').value = String(settings.pace);
   }
   function renderSource() {
@@ -412,6 +500,7 @@
       const meta = document.createElement('div'); meta.className = 'meta';
       meta.innerHTML = `<b>Đoạn ${clip.index + 1}</b><span>${fmt(clip.start)} – ${fmt(clip.end)}</span><span class="st"></span>`;
       meta.querySelector('.st').textContent = STATUS_VI[clip.status] || clip.status;
+      if (clip.transcript) { const talk = document.createElement('span'); talk.className = 'talk'; talk.textContent = clip.transcript.has_speech ? `Lời thoại: ${clip.transcript.text.slice(0, 40)}${clip.transcript.text.length > 40 ? '…' : ''}` : 'Không có lời thoại'; meta.appendChild(talk); }
       if (clip.error) card.title = clip.error;
       card.append(thumbs, meta); card.onclick = () => openClip(clip.id); box.appendChild(card);
     }
@@ -429,6 +518,8 @@
     $('#msModalResult').classList.toggle('hidden', !result); $('#msModalNoResult').classList.toggle('hidden', Boolean(result));
     if (result) $('#msModalResult').src = result; else $('#msModalResult').removeAttribute('src');
     $('#msModalError').textContent = clip.status === 'error' || clip.error ? clip.error : '';
+    $('#msModalTranscript').value = clip.transcript?.text || ''; $('#msModalTranslation').value = clip.transcript?.translation || '';
+    $('#msModalTranscribe').disabled = state.running;
     $('#msModalRegen').disabled = state.running;
     $('#msModalRegen').lastChild.textContent = clip.result ? 'Tạo lại đoạn này' : 'Tạo đoạn này';
     $('#msModalSkip').textContent = clip.status === 'skipped' ? 'Dùng lại khi ghép' : 'Bỏ qua khi ghép';
@@ -464,6 +555,24 @@
     };
     const bind = (id, key, parse = value => value) => { $(id).onchange = () => { state.project.settings[key] = parse($(id).type === 'checkbox' ? $(id).checked : $(id).value); saveSoon(); }; };
     bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msKeepAudio', 'keepAudio', Boolean); bind('#msPace', 'pace', Number);
+    bind('#msSpeechAgent', 'speechAgent');
+    bind('#msSync', 'sync', Boolean); bind('#msSubtitles', 'subtitles', Boolean); bind('#msTranslate', 'translate');
+    $('#msSync').addEventListener('change', () => $('#msVoiceBox').classList.toggle('hidden', !$('#msSync').checked));
+    for (const [id, key] of [['#msVoiceDesc', 'voiceDesc'], ['#msFlowVoice', 'flowVoice']]) $(id).oninput = () => { state.project.settings[key] = $(id).value; saveSoon(); };
+    $('#msTranscribeAll').onclick = transcribeAll;
+    $('#msModalTranscribe').onclick = async () => {
+      const clip = modalClip; if (!clip || state.running) return;
+      $('#msModalTranscribe').disabled = true;
+      try { const t = await transcribe(clip); $('#msModalTranscript').value = t.text; $('#msModalTranslation').value = t.translation; $('#msModalError').textContent = t.has_speech ? '' : 'Gemini không nghe thấy lời thoại trong đoạn này.'; renderClips(); }
+      catch (error) { $('#msModalError').textContent = error.message; }
+      finally { $('#msModalTranscribe').disabled = false; }
+    };
+    $('#msModalSaveDialogue').onclick = () => {
+      const clip = modalClip; if (!clip) return;
+      const text = $('#msModalTranscript').value.trim(), translation = $('#msModalTranslation').value.trim();
+      clip.transcript = { has_speech: Boolean(text), language: clip.transcript?.language || '', text, translation, target: state.project.settings.translate || '', manual: true };
+      saveSoon(); renderClips(); $('#msModalError').textContent = 'Đã lưu lời thoại cho đoạn này.';
+    };
     $('#msPrompt').oninput = () => { state.project.settings.prompt = $('#msPrompt').value; saveSoon(); };
     $('#msPromptReset').onclick = () => { state.project.settings.prompt = DEFAULT_PROMPT; $('#msPrompt').value = DEFAULT_PROMPT; saveSoon(); };
     $('#msModalClose').onclick = closeModal;

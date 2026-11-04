@@ -41,6 +41,19 @@
         <button id="msPromptReset" type="button" class="ms-link">Dùng lại câu lệnh mặc định</button>
       </section>
       <section>
+        <h3>Lời thoại</h3>
+        <p class="ms-note">Lấy lời thoại trong từng đoạn bằng Gemini, rồi cho Flow nói lại bằng giọng mới, khớp khẩu hình.</p>
+        <label>Chép lời bằng<select id="msSpeechAgent"><option value="gemini-web">Gemini (tab đã đăng nhập, không cần key)</option><option value="gemini-api">Gemini API (cần API key)</option></select></label>
+        <label class="ms-check"><input id="msSync" type="checkbox" /> Đồng bộ lời thoại (Flow tạo giọng mới)</label>
+        <div id="msVoiceBox">
+          <label>Mô tả giọng<input id="msVoiceDesc" type="text" placeholder="vd: giọng cô gái 24 tuổi, ấm, tự nhiên" /></label>
+          <label>Giọng có sẵn của Flow (tuỳ chọn)<input id="msFlowVoice" type="text" placeholder="tên giọng trong Flow, để trống = Flow tự chọn" /></label>
+        </div>
+        <label class="ms-check"><input id="msSubtitles" type="checkbox" /> Hiện phụ đề trong video</label>
+        <label>Dịch lời thoại sang<select id="msTranslate"><option value="">Giữ ngôn ngữ gốc</option><option value="Vietnamese">Tiếng Việt</option><option value="English">English</option><option value="Chinese">中文</option><option value="Japanese">日本語</option><option value="Korean">한국어</option><option value="Thai">ไทย</option><option value="Indonesian">Bahasa Indonesia</option></select></label>
+        <button id="msTranscribeAll" type="button" class="ms-ghost"><i data-ic="audio-lines"></i>Lấy lời thoại các đoạn</button>
+      </section>
+      <section>
         <label class="ms-check"><input id="msKeepAudio" type="checkbox" /> Giữ âm thanh của video gốc khi ghép</label>
         <label>Nghỉ giữa các đoạn<select id="msPace"><option value="0">không nghỉ</option><option value="5" selected>5 giây</option><option value="10">10 giây</option><option value="20">20 giây</option></select></label>
       </section>
@@ -79,6 +92,11 @@
         <figure><figcaption>Video gốc</figcaption><video id="msModalSource" controls playsinline></video></figure>
         <figure><figcaption>Kết quả Flow</figcaption><video id="msModalResult" controls playsinline></video><div id="msModalNoResult" class="ms-empty">Chưa có kết quả</div></figure>
       </div>
+      <div class="ms-dialogue">
+        <label>Lời thoại gốc (sửa được)<textarea id="msModalTranscript" rows="3" placeholder="Chưa có lời thoại. Bấm Lấy lời thoại, hoặc gõ tay."></textarea></label>
+        <label>Bản dịch (nếu chọn dịch)<textarea id="msModalTranslation" rows="3"></textarea></label>
+        <div class="ms-dialogue-actions"><button id="msModalTranscribe" type="button" class="ms-ghost"><i data-ic="audio-lines"></i>Lấy lời thoại</button><button id="msModalSaveDialogue" type="button" class="ms-ghost"><i data-ic="save"></i>Lưu lời thoại</button></div>
+      </div>
       <p id="msModalError" class="ms-error"></p>
       <footer><button id="msModalRegen" type="button" class="ms-primary"><i data-ic="refresh-cw"></i>Tạo lại đoạn này</button><button id="msModalSkip" type="button" class="ms-ghost"></button><button id="msModalDownload" type="button" class="ms-ghost"><i data-ic="download"></i>Tải đoạn</button></footer>
     </div>
@@ -86,6 +104,7 @@
 
   <script src="vendor/ffmpeg/ffmpeg.js"></script>
   <script src="icons.js"></script>
+  <script src="cos-alpha-ai.js"></script>
   <script src="motion.js"></script>
 </body>
 </html>

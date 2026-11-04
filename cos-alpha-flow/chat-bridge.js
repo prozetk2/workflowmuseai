@@ -159,7 +159,28 @@
 
   // "Lấy câu trả lời ngay" in cos_alpha_flow: take whatever the reply says now instead of waiting.
   let takeNow = false;
-  async function ask({ prompt, best = true, timeoutSec = 360 }) {
+  // Files (a video or audio clip for Motion Studio's speech agent) go into the chat box before the prompt.
+  async function attachFiles(box, items) {
+    const files = await Promise.all(items.map(async (item, index) => { const blob = await (await fetch(item.dataUrl)).blob(); return new File([blob], item.name || `cosalpha-file-${index + 1}.${(blob.type.split('/')[1] || 'bin')}`, { type: blob.type || item.type || 'application/octet-stream' }); }));
+    const zone = () => composerZone(findComposer() || box);
+    const beforeText = zone().innerText || '', beforePreviews = previews(zone()).length;
+    const shown = () => files.every(file => (zone().innerText || '').includes(file.name.slice(0, 14)) && !beforeText.includes(file.name.slice(0, 14))) || previews(zone()).length > beforePreviews || zone().querySelectorAll('video, audio, [class*="file" i], [class*="attachment" i], [class*="upload" i]').length > 0;
+    box.focus();
+    const data = new DataTransfer(); files.forEach(file => data.items.add(file));
+    box.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+    if (!(await waitFor(shown, 8000))) {
+      const input = [...document.querySelectorAll('input[type="file"]')].filter(el => !el.disabled).sort((a, b) => Number(zone().contains(b)) - Number(zone().contains(a)))[0];
+      if (!input) throw fail(`${SITE_NAME} không nhận file. Chưa gửi gì cả.`);
+      const transfer = new DataTransfer(); files.forEach(file => transfer.items.add(file));
+      input.files = transfer.files;
+      input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true }));
+      if (!(await waitFor(shown, 15000))) throw fail(`${SITE_NAME} chưa nhận file video. Chưa gửi gì cả.`);
+    }
+    // The send button stays disabled while the file uploads.
+    await sleep(1500);
+    await waitFor(() => { const b = first(S.send); return b && !isDisabled(b) ? b : null; }, 180000);
+  }
+  async function ask({ prompt, best = true, timeoutSec = 360, files = [] }) {
     takeNow = false;
     const box = await waitFor(findComposer, 15000);
     if (!box) {
@@ -170,6 +191,7 @@
     let model = '';
     if (best) { try { const picked = await pickBestModel(); model = picked.model; if (picked.note) warnings.push(picked.note); } catch (error) { warnings.push(`Chọn model: ${error.message}`); } }
     const baseline = all(S.reply).length;
+    if (files.length) await attachFiles(findComposer() || box, files);
     await typeInto(findComposer() || box, prompt);
     const send = await waitFor(() => { const b = first(S.send); return b && !isDisabled(b) ? b : null; }, 8000);
     if (send) click(send);

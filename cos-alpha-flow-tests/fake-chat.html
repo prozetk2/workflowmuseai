@@ -20,8 +20,19 @@ $('#cfm').onclick = () => { $('#dlg').style.display = 'none'; window.__chat.dele
 const saved = () => { if (location.pathname === '/' || location.pathname === '/app') { history.pushState({}, '', SITE === 'chatgpt' ? '/c/68f1a2b3-test' : '/app/abc123def'); $('#opts').style.display = ''; } };
 const turn = r => { if (SITE !== 'chatgpt') return r; const a = document.createElement('article'); a.setAttribute('data-testid', 'conversation-turn-' + ($('#msgs').children.length + 2)); a.appendChild(r); return a; };
 const copyBtn = r => { const b = document.createElement('button'); b.setAttribute('data-testid', 'copy-turn-action-button'); b.setAttribute('aria-label', 'Copy'); b.textContent = 'copy'; (r.closest('article') || r).appendChild(b); };
+// Files pasted into the box show as a chip with the file name (like Gemini's upload preview).
+window.__chat.files = [];
+document.addEventListener('paste', event => { const files = [...(event.clipboardData?.files || [])]; if (!files.length) return; event.preventDefault(); for (const f of files) { window.__chat.files.push({ name: f.name, type: f.type, size: f.size }); const chip = document.createElement('span'); chip.className = 'uploader-file-preview'; chip.textContent = f.name; $('#bar').insertBefore(chip, $('#bar').firstChild); } }, true);
 $('#send').onclick = () => {
   const text = box().innerText.trim(); if (!text) return; window.__chat.sent.push(text); box().textContent = ''; saved();
+  document.querySelectorAll('.uploader-file-preview').forEach(chip => chip.remove());
+  if (/Transcribe exactly what is spoken/.test(text)) {
+    const translate = /translate the line into Vietnamese/.test(text);
+    const r = document.createElement(SITE === 'chatgpt' ? 'div' : 'model-response'); if (SITE === 'chatgpt') r.setAttribute('data-message-author-role', 'assistant');
+    r.innerHTML = '<div class="markdown"><pre><code></code></pre></div>'; r.querySelector('code').textContent = JSON.stringify({ has_speech: true, language: 'English', text: 'This speaker has two hundred watts.', translation: translate ? 'Chiếc loa này có công suất hai trăm oát.' : '' });
+    setTimeout(() => { $('#msgs').appendChild(turn(r)); copyBtn(r); }, 800);
+    return;
+  }
   if (/STUCKSTOP/.test(text)) { // a "Stop" button that never goes away (wrong match); the turn's copy button shows when done
     const stop = document.createElement('button'); stop.setAttribute('aria-label', 'Stop streaming'); stop.textContent = 'stop'; $('#bar').appendChild(stop);
     const r = document.createElement('div'); r.setAttribute('data-message-author-role', 'assistant'); r.innerHTML = '<div class="markdown">Thinking</div>'; setTimeout(() => $('#msgs').appendChild(turn(r)), 600);
