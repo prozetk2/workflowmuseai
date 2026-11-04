@@ -5,7 +5,9 @@
   const $ = selector => document.querySelector(selector);
   const FLOW_TAB_URLS = ['https://flow.google.com/*', 'https://labs.google/fx/*'];
   const DURATIONS = [4, 6, 8, 10];
-  const DEFAULT_PROMPT = 'Replace the person in the attached video with the character from the attached reference image(s). Keep exactly the same motion, body movement, gestures, facial expressions, lip movement and timing, and the same camera movement, framing, lighting and background as the video. The character must look exactly like the reference (same face, hair and outfit). Do not add or remove people or objects. Keep the original speech and sound.';
+  // Written like TobyFlow's request (character = "image 1", the clip is the motion reference), not as "replace the person".
+  const DEFAULT_PROMPT = 'Animate the character in image 1 so that they perform exactly the same movement as in the reference video: the same body motion, gestures, facial expressions and lip movement, the same timing, the same camera movement and framing, the same location and lighting. The character keeps their own face, hairstyle and outfit from image 1 in every frame. Keep the sound of the reference video.';
+  const OLD_PROMPTS = ['Replace the person in the attached video with the character from the attached reference image(s). Keep exactly the same motion, body movement, gestures, facial expressions, lip movement and timing, and the same camera movement, framing, lighting and background as the video. The character must look exactly like the reference (same face, hair and outfit). Do not add or remove people or objects. Keep the original speech and sound.'];
   const state = {
     project: null, sourceUrl: '', clipUrls: new Map(), resultUrls: new Map(), finalUrl: '',
     running: false, abort: null, requestId: '', ffmpeg: null, ffmpegLogs: []
@@ -174,8 +176,9 @@
     status(`Đã nạp ${file.name} (${fmt(meta.duration)}). Chọn độ dài đoạn rồi bấm "Cắt thành đoạn".`, 'ok');
   }
   async function addChars(files) {
-    const room = 2 - state.project.chars.length;
-    if (room <= 0) { status('Tối đa 2 ảnh nhân vật. Xoá bớt một ảnh trước.', 'warn'); return; }
+    // One character picture, as TobyFlow does: it is "image 1" in the prompt.
+    const room = 1 - state.project.chars.length;
+    if (room <= 0) { status('Chỉ dùng 1 ảnh nhân vật. Xoá ảnh hiện tại trước khi thêm ảnh khác.', 'warn'); return; }
     for (const file of [...files].filter(item => /^image\//.test(item.type)).slice(0, room)) {
       try { state.project.chars.push({ id: uid('char'), name: file.name, dataUrl: await shrinkImage(file) }); }
       catch (error) { status(error.message, 'error'); }
@@ -394,7 +397,7 @@
       remove.onclick = () => { state.project.chars = state.project.chars.filter(item => item.id !== char.id); saveSoon(); renderChars(); };
       card.append(img, name, remove); box.appendChild(card);
     }
-    $('#msCharDrop').classList.toggle('hidden', state.project.chars.length >= 2);
+    $('#msCharDrop').classList.toggle('hidden', state.project.chars.length >= 1);
   }
   const STATUS_VI = { idle: 'Chưa tạo', running: 'Đang tạo trên Flow…', success: 'Xong', error: 'Lỗi', skipped: 'Bỏ qua khi ghép' };
   function renderClips() {
@@ -477,6 +480,8 @@
     state.project.settings = { ...newProject().settings, ...(state.project.settings || {}) };
     // Only Omni takes the source clip as an ingredient; Veo ignores it (1.8.3 offered Veo here by mistake).
     state.project.settings.model = 'Omni 1.1 Flash';
+    if (OLD_PROMPTS.includes(state.project.settings.prompt)) state.project.settings.prompt = DEFAULT_PROMPT;
+    if (state.project.chars.length > 1) state.project.chars = state.project.chars.slice(0, 1);
     // A clip left "running" by a closed page never finished.
     for (const clip of state.project.clips) if (clip.status === 'running') { clip.status = clip.result ? 'success' : 'idle'; clip.error = 'Lần tạo trước bị ngắt.'; }
     const source = state.project.source ? await getBlob('source').catch(() => null) : null;

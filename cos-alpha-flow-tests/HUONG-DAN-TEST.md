@@ -1,4 +1,4 @@
-# Hướng dẫn test cos_alpha_flow 1.8.4
+# Hướng dẫn test cos_alpha_flow 1.8.5
 
 Tài liệu cho tester. Phần A là test bằng tay trên Chrome thật, phần B là chạy bộ test tự động (trang giả, không tốn credit).
 
@@ -9,7 +9,7 @@ Tài liệu cho tester. Phần A là test bằng tay trên Chrome thật, phần
 1. Tải repo về: nút **Code → Download ZIP** trên GitHub rồi giải nén, hoặc `git clone https://github.com/prozetk2/workflowmuseai.git`.
 2. Mở `chrome://extensions`, bật **Developer mode** (góc phải trên).
 3. Bấm **Load unpacked**, chọn thư mục `cos-alpha-flow` (thư mục có `manifest.json`).
-4. Kiểm tra thẻ extension ghi **1.8.4**. Nếu máy còn TheKey.studio Flow hoặc bản cos_alpha_flow cũ, tắt bản đó đi.
+4. Kiểm tra thẻ extension ghi **1.8.5**. Nếu máy còn TheKey.studio Flow hoặc bản cos_alpha_flow cũ, tắt bản đó đi.
 5. Mỗi lần kéo code mới về (`git pull`), quay lại `chrome://extensions` và bấm nút tải lại (mũi tên vòng) trên thẻ cos_alpha_flow, rồi tải lại tab Flow.
 
 ### 2. Chuẩn bị
@@ -102,7 +102,7 @@ node run-all.js D:\duong\dan\ban-khac t15   # test một bản extension khác
 
 Trên Linux/macOS có thể dùng `./run-all.sh` thay cho `npm test`.
 
-Mỗi test (t4–t21) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out-tN.txt`. Kết quả mong đợi ở bản 1.8.4: tất cả đều qua.
+Mỗi test (t4–t21) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out-tN.txt`. Kết quả mong đợi ở bản 1.8.5: tất cả đều qua.
 
 | Test | Kiểm tra |
 | --- | --- |

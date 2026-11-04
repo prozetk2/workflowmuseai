@@ -1064,9 +1064,10 @@
     // "Khung hình": the start frame goes into the "Bắt đầu" slot; otherwise pictures go in with the + button.
     const startSlot = () => [...area().querySelectorAll(CLICKABLE)].filter(visible).find(el => /^(bắt đầu|start|first frame|khung đầu)$/i.test(textOf(el)));
     const images = [];
-    if (kind === 'video' && req.sourceVideo) images.push({ image: req.sourceVideo, role: 'source' });
     if (req.firstFrame && !req.sourceVideo) images.push({ image: req.firstFrame, role: 'firstFrame' });
     if (!(kind === 'video' && req.firstFrame && !req.sourceVideo)) for (const reference of req.references || []) images.push({ image: reference, role: 'reference' });
+    // The Motion Studio clip goes in after the pictures (as TobyFlow sends it), so the character is "image 1".
+    if (kind === 'video' && req.sourceVideo) images.push({ image: req.sourceVideo, role: 'source' });
     else if (req.references?.length) warnings.push('Video bắt đầu từ khung đầu nên ảnh tham chiếu không được gửi kèm.');
     for (const [index, item] of images.entries()) {
       const match = /^data:([^;,]+)/.exec(item.image) || [];
