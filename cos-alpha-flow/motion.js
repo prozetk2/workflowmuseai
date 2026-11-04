@@ -275,6 +275,9 @@
           clip.status = 'error'; clip.error = error.message; failed++;
           // Google's "unusual activity" notice or no credits: stop instead of sending more.
           if (['FLOW_BLOCKED', 'NO_CREDITS', 'FLOW_NOT_READY'].includes(error.code)) { status(error.message, 'error'); break; }
+          // Flow refused the content (for example a real or well-known person): the other clips use the same video
+          // and pictures, so stop instead of sending them all to be refused too.
+          if (error.code === 'SCENE_REFUSED') { status(`Flow từ chối nội dung đoạn ${clip.index + 1}, nên Motion Studio dừng các đoạn còn lại. Hãy dùng video bạn tự quay và ảnh nhân vật do AI tạo, rồi bấm tạo lại. (${error.message.slice(0, 200)})`, 'error'); break; }
         } finally { renderClips(); await saveNow(); }
       }
       if (!signal.aborted) status(failed ? `Xong ${done} đoạn, ${failed} đoạn lỗi. Bấm vào đoạn lỗi để xem và tạo lại.` : `Đã tạo xong ${done} đoạn. Bấm "Ghép video" để ra video hoàn chỉnh.`, failed ? 'warn' : 'ok');
