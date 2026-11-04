@@ -54,6 +54,7 @@ const MP4 = fs.readFileSync(__dirname + '/v.mp4');
   check('Tạo hết các đoạn, không treo', finished && st.every(c => c.s === 'success' && c.r), JSON.stringify(st));
   check('Mỗi đoạn gửi 1 lần ở Video · Thành phần, kèm 1 video + 1 ảnh nhân vật', sent.length === clips.length && sent.every(s => s.mode === 'video' && s.vtype === 'ingredients' && s.videos === 1 && s.attachments === 1), JSON.stringify(sent));
   check('Câu lệnh là câu lệnh thay nhân vật', sent.every(s => /Replace the person/.test(s.text)));
+  check('Motion Studio dùng mô hình đã chọn (mặc định Omni 1.1 Flash)', sent.every(s => s.model === 'Omni 1.1 Flash'), sent.map(s => s.model).join(','));
   check('Tỉ lệ theo video gốc (ngang → 16:9)', sent.every(s => s.aspect === (source.width >= source.height ? '16:9' : '9:16')), sent.map(s => s.aspect).join(','));
   await page.click('#msMerge');
   await page.waitForFunction(() => window.__cosAlphaMotion.state.finalUrl || /thất bại/.test(document.querySelector('#msStatus').textContent), null, { timeout: 240000 });

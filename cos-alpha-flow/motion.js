@@ -37,7 +37,7 @@
   function saveNow() { clearTimeout(saveTimer); return idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')); }
   function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(() => idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')), 300); }
   function newProject() {
-    return { source: null, chars: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, pace: 5 } };
+    return { source: null, chars: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, pace: 5 } };
   }
 
   // ---------- small helpers ----------
@@ -247,7 +247,7 @@
     state.requestId = uid('motion');
     const reply = await flowMessage({
       type: 'THEKEY_FLOW_GENERATE', requestId: state.requestId, kind: 'video', prompt: settings.prompt || DEFAULT_PROMPT,
-      aspect: settings.aspect, duration: flowDuration(clip.end - clip.start), resolution: settings.resolution, inputType: 'ingredients',
+      aspect: settings.aspect, duration: flowDuration(clip.end - clip.start), resolution: settings.resolution, model: settings.model || '', inputType: 'ingredients',
       sourceVideo: await blobToDataUrl(blob), references: state.project.chars.map(item => item.dataUrl), firstFrame: '', uiMode: 'agent', timeoutSec: 1200
     }, signal);
     if (!reply?.ok) throw Object.assign(new Error(reply?.error || 'Flow không trả video.'), { code: reply?.code || '' });
@@ -366,7 +366,7 @@
   }
   function renderSettings() {
     const settings = state.project.settings;
-    $('#msAspect').value = settings.aspect; $('#msResolution').value = settings.resolution; $('#msClipLen').value = String(settings.clipLen);
+    $('#msAspect').value = settings.aspect; $('#msResolution').value = settings.resolution; $('#msModel').value = settings.model; $('#msClipLen').value = String(settings.clipLen);
     $('#msPrompt').value = settings.prompt; $('#msKeepAudio').checked = Boolean(settings.keepAudio); $('#msPace').value = String(settings.pace);
   }
   function renderSource() {
@@ -460,7 +460,7 @@
       saveSoon(); renderAll(); status('Đã làm mới dự án.', 'ok');
     };
     const bind = (id, key, parse = value => value) => { $(id).onchange = () => { state.project.settings[key] = parse($(id).type === 'checkbox' ? $(id).checked : $(id).value); saveSoon(); }; };
-    bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msClipLen', 'clipLen', Number); bind('#msKeepAudio', 'keepAudio', Boolean); bind('#msPace', 'pace', Number);
+    bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msKeepAudio', 'keepAudio', Boolean); bind('#msPace', 'pace', Number);
     $('#msPrompt').oninput = () => { state.project.settings.prompt = $('#msPrompt').value; saveSoon(); };
     $('#msPromptReset').onclick = () => { state.project.settings.prompt = DEFAULT_PROMPT; $('#msPrompt').value = DEFAULT_PROMPT; saveSoon(); };
     $('#msModalClose').onclick = closeModal;

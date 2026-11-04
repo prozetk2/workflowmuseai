@@ -25,7 +25,7 @@ button{margin:2px}
 <div class="cdk-overlay-container"></div>
 <div id="menu"><button id="upload">Tải nội dung lên</button></div>
 <script>
-const S = window.__flowState = { mode: 'image', vtype: 'ingredients', aspect: '9:16', dur: 6, sent: [], attachments: 0, slot: 0 };
+const S = window.__flowState = { mode: 'image', vtype: 'ingredients', aspect: '9:16', dur: 6, model: 'Omni 1.1 Flash', sent: [], attachments: 0, slot: 0 };
 window.__flowLog = S;
 const $ = s => document.querySelector(s);
 let n = 0, target = null;
@@ -41,6 +41,12 @@ function openSettings() {
   const p = document.createElement('flow-prompt-box-settings');
   p.append(radio(S.mode === 'image', 'image', 'Hình ảnh', () => { S.mode = 'image'; }), radio(S.mode === 'video', 'videocam', 'Video', () => { S.mode = 'video'; }));
   if (S.mode === 'video') p.append(radio(S.vtype === 'frames', 'crop_free', 'Khung hình', () => { S.vtype = 'frames'; }), radio(S.vtype === 'ingredients', 'chrome_extension', 'Thành phần', () => { S.vtype = 'ingredients'; }));
+  if (S.mode === 'video') {
+    // Model dropdown like Flow's: a button with arrow_drop_down that opens a list of menu items.
+    const dd = document.createElement('button'); dd.innerHTML = `${S.model} <mat-icon>arrow_drop_down</mat-icon>`;
+    dd.onclick = () => { const menu = document.createElement('div'); menu.className = 'model-menu'; for (const m of ['Omni 1.1 Flash', 'Veo 3.1 - Lite', 'Veo 3.1 - Fast', 'Veo 3.1 - Quality']) { const item = document.createElement('button'); item.setAttribute('role', 'menuitem'); item.innerHTML = `<mat-icon>volume_up</mat-icon> ${m}`; item.onclick = () => { S.model = m; menu.remove(); openSettings(); }; menu.appendChild(item); } document.body.appendChild(menu); };
+    p.append(dd);
+  }
   for (const a of ['16:9', '9:16']) p.append(radio(S.aspect === a, 'crop_' + a.replace(':', '_'), a, () => { S.aspect = a; }));
   if (S.mode === 'video') for (const d of [4, 6, 8, 10]) p.append(radio(S.dur === d, '', `${d} giây`, () => { S.dur = d; }));
   p.append(radio(true, '', 'x1', () => {}));
@@ -65,7 +71,7 @@ $('#upload').onclick = () => {
 function tile(html) { const t = document.createElement('flow-grid-tile-container'); t.innerHTML = html; $('#grid').prepend(t); return t; }
 $('#send').onclick = () => {
   const text = $('#box').innerText.trim(); if (!text) return;
-  S.sent.push({ text, mode: S.mode, vtype: S.vtype, aspect: S.aspect, dur: S.dur, attachments: $('#atts').querySelectorAll('img').length, videos: $('#atts').querySelectorAll('video').length, slot: $('#startSlot').querySelectorAll('img').length });
+  S.sent.push({ text, mode: S.mode, model: S.mode === 'video' ? S.model : '', vtype: S.vtype, aspect: S.aspect, dur: S.dur, attachments: $('#atts').querySelectorAll('img').length, videos: $('#atts').querySelectorAll('video').length, slot: $('#startSlot').querySelectorAll('img').length });
   $('#box').textContent = ''; $('#atts').innerHTML = ''; $('#startSlot').textContent = 'Bắt đầu';
   const t = tile('<span>Đang tạo 10%</span>');
   if (/BLOCKME/.test(text)) { setTimeout(() => { t.innerHTML = '<span>Chúng tôi phát hiện thấy hoạt động bất thường.</span>'; }, 800); return; }

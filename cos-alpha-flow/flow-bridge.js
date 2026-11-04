@@ -855,22 +855,7 @@
         await pick([...withIcon(frames ? SEL.framesModeIcons : SEL.ingredientsModeIcons, panel), ...byText], `${label} to Video`, warnings, signal);
       }
     }
-    if (req.aspect) {
-      const hints = (SEL.aspectHints || {})[req.aspect] || [req.aspect];
-      const byIcon = withIcon(hints, panel, { partial: true });
-      const byText = withText(text => hints.some(hint => text.toLowerCase().includes(hint.toLowerCase())), panel);
-      await pick([...byIcon, ...byText], `aspect ${req.aspect}`, warnings, signal);
-    }
-    await pick(withText(text => /^(x\s?1|1\s?x)$/i.test(text), panel), 'outputs x1', warnings, signal);
-    if (req.kind === 'video' && req.duration) {
-      const seconds = String(req.duration);
-      await pick(withText(text => new RegExp(`^${seconds}[\\p{L}.]*$`, 'iu').test(text.replace(/\s+/g, '')), panel), `${seconds}s`, warnings, signal);
-    }
-    if (req.kind === 'video' && req.resolution) {
-      const hints = (SEL.resolutionHints || {})[req.resolution] || [req.resolution];
-      await pick(withText(text => hints.some(hint => text.toLowerCase() === hint.toLowerCase()), panel), req.resolution, warnings, signal);
-    }
-    if (req.kind === 'video' && req.voice) await pickVoice(req.voice, panel, warnings, signal);
+    // The model first: Veo and Omni offer different lengths and resolutions.
     if (req.model) {
       const opener = withIcon(SEL.modelMenuIcons, panel)[0] || withText(text => rx(SEL.modelNameHint).test(text), panel)[0];
       if (!opener) warnings.push('Could not find the Flow model menu; kept Flow\'s current model.');
@@ -884,6 +869,22 @@
         else { warnings.push(`Model "${req.model}" was not in Flow's model menu; kept Flow's current model.`); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); }
       }
     }
+    if (req.aspect) {
+      const hints = (SEL.aspectHints || {})[req.aspect] || [req.aspect];
+      const byIcon = withIcon(hints, panel, { partial: true });
+      const byText = withText(text => hints.some(hint => text.toLowerCase().includes(hint.toLowerCase())), panel);
+      await pick([...byIcon, ...byText], `aspect ${req.aspect}`, warnings, signal);
+    }
+    await pick(withText(text => /^(x\s?1|1\s?x)$/i.test(text), panel), 'outputs x1', warnings, signal);
+    if (req.kind === 'video' && req.duration) {
+      const seconds = String(req.duration);
+      await pick(withText(text => new RegExp(`^${seconds}[\\p{L}.]*$`, 'iu').test(text.replace(/\s+/g, '')), panel), `${seconds}s`, [], signal);
+    }
+    if (req.kind === 'video' && req.resolution) {
+      const hints = (SEL.resolutionHints || {})[req.resolution] || [req.resolution];
+      await pick(withText(text => hints.some(hint => text.toLowerCase() === hint.toLowerCase()), panel), req.resolution, [], signal);
+    }
+    if (req.kind === 'video' && req.voice) await pickVoice(req.voice, panel, warnings, signal);
     if (openedHere && panelOpen()) {
       const button = settingsButton();
       if (button) await press(button, signal, () => !panelOpen());

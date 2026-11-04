@@ -4,7 +4,7 @@
 
 **Cài nhanh:** dùng file `downloads/TheKey-studio-extension.zip` trong thư mục này · Không cần cài npm hoặc build.
 
-**cos_alpha_flow 1.8.2 (bản Google Flow mới nhất):** nạp thư mục `cos-alpha-flow/` bằng Load unpacked. Hướng dẫn test và bộ test tự động: [`cos-alpha-flow-tests/HUONG-DAN-TEST.md`](cos-alpha-flow-tests/HUONG-DAN-TEST.md).
+**cos_alpha_flow 1.8.3 (bản Google Flow mới nhất):** nạp thư mục `cos-alpha-flow/` bằng Load unpacked. Hướng dẫn test và bộ test tự động: [`cos-alpha-flow-tests/HUONG-DAN-TEST.md`](cos-alpha-flow-tests/HUONG-DAN-TEST.md).
 
 **TheKey.studio** là tiện ích mở rộng tạo quy trình trực quan bằng phiên Muse.ai bạn đã đăng nhập. Bạn có thể nối các node trên canvas, tạo ảnh/video và sắp xếp clip video trên timeline.
 

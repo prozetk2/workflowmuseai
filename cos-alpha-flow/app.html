@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>cos_alpha_flow 1.8.2</title>
+  <title>cos_alpha_flow 1.8.3</title>
   <link rel="icon" type="image/png" sizes="128x128" href="icons/icon128.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="toolbar">
-    <div class="brand"><img class="brand-logo" src="icons/thekey-logo.png" alt="cos_alpha_flow" /><strong class="brand-name">cos_alpha_flow</strong><span class="brand-version">1.8.2</span></div>
+    <div class="brand"><img class="brand-logo" src="icons/thekey-logo.png" alt="cos_alpha_flow" /><strong class="brand-name">cos_alpha_flow</strong><span class="brand-version">1.8.3</span></div>
     <div class="toolbar-actions">
       <button id="saveBtn" title="Lưu workflow trong trình duyệt"><i data-ic="save"></i>Lưu</button>
       <button id="workflowExportBtn" type="button" title="Lưu workflow ra file JSON để dùng lại hoặc gửi người khác"><i data-ic="file-down"></i>Lưu file workflow</button>
@@ -216,7 +216,7 @@
 
         <p class="settings-note" data-provider="flow">Mở một project trên Google Flow (flow.google.com) và để tab đó mở trong lúc chạy. Ô nào để trống thì dùng lựa chọn trong "Cài đặt tác nhân" của Flow.</p>
         <label for="flowVideoModel" data-provider="flow">Model video trên Flow</label>
-        <input id="flowVideoModel" data-provider="flow" list="flowVideoModels" placeholder="vd: Omni 1.1 Flash (trống = mặc định của Flow)" />
+        <input id="flowVideoModel" data-provider="flow" list="flowVideoModels" placeholder="trống = Veo 3.1 - Lite (Omni 1.1 Flash hay chặn ảnh người như thật)" />
         <datalist id="flowVideoModels"><option value="Omni 1.1 Flash"></option><option value="Veo 3.1 - Fast"></option><option value="Veo 3.1 - Lite"></option><option value="Veo 3.1 - Quality"></option></datalist>
         <label for="flowImageModel" data-provider="flow">Model ảnh trên Flow</label>
         <input id="flowImageModel" data-provider="flow" list="flowImageModels" placeholder="vd: Nano Banana Pro (trống = mặc định của Flow)" />

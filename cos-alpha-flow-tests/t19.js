@@ -43,6 +43,7 @@ const MP4 = fs.readFileSync(__dirname + '/v.mp4');
   check('Video 1: tạo xong, là video, có khung cuối', st.v1.s === 'success' && st.v1.kind === 'video' && st.v1.end, JSON.stringify(st.v1));
   check('Video 2: tạo xong, là video', st.v2.s === 'success' && st.v2.kind === 'video', JSON.stringify(st.v2));
   check('Gửi đúng 3 lần', sent.length === 3, String(sent.length));
+  check('Video tự chọn mô hình Veo 3.1 - Lite (Omni hay chặn ảnh người như thật)', sent[1]?.model === 'Veo 3.1 - Lite' && sent[2]?.model === 'Veo 3.1 - Lite', sent.map(s => s.model).join(','));
   check('Ảnh gửi ở chế độ Hình ảnh 9:16, đúng câu lệnh (không có lời dặn cho trợ lý)', sent[0]?.mode === 'image' && sent[0]?.aspect === '9:16' && sent[0]?.text.startsWith('a red fox in snow') && !/Generate exactly/.test(sent[0]?.text), JSON.stringify(sent[0]));
   check('Video có khung đầu: chế độ Video · Khung hình, 16:9, 8 giây, ảnh nằm ở ô Bắt đầu', sent[1]?.mode === 'video' && sent[1]?.vtype === 'frames' && sent[1]?.aspect === '16:9' && sent[1]?.dur === 8 && sent[1]?.slot === 1, JSON.stringify(sent[1]));
   check('Video không ảnh: chế độ Video · Thành phần, 9:16, 4 giây', sent[2]?.mode === 'video' && sent[2]?.vtype === 'ingredients' && sent[2]?.aspect === '9:16' && sent[2]?.dur === 4, JSON.stringify(sent[2]));
