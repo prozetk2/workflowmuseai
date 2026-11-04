@@ -16,6 +16,7 @@
 <div class="layout">
 <nav class="toc" aria-label="Mục lục">
   <strong>Mục lục</strong>
+  <a href="#moi-1-8">Mới trong bản 1.8: Motion Studio</a>
   <a href="#moi-1-7-2">Mới trong bản 1.7.2</a>
   <a href="#moi-1-7-1">Mới trong bản 1.7.1</a>
   <a href="#moi-1-7">Mới trong bản 1.7</a>
@@ -48,6 +49,25 @@
 </nav>
 
 <main>
+<section id="moi-1-8">
+<h2>Mới trong cos_alpha_flow 1.8: Motion Studio</h2>
+<p>Thay người trong một video có sẵn bằng nhân vật của bạn, giữ nguyên động tác, góc máy và bối cảnh. Mở bằng nút <b>Motion Studio</b> trên thanh công cụ của canvas.</p>
+<ol>
+  <li><b>Video gốc</b>: thả video (MP4/MOV/WebM, nên ngắn, vài chục giây). App tự chọn tỉ lệ 9:16 hoặc 16:9 theo video.</li>
+  <li><b>Nhân vật</b>: thả 1–2 ảnh nhân vật (nên dùng ảnh nhiều góc, có thể tạo bằng node <i>Ảnh nhiều góc</i>).</li>
+  <li>Chọn <b>độ dài mỗi đoạn</b> (4/6/8/10 giây) rồi bấm <b>Cắt thành đoạn</b>. Video được cắt ngay trên máy bằng FFmpeg; đoạn cuối quá ngắn được gộp vào đoạn trước.</li>
+  <li>Bấm <b>Tạo tất cả đoạn</b>: từng đoạn được tải lên Flow ở chế độ <i>Video · Thành phần</i> cùng ảnh nhân vật và câu lệnh thay nhân vật (sửa được). Mỗi đoạn là một lượt tạo video, tốn credit như bình thường.</li>
+  <li>Bấm vào một đoạn để so sánh video gốc và kết quả, <b>Tạo lại đoạn này</b>, <b>Bỏ qua khi ghép</b> hoặc tải riêng đoạn đó.</li>
+  <li>Bấm <b>Ghép video</b> để ra video hoàn chỉnh (mỗi kết quả được cắt đúng độ dài đoạn gốc), rồi <b>Tải video</b>. Tick <i>Giữ âm thanh của video gốc</i> nếu muốn dùng tiếng gốc.</li>
+</ol>
+<ul>
+  <li>Flow cần mở một dự án và nút <b>Tác nhân</b> trong ô nhập phải <b>tắt</b>.</li>
+  <li>Dự án Motion Studio được lưu trên máy; tải lại trang vẫn còn video gốc, các đoạn và kết quả.</li>
+  <li>Flow báo <i>hoạt động bất thường</i> hoặc hết credit thì Motion Studio dừng, không gửi tiếp.</li>
+  <li>Chỉ dùng video và ảnh bạn có quyền sử dụng. Flow có thể từ chối đoạn có gương mặt giống người nổi tiếng.</li>
+  <li>Chưa có: lồng tiếng giọng mới, phụ đề, dịch lời thoại (để bản sau).</li>
+</ul>
+</section>
 <section id="moi-1-7-2">
 <h2>Mới trong cos_alpha_flow 1.7.2: chạy video với Flow khi tắt "Tác nhân"</h2>
 <ul>
@@ -715,7 +735,7 @@ Audio: tiếng chuông xe đạp, nhạc vui tươi</pre>
 <details><summary>Có thêm nhạc hoặc giọng đọc riêng được không?</summary><p>App xuất phim có âm thanh do Flow tạo. Để lồng nhạc hoặc giọng đọc riêng, hãy mở file MP4 bằng phần mềm dựng như CapCut hoặc Premiere.</p></details>
 </section>
 
-<footer>cos_alpha_flow 1.7.2 · Chúc bạn sáng tạo vui vẻ </footer>
+<footer>cos_alpha_flow 1.8.0 · Chúc bạn sáng tạo vui vẻ </footer>
 </main>
 </div>
 </body>

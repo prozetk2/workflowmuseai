@@ -51,20 +51,21 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('.cdk-ov
 $('#add').onclick = () => { target = 'atts'; $('#menu').style.display = 'block'; };
 $('#startSlot').onclick = () => { target = 'slot'; $('#menu').style.display = 'block'; };
 $('#upload').onclick = () => {
-  const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
+  const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*,video/*';
   input.addEventListener('change', () => {
     const file = input.files[0]; if (!file) return; $('#menu').style.display = 'none';
-    const img = document.createElement('img'); img.src = URL.createObjectURL(file);
+    const isVideo = /^video\//.test(file.type);
+    const img = document.createElement(isVideo ? 'video' : 'img'); img.src = URL.createObjectURL(file); if (isVideo) { S.videos = (S.videos || 0) + 1; img.muted = true; }
     if (target === 'slot') { $('#startSlot').textContent = ''; $('#startSlot').appendChild(img); S.slot++; } else { $('#atts').appendChild(img); S.attachments++; }
     // The upload also shows up in the grid, named after the file.
-    tile(`<img src="${URL.createObjectURL(file)}"><span>${file.name}</span>`);
+    tile(isVideo ? `<video muted src="${URL.createObjectURL(file)}"></video><span>${file.name}</span>` : `<img src="${URL.createObjectURL(file)}"><span>${file.name}</span>`);
   });
   input.click();
 };
 function tile(html) { const t = document.createElement('flow-grid-tile-container'); t.innerHTML = html; $('#grid').prepend(t); return t; }
 $('#send').onclick = () => {
   const text = $('#box').innerText.trim(); if (!text) return;
-  S.sent.push({ text, mode: S.mode, vtype: S.vtype, aspect: S.aspect, dur: S.dur, attachments: $('#atts').querySelectorAll('img').length, slot: $('#startSlot').querySelectorAll('img').length });
+  S.sent.push({ text, mode: S.mode, vtype: S.vtype, aspect: S.aspect, dur: S.dur, attachments: $('#atts').querySelectorAll('img').length, videos: $('#atts').querySelectorAll('video').length, slot: $('#startSlot').querySelectorAll('img').length });
   $('#box').textContent = ''; $('#atts').innerHTML = ''; $('#startSlot').textContent = 'Bắt đầu';
   const t = tile('<span>Đang tạo 10%</span>');
   if (/BLOCKME/.test(text)) { setTimeout(() => { t.innerHTML = '<span>Chúng tôi phát hiện thấy hoạt động bất thường.</span>'; }, 800); return; }

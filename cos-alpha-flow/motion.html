@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Motion Studio · cos_alpha_flow</title>
+  <link rel="stylesheet" href="motion.css" />
+</head>
+<body>
+  <header class="ms-top">
+    <div class="ms-brand"><img src="icons/thekey-logo.png" alt="" /><strong>Motion Studio</strong><span id="msVersion"></span></div>
+    <ol class="ms-steps">
+      <li id="stepSource"><b>01</b> Video gốc</li>
+      <li id="stepGenerate"><b>02</b> Tạo chuyển động</li>
+      <li id="stepExport"><b>03</b> Xuất video</li>
+    </ol>
+    <span id="msFlow" class="ms-pill">Đang kiểm tra tab Flow…</span>
+    <button id="msClear" type="button" class="ms-ghost danger" title="Xoá video gốc, các đoạn và kết quả của dự án này"><i data-ic="trash-2"></i>Làm mới dự án</button>
+  </header>
+
+  <div class="ms-main">
+    <aside class="ms-side">
+      <section>
+        <h3>Khung hình</h3>
+        <div class="ms-row">
+          <label>Tỉ lệ<select id="msAspect"><option value="9:16">9:16 dọc</option><option value="16:9">16:9 ngang</option></select></label>
+          <label>Độ phân giải<select id="msResolution"><option value="720p">720p</option><option value="1080p">1080p</option></select></label>
+        </div>
+        <label>Độ dài mỗi đoạn<select id="msClipLen"><option value="4">4 giây</option><option value="6">6 giây</option><option value="8" selected>8 giây</option><option value="10">10 giây (Omni)</option></select></label>
+      </section>
+      <section>
+        <h3>Nhân vật thay vào</h3>
+        <div id="msChars" class="ms-chars"></div>
+        <label class="ms-drop" id="msCharDrop"><input id="msCharInput" type="file" accept="image/*" multiple hidden /><i data-ic="user-plus"></i><span>Thả ảnh nhân vật vào đây hoặc bấm để chọn (tối đa 2 ảnh, nên dùng ảnh nhiều góc)</span></label>
+      </section>
+      <section>
+        <h3>Câu lệnh cho Flow</h3>
+        <textarea id="msPrompt" rows="7"></textarea>
+        <button id="msPromptReset" type="button" class="ms-link">Dùng lại câu lệnh mặc định</button>
+      </section>
+      <section>
+        <label class="ms-check"><input id="msKeepAudio" type="checkbox" /> Giữ âm thanh của video gốc khi ghép</label>
+        <label>Nghỉ giữa các đoạn<select id="msPace"><option value="0">không nghỉ</option><option value="5" selected>5 giây</option><option value="10">10 giây</option><option value="20">20 giây</option></select></label>
+      </section>
+      <div class="ms-side-actions">
+        <button id="msGenerate" type="button" class="ms-primary"><i data-ic="sparkles"></i>Tạo tất cả đoạn</button>
+        <button id="msStop" type="button" class="ms-ghost hidden"><i data-ic="x"></i>Dừng</button>
+      </div>
+      <p class="ms-note">Mỗi đoạn là một lượt tạo video trên Flow (tốn credit). Flow cần mở một dự án, nút <b>Tác nhân</b> trong ô nhập phải tắt. Chỉ dùng video và ảnh bạn có quyền sử dụng.</p>
+    </aside>
+
+    <section class="ms-stage">
+      <div class="ms-panels">
+        <article class="ms-panel">
+          <header><i data-ic="film"></i>Video gốc <small id="msSourceInfo"></small></header>
+          <div class="ms-player" id="msSourceBox"><label class="ms-drop big" id="msSourceDrop"><input id="msSourceInput" type="file" accept="video/*" hidden /><i data-ic="upload"></i><span>Thả video gốc vào đây hoặc bấm để chọn (MP4/MOV/WebM)</span></label><video id="msSourceVideo" controls playsinline class="hidden"></video></div>
+          <footer><button id="msSourcePick" type="button" class="ms-ghost"><i data-ic="upload"></i>Chọn / thay video</button><button id="msSplit" type="button" class="ms-ghost" disabled><i data-ic="scissors"></i>Cắt thành đoạn</button></footer>
+        </article>
+        <article class="ms-panel">
+          <header><i data-ic="clapperboard"></i>Video hoàn chỉnh <small id="msFinalInfo"></small></header>
+          <div class="ms-player"><div class="ms-empty" id="msFinalEmpty"><i data-ic="layers"></i><span>Video hoàn chỉnh hiện ở đây sau khi ghép các đoạn Flow đã tạo</span></div><video id="msFinalVideo" controls playsinline class="hidden"></video></div>
+          <footer><button id="msMerge" type="button" class="ms-ghost" disabled><i data-ic="merge"></i>Ghép video</button><button id="msDownload" type="button" class="ms-ghost" disabled><i data-ic="download"></i>Tải video</button></footer>
+        </article>
+      </div>
+      <div class="ms-status" id="msStatus">Bắt đầu bằng việc chọn video gốc.</div>
+      <section class="ms-timeline">
+        <header><strong>Các đoạn</strong><small id="msClipCount"></small><span class="ms-legend"><i class="dot ok"></i>Xong <i class="dot run"></i>Đang tạo <i class="dot err"></i>Lỗi</span></header>
+        <div id="msClips" class="ms-clips"><p class="ms-hint">Bấm "Cắt thành đoạn" để chia video gốc theo độ dài đã chọn.</p></div>
+      </section>
+    </section>
+  </div>
+
+  <div id="msModal" class="ms-modal hidden" role="dialog" aria-modal="true" aria-labelledby="msModalTitle">
+    <div class="ms-modal-box">
+      <header><strong id="msModalTitle">Đoạn</strong><small id="msModalInfo"></small><button id="msModalClose" type="button" aria-label="Đóng">×</button></header>
+      <div class="ms-compare">
+        <figure><figcaption>Video gốc</figcaption><video id="msModalSource" controls playsinline></video></figure>
+        <figure><figcaption>Kết quả Flow</figcaption><video id="msModalResult" controls playsinline></video><div id="msModalNoResult" class="ms-empty">Chưa có kết quả</div></figure>
+      </div>
+      <p id="msModalError" class="ms-error"></p>
+      <footer><button id="msModalRegen" type="button" class="ms-primary"><i data-ic="refresh-cw"></i>Tạo lại đoạn này</button><button id="msModalSkip" type="button" class="ms-ghost"></button><button id="msModalDownload" type="button" class="ms-ghost"><i data-ic="download"></i>Tải đoạn</button></footer>
+    </div>
+  </div>
+
+  <script src="vendor/ffmpeg/ffmpeg.js"></script>
+  <script src="icons.js"></script>
+  <script src="motion.js"></script>
+</body>
+</html>

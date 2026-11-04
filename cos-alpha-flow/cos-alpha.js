@@ -1034,6 +1034,12 @@
     checkPendingI2P();
     checkPendingInbox();
     setupAutoFlow();
+    // Motion Studio has its own page (motion.html); reuse the tab if it is already open.
+    $('#motionBtn')?.addEventListener('click', async () => {
+      const url = chrome.runtime.getURL('motion.html'), [open] = await chrome.tabs.query({ url });
+      if (open?.id) { await chrome.tabs.update(open.id, { active: true }); return; }
+      chrome.tabs.create({ url });
+    });
     refresh(true);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

@@ -497,7 +497,9 @@
     let pickerRoot = null;
     const area = () => composerArea(findComposer() || composer);
     // Pictures already in the message box (earlier attachments) and on the page before this upload.
-    const shownImgs = root => [...root.querySelectorAll('img')].filter(img => mediaSrc(img) && visible(img));
+    // A video ingredient (Motion Studio) may show as a <video> or a still in the box.
+    const shownImgs = root => [...root.querySelectorAll('img, video')].filter(img => (mediaSrc(img) || img.poster) && visible(img));
+    const isVideoFile = /^video\//i.test(image.type || '');
     const boxBefore = new Set(shownImgs(area())), boxSrcBefore = new Set([...boxBefore].map(mediaSrc));
     let srcBefore = new Set(), elsBefore = new Set();
     const inputsBefore = new Set(document.querySelectorAll('input[type="file"]'));
@@ -515,7 +517,7 @@
         pickerRoot = pickerOf(upload, composer);
         await press(upload, signal, () => captured, 2500);
       }
-      const freshInput = () => { const inputs = [...document.querySelectorAll('input[type="file"]')].filter(input => !inputsBefore.has(input) && !input.disabled && (!input.accept || /image|\*|png|jpe?g|webp/i.test(input.accept))); return inputs.pop() || null; };
+      const freshInput = () => { const inputs = [...document.querySelectorAll('input[type="file"]')].filter(input => !inputsBefore.has(input) && !input.disabled && (!input.accept || (isVideoFile ? /video|\*|mp4/i : /image|\*|png/i).test(input.accept) || /image|\*|png|jpe?g|webp/i.test(input.accept))); return inputs.pop() || null; };
       if (!(await waitFor(() => captured || freshInput() || domFileInput(), 4000, signal))) throw flowError('Flow không mở hộp chọn file cho ảnh. Chưa gửi gì cả.');
       // The picker also lists earlier uploads (such as the previous reference image): those are not this upload.
       // Let its list finish loading first; Flow waits for the file, so holding it a moment changes nothing.
@@ -550,8 +552,8 @@
         }
         return clickables().find(el => !area().contains(el) && [...el.querySelectorAll('img')].some(isNew));
       };
-      const appeared = await waitFor(() => attached() || newItem(), 90000, signal, 500);
-      if (!appeared) throw flowError(`Tải ảnh ${image.name} lên Flow quá 90 giây vẫn chưa xong. Chưa gửi gì cả.`);
+      const appeared = await waitFor(() => attached() || newItem(), isVideoFile ? 300000 : 90000, signal, 500);
+      if (!appeared) throw flowError(`Tải ${isVideoFile ? 'video' : 'ảnh'} ${image.name} lên Flow quá ${isVideoFile ? 5 : 1.5} phút vẫn chưa xong. Chưa gửi gì cả.`);
       if (!attached()) {
         // Give Flow a moment to attach the upload by itself before picking it, so it is not picked twice.
         if (!(await waitFor(attached, 1500, signal, 300))) { const item = newItem(); if (item) await press(item, signal, attached, 3000); }
@@ -1047,7 +1049,8 @@
     const warnings = [];
     let composer = findComposer();
     if (!composer) throw flowError(`Không thấy ô nhập "Bạn muốn tạo những gì?" của Flow. Hãy mở một dự án trong Flow rồi thử lại. (Trang: ${location.pathname})`, 'FLOW_NOT_READY');
-    const inputType = kind === 'video' ? (req.firstFrame ? 'frames' : 'ingredients') : '';
+    // Motion Studio sends a source clip: it only goes in as an ingredient, next to the character pictures.
+    const inputType = kind === 'video' ? (req.sourceVideo ? 'ingredients' : req.firstFrame ? 'frames' : 'ingredients') : '';
     await configure({ ...req, kind, inputType }, warnings, signal);
     // Never send a video prompt while Flow is still set to pictures (or the other way round): it spends credits on the wrong thing.
     const isVideoSet = () => /\bvideo\b/i.test(settingsSummary());
@@ -1060,15 +1063,17 @@
     // "Khung hình": the start frame goes into the "Bắt đầu" slot; otherwise pictures go in with the + button.
     const startSlot = () => [...area().querySelectorAll(CLICKABLE)].filter(visible).find(el => /^(bắt đầu|start|first frame|khung đầu)$/i.test(textOf(el)));
     const images = [];
-    if (req.firstFrame) images.push({ image: req.firstFrame, role: 'firstFrame' });
-    if (!(kind === 'video' && req.firstFrame)) for (const reference of req.references || []) images.push({ image: reference, role: 'reference' });
+    if (kind === 'video' && req.sourceVideo) images.push({ image: req.sourceVideo, role: 'source' });
+    if (req.firstFrame && !req.sourceVideo) images.push({ image: req.firstFrame, role: 'firstFrame' });
+    if (!(kind === 'video' && req.firstFrame && !req.sourceVideo)) for (const reference of req.references || []) images.push({ image: reference, role: 'reference' });
     else if (req.references?.length) warnings.push('Video bắt đầu từ khung đầu nên ảnh tham chiếu không được gửi kèm.');
     for (const [index, item] of images.entries()) {
       const match = /^data:([^;,]+)/.exec(item.image) || [];
       const type = match[1] || 'image/png';
       const opener = kind === 'video' && item.role === 'firstFrame' ? startSlot : null;
+      const extension = (type.split('/')[1] || 'png').replace('jpeg', 'jpg').replace('quicktime', 'mov');
       if (opener && !opener()) throw flowError('Flow đang ở chế độ Khung hình nhưng không thấy ô "Bắt đầu" để gắn khung đầu. Chưa gửi gì cả.');
-      await attachAgentImage({ dataUrl: item.image, type, name: `thekey-${item.role}-${index + 1}.${(type.split('/')[1] || 'png').replace('jpeg', 'jpg')}` }, findComposer() || composer, warnings, signal, opener);
+      await attachAgentImage({ dataUrl: item.image, type, name: `thekey-${item.role}-${index + 1}.${extension}` }, findComposer() || composer, warnings, signal, opener);
     }
     if (images.length) {
       const busy = () => { const c = findComposer(); return !c || !canType(c) || [...composerArea(c).querySelectorAll('[role="progressbar"], mat-progress-spinner, mat-spinner, [class*="spinner"]')].some(visible); };
@@ -1079,7 +1084,7 @@
     // The model gets the scene prompt itself; the agent's "Generate exactly 1 …" wording is only for the agent.
     await typePrompt(composer, String(req.prompt || '').trim(), signal);
 
-    const uploadName = /thekey-(firstFrame|reference)-\d/i;
+    const uploadName = /thekey-(firstFrame|reference|source)-\d/i;
     const tileOf = el => el.closest?.(list(SEL.tiles).join(',')) || null;
     const isUpload = el => uploadName.test(`${el.getAttribute?.('alt') || ''} ${tileOf(el)?.innerText || ''}`);
     const baselineMedia = new Set(bigMedia(kind).map(item => item.src));
@@ -1150,6 +1155,7 @@
     let editor = await waitFor(() => findEditor() || (location.pathname.includes('/project/') && document.readyState === 'complete' && document.body.innerText.length > 50 ? 'page' : null), 15000, signal);
     if (editor === 'page') editor = findEditor();
     if (!isClassicUi() && directModelMode()) return generateDirect(req, kind, signal);
+    if (req.sourceVideo) throw flowError('Motion Studio cần Flow ở chế độ gửi thẳng: trong ô nhập của Flow, tắt nút "Tác nhân" rồi chạy lại. Chưa gửi gì cả.', 'FLOW_NOT_READY');
     if (!isClassicUi()) return generateAgent(req, kind, signal);
     // The agent chat has its own text box; switch the agent off first so the prompt goes to Flow's own box.
     if (await switchAgentOff(signal)) editor = findEditor();
