@@ -1,0 +1,75 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Fake Flow (Tác nhân off)</title>
+<style>
+body{margin:0;font:14px sans-serif;background:#111;color:#eee}
+#grid{position:fixed;left:0;top:0;right:0;height:60vh;overflow:auto;display:flex;flex-wrap:wrap;gap:8px;padding:8px}
+flow-grid-tile-container{display:block;width:160px;height:200px;background:#222;position:relative}
+flow-grid-tile-container img,flow-grid-tile-container video{width:160px;height:180px;object-fit:cover}
+flow-prompt-box{position:fixed;left:25vw;bottom:20px;width:50vw;background:#222;padding:8px;display:block}
+#box{min-height:40px;background:#000;padding:6px}
+#atts img{width:48px;height:48px}
+.cdk-overlay-container{position:fixed;left:30vw;bottom:140px}
+flow-prompt-box-settings{display:block;background:#333;padding:8px;width:320px}
+#menu{position:fixed;left:26vw;bottom:150px;background:#444;padding:8px;display:none}
+button{margin:2px}
+</style></head><body>
+<div id="grid"></div>
+<flow-prompt-box><flow-base-prompt-box>
+  <div id="slots" style="display:none"><button class="empty-chip" id="startSlot">Bắt đầu</button><button class="empty-chip">Kết thúc</button></div>
+  <div id="atts"></div>
+  <div id="box" role="textbox" contenteditable="true" aria-label="Bạn muốn tạo những gì?"></div>
+  <button id="add" aria-label="Thêm thành phần vào ô nhập câu lệnh"><mat-icon>add</mat-icon></button>
+  <flow-agent-mode-toggle-chip><button class="agent-mode-chip" aria-pressed="false">Tác nhân</button></flow-agent-mode-toggle-chip>
+  <button class="settings-trigger-button" id="chip" aria-label="Điều kiện kích hoạt cài đặt"></button>
+  <flow-generate-icon-button><button id="send" aria-label="Bắt đầu tạo"><mat-icon>arrow_forward</mat-icon></button></flow-generate-icon-button>
+</flow-base-prompt-box></flow-prompt-box>
+<div class="cdk-overlay-container"></div>
+<div id="menu"><button id="upload">Tải nội dung lên</button></div>
+<script>
+const S = window.__flowState = { mode: 'image', vtype: 'ingredients', aspect: '9:16', dur: 6, sent: [], attachments: 0, slot: 0 };
+window.__flowLog = S;
+const $ = s => document.querySelector(s);
+let n = 0, target = null;
+function chip() {
+  $('#chip').innerHTML = S.mode === 'video' ? `Video · 720p · ${S.dur} giây <mat-icon>crop_${S.aspect.replace(':', '_')}</mat-icon> x1` : `🍌 Nano Banana 2.1 <mat-icon>crop_${S.aspect.replace(':', '_')}</mat-icon> x1`;
+  const frames = S.mode === 'video' && S.vtype === 'frames';
+  $('#slots').style.display = frames ? '' : 'none'; $('#add').style.display = frames ? 'none' : '';
+}
+chip();
+const radio = (on, icon, text, click) => { const b = document.createElement('button'); b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(on)); b.innerHTML = `<mat-icon>${icon}</mat-icon>${text}`; b.onclick = () => { click(); openSettings(); }; return b; };
+function openSettings() {
+  const root = $('.cdk-overlay-container'); root.innerHTML = '';
+  const p = document.createElement('flow-prompt-box-settings');
+  p.append(radio(S.mode === 'image', 'image', 'Hình ảnh', () => { S.mode = 'image'; }), radio(S.mode === 'video', 'videocam', 'Video', () => { S.mode = 'video'; }));
+  if (S.mode === 'video') p.append(radio(S.vtype === 'frames', 'crop_free', 'Khung hình', () => { S.vtype = 'frames'; }), radio(S.vtype === 'ingredients', 'chrome_extension', 'Thành phần', () => { S.vtype = 'ingredients'; }));
+  for (const a of ['16:9', '9:16']) p.append(radio(S.aspect === a, 'crop_' + a.replace(':', '_'), a, () => { S.aspect = a; }));
+  if (S.mode === 'video') for (const d of [4, 6, 8, 10]) p.append(radio(S.dur === d, '', `${d} giây`, () => { S.dur = d; }));
+  p.append(radio(true, '', 'x1', () => {}));
+  root.appendChild(p); chip();
+}
+$('#chip').onclick = () => { if ($('flow-prompt-box-settings')) { $('.cdk-overlay-container').innerHTML = ''; chip(); } else openSettings(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('.cdk-overlay-container').innerHTML = ''; $('#menu').style.display = 'none'; chip(); } });
+$('#add').onclick = () => { target = 'atts'; $('#menu').style.display = 'block'; };
+$('#startSlot').onclick = () => { target = 'slot'; $('#menu').style.display = 'block'; };
+$('#upload').onclick = () => {
+  const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
+  input.addEventListener('change', () => {
+    const file = input.files[0]; if (!file) return; $('#menu').style.display = 'none';
+    const img = document.createElement('img'); img.src = URL.createObjectURL(file);
+    if (target === 'slot') { $('#startSlot').textContent = ''; $('#startSlot').appendChild(img); S.slot++; } else { $('#atts').appendChild(img); S.attachments++; }
+    // The upload also shows up in the grid, named after the file.
+    tile(`<img src="${URL.createObjectURL(file)}"><span>${file.name}</span>`);
+  });
+  input.click();
+};
+function tile(html) { const t = document.createElement('flow-grid-tile-container'); t.innerHTML = html; $('#grid').prepend(t); return t; }
+$('#send').onclick = () => {
+  const text = $('#box').innerText.trim(); if (!text) return;
+  S.sent.push({ text, mode: S.mode, vtype: S.vtype, aspect: S.aspect, dur: S.dur, attachments: $('#atts').querySelectorAll('img').length, slot: $('#startSlot').querySelectorAll('img').length });
+  $('#box').textContent = ''; $('#atts').innerHTML = ''; $('#startSlot').textContent = 'Bắt đầu';
+  const t = tile('<span>Đang tạo 10%</span>');
+  if (/BLOCKME/.test(text)) { setTimeout(() => { t.innerHTML = '<span>Chúng tôi phát hiện thấy hoạt động bất thường.</span>'; }, 800); return; }
+  if (/FAILME/.test(text)) { setTimeout(() => { t.innerHTML = '<span>Không tạo được. Đã xảy ra lỗi.</span>'; }, 800); return; }
+  n++;
+  setTimeout(() => { t.innerHTML = S.mode === 'video' ? `<video muted src="/media/clip${n}.mp4"></video><span>Video ${n}</span>` : `<img src="/media/img${n}.png"><span>Ảnh ${n}</span>`; }, 1500);
+};
+</script></body></html>

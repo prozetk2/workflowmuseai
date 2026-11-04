@@ -6,7 +6,7 @@
 
 **Quick install:** use `downloads/TheKey-studio-extension.zip` from this folder · No npm install or build step required.
 
-**cos_alpha_flow 1.7.1 (latest Google Flow extension):** load the `cos-alpha-flow/` folder unpacked. Tester guide and automated tests: [`cos-alpha-flow-tests/HUONG-DAN-TEST.md`](cos-alpha-flow-tests/HUONG-DAN-TEST.md).
+**cos_alpha_flow 1.7.2 (latest Google Flow extension):** load the `cos-alpha-flow/` folder unpacked. Tester guide and automated tests: [`cos-alpha-flow-tests/HUONG-DAN-TEST.md`](cos-alpha-flow-tests/HUONG-DAN-TEST.md).
 
 **Older Google Flow version:** the `thekey-flow/` folder holds **TheKey.studio Flow**, a separate extension that generates through Google Flow (Veo) or the Gemini API. Load that folder unpacked; see `thekey-flow/README.md`.
 

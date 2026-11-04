@@ -15,6 +15,10 @@
     submitScopes: ['div.submit-controls', 'flow-generate-icon-button', 'flow-base-prompt-box'],
     submitIcons: ['arrow_forward', 'send'],
     settingsIcons: ['tune', 'crop'],
+    // Flow 2026-11: the chip at the right of the prompt box ("Nano Banana 2.1 · 9:16 · x1" / "Video · 720p · 6 giây").
+    settingsButtons: ['button.settings-trigger-button'],
+    // The "Tác nhân" chip in the prompt box: aria-pressed="false" means prompts go straight to the chosen model.
+    agentModeChip: ['flow-agent-mode-toggle-chip button', 'button.agent-mode-chip'],
     settingsPanel: ['flow-prompt-box-settings'],
     videoModeIcons: ['videocam'],
     imageModeIcons: ['image', 'photo'],
@@ -489,7 +493,7 @@
     }
     return null;
   }
-  async function attachAgentImage(image, composer, warnings, signal) {
+  async function attachAgentImage(image, composer, warnings, signal, opener = null) {
     let pickerRoot = null;
     const area = () => composerArea(findComposer() || composer);
     // Pictures already in the message box (earlier attachments) and on the page before this upload.
@@ -502,7 +506,7 @@
     document.addEventListener('cosalpha-flow-file-input', onCaptured);
     document.documentElement.setAttribute('data-cosalpha-upload', '1');
     try {
-      const add = [...area().querySelectorAll(CLICKABLE)].filter(visible).find(el => iconNames(el).some(icon => list(SEL.addIcons).includes(icon)) || /thêm|add|đính kèm|attach/i.test(labelOf(el)));
+      const add = opener?.() || [...area().querySelectorAll(CLICKABLE)].filter(visible).find(el => iconNames(el).some(icon => list(SEL.addIcons).includes(icon)) || /thêm|add|đính kèm|attach/i.test(labelOf(el)));
       if (!add) throw flowError('Không thấy nút + cạnh ô nhập của Flow để thêm ảnh. Chưa gửi gì cả.');
       await press(add, signal, () => captured || findUploadButton(), 2500);
       if (!captured) {
@@ -834,7 +838,7 @@
     let openedHere = false;
     if (!panelOpen()) {
       const submit = findSubmit(), beside = submit?.previousElementSibling;
-      const button = withIcon(SEL.settingsIcons, SEL.submitScopes)[0] || (beside?.matches?.('button') && visible(beside) ? beside : null);
+      const button = settingsButton() || (beside?.matches?.('button') && visible(beside) ? beside : null);
       if (!button) { warnings.push('Could not find the Flow settings button; used the settings already chosen in Flow.'); return; }
       if (!(await press(button, signal, panelOpen))) { warnings.push('Flow settings did not open; used the settings already chosen in Flow.'); return; }
       openedHere = true;
@@ -879,9 +883,14 @@
       }
     }
     if (openedHere && panelOpen()) {
-      const button = withIcon(SEL.settingsIcons, SEL.submitScopes)[0];
+      const button = settingsButton();
       if (button) await press(button, signal, () => !panelOpen());
+      if (panelOpen()) await closePopups(signal, scopes(SEL.settingsPanel)[0]);
     }
+  }
+  function settingsButton() {
+    return firstVisible(SEL.settingsButtons || []) || withIcon(SEL.settingsIcons, SEL.submitScopes)[0]
+      || withIcon(['crop_'], SEL.promptScopes, { partial: true })[0] || null;
   }
 
   // Classic mode: close Flow's agent chat and switch the agent toggle off, then wait for the prompt box.
@@ -1026,6 +1035,109 @@
     });
   }
 
+  // ---------- Flow with "Tác nhân" off (2026-11) ----------
+  // The prompt box sends straight to the model chosen in its settings chip. Without switching that chip
+  // to Video first, a video prompt was made into a picture and the run waited forever for a video.
+  function directModelMode() {
+    const chip = firstVisible(SEL.agentModeChip || []);
+    return Boolean(chip && chip.getAttribute('aria-pressed') === 'false');
+  }
+  const settingsSummary = () => norm(settingsButton()?.innerText || '');
+  async function generateDirect(req, kind, signal) {
+    const warnings = [];
+    let composer = findComposer();
+    if (!composer) throw flowError(`Không thấy ô nhập "Bạn muốn tạo những gì?" của Flow. Hãy mở một dự án trong Flow rồi thử lại. (Trang: ${location.pathname})`, 'FLOW_NOT_READY');
+    const inputType = kind === 'video' ? (req.firstFrame ? 'frames' : 'ingredients') : '';
+    await configure({ ...req, kind, inputType }, warnings, signal);
+    // Never send a video prompt while Flow is still set to pictures (or the other way round): it spends credits on the wrong thing.
+    const isVideoSet = () => /\bvideo\b/i.test(settingsSummary());
+    if (kind === 'video' ? !(await waitFor(isVideoSet, 3000, signal)) : isVideoSet()) {
+      throw flowError(`Không chuyển được Flow sang chế độ ${kind === 'video' ? 'Video' : 'Hình ảnh'} (nút cài đặt đang ghi "${settingsSummary() || 'không thấy'}"). Chưa gửi gì cả.`, 'FLOW_NOT_READY');
+    }
+    composer = findComposer() || composer;
+    // The prompt box itself (with its slots and chips); never a page-sized ancestor, or new results would look like part of it.
+    const area = () => { const c = findComposer() || composer; return c.closest('flow-prompt-box') || c.closest('flow-base-prompt-box') || composerArea(c); };
+    // "Khung hình": the start frame goes into the "Bắt đầu" slot; otherwise pictures go in with the + button.
+    const startSlot = () => [...area().querySelectorAll(CLICKABLE)].filter(visible).find(el => /^(bắt đầu|start|first frame|khung đầu)$/i.test(textOf(el)));
+    const images = [];
+    if (req.firstFrame) images.push({ image: req.firstFrame, role: 'firstFrame' });
+    if (!(kind === 'video' && req.firstFrame)) for (const reference of req.references || []) images.push({ image: reference, role: 'reference' });
+    else if (req.references?.length) warnings.push('Video bắt đầu từ khung đầu nên ảnh tham chiếu không được gửi kèm.');
+    for (const [index, item] of images.entries()) {
+      const match = /^data:([^;,]+)/.exec(item.image) || [];
+      const type = match[1] || 'image/png';
+      const opener = kind === 'video' && item.role === 'firstFrame' ? startSlot : null;
+      if (opener && !opener()) throw flowError('Flow đang ở chế độ Khung hình nhưng không thấy ô "Bắt đầu" để gắn khung đầu. Chưa gửi gì cả.');
+      await attachAgentImage({ dataUrl: item.image, type, name: `thekey-${item.role}-${index + 1}.${(type.split('/')[1] || 'png').replace('jpeg', 'jpg')}` }, findComposer() || composer, warnings, signal, opener);
+    }
+    if (images.length) {
+      const busy = () => { const c = findComposer(); return !c || !canType(c) || [...composerArea(c).querySelectorAll('[role="progressbar"], mat-progress-spinner, mat-spinner, [class*="spinner"]')].some(visible); };
+      if (!(await waitFor(() => !busy(), 180000, signal, 500))) throw flowError('Flow vẫn đang xử lý ảnh vừa tải lên sau 3 phút. Chưa gửi gì cả.');
+      await delay(500, signal);
+    }
+    composer = findComposer() || composer;
+    // The model gets the scene prompt itself; the agent's "Generate exactly 1 …" wording is only for the agent.
+    await typePrompt(composer, String(req.prompt || '').trim(), signal);
+
+    const uploadName = /thekey-(firstFrame|reference)-\d/i;
+    const tileOf = el => el.closest?.(list(SEL.tiles).join(',')) || null;
+    const isUpload = el => uploadName.test(`${el.getAttribute?.('alt') || ''} ${tileOf(el)?.innerText || ''}`);
+    const baselineMedia = new Set(bigMedia(kind).map(item => item.src));
+    const baselineEls = new Set(document.querySelectorAll('video, img'));
+    const baselineTiles = new Set(query(SEL.tiles));
+    const baselineAlerts = new Set(alertTexts());
+    const hovered = new WeakSet();
+
+    let submit = findAgentSubmit(composer);
+    if (submit && isDisabled(submit)) submit = await waitFor(() => { const b = findAgentSubmit(findComposer() || composer); return b && !isDisabled(b) ? b : null; }, 8000, signal);
+    if (!submit) throw flowError('Nút "Bắt đầu tạo" của Flow vẫn bị khoá (ảnh còn đang tải lên hoặc đã hết credit). Chưa gửi gì cả.');
+    const sent = () => !norm(readEditor(findComposer() || composer)) || query(SEL.tiles).some(tile => !baselineTiles.has(tile)) || query(SEL.pending).length > 0;
+    // One submission only: the trusted retry inside press() fires only if nothing changed after the first click.
+    if (!(await press(submit, signal, sent, 4000))) throw flowError('Flow không xác nhận đã nhận lệnh. Hãy xem tab Flow; cos_alpha_flow không gửi lại.');
+
+    const timeoutMs = Math.min(1800, Math.max(60, Number(req.timeoutSec) || 900)) * 1000;
+    const deadline = Date.now() + timeoutMs;
+    const failingSince = new Map();
+    while (Date.now() < deadline) {
+      if (signal.aborted) throw abortError();
+      const alert = alertTexts().find(text => !baselineAlerts.has(text)) || '';
+      const newTiles = query(SEL.tiles).filter(tile => !baselineTiles.has(tile) && visible(tile));
+      const tileText = newTiles.map(tile => (tile.innerText || '').replace(/\s+/g, ' ').trim()).join(' · ');
+      if (BLOCKED_RX.test(alert) || BLOCKED_RX.test(tileText)) throw flowError('Google Flow đã chặn lượt này vì phát hiện "hoạt động bất thường" (tiện ích điều khiển trang). cos_alpha_flow đã dừng cả lượt chạy và không thử lại. Đừng bấm chạy liên tục; nếu Flow vẫn báo như vậy, hãy tạm nghỉ hoặc chuyển sang Gemini API trong Cài đặt.', 'FLOW_BLOCKED');
+      if (CREDIT_RX.test(alert)) throw flowError(`Flow: ${alert}`, 'NO_CREDITS');
+      if (POLICY_RX.test(alert)) throw flowError(`Flow từ chối câu lệnh này: ${alert}`, 'SCENE_REFUSED');
+      const currentArea = area();
+      const fresh = bigMedia(kind).find(item => !baselineMedia.has(item.src) && !currentArea.contains(item.el) && !isUpload(item.el));
+      if (!fresh && kind === 'video') {
+        // A finished video may show only its still until the mouse is over it.
+        const stills = newTiles.flatMap(tile => [...tile.querySelectorAll('img, video')]).filter(el => !baselineEls.has(el) && !hovered.has(el) && visible(el) && (el.tagName === 'IMG' || !mediaSrc(el)));
+        for (const el of stills.slice(0, 3)) { hovered.add(el); await hoverOver(el, signal); }
+      }
+      if (fresh) {
+        await delay(kind === 'video' ? 1500 : 800, signal);
+        let url = mediaSrc(fresh.el) || fresh.src;
+        let copied = await copyLocally(url, kind);
+        if (copied.error && url.startsWith('blob:')) { const link = videoLinkNear(fresh.el); if (link) { url = link; copied = await copyLocally(link, kind); } }
+        if (copied.url.startsWith('blob:')) throw flowError(`Flow đã tạo xong ${kindVi(kind)} nhưng phát nó theo dạng luồng nên cos_alpha_flow chưa chép ra được. ${kindVi(kind)} vẫn nằm trong dự án Flow của bạn.`);
+        if (copied.error) warnings.push(copied.error);
+        const size = kind === 'video' ? await videoInfo(copied.url) : await mediaSize(copied.url, kind);
+        return { ok: true, url: copied.url, remoteUrl: url, width: size.width, height: size.height, endFrame: size.endFrame || '', warnings, trustedInput: usedTrustedInput };
+      }
+      // A new tile that says it failed (policy, credits, error) and stays that way for 3 s.
+      for (const tile of newTiles) {
+        const text = (tile.innerText || '').replace(/\s+/g, ' ').trim();
+        if (!text || /(^|\s)\d{1,3}%(\s|$)/.test(text) || !(POLICY_RX.test(text) || CREDIT_RX.test(text) || FAIL_RX.test(text))) { failingSince.delete(tile); continue; }
+        const since = failingSince.get(tile) || Date.now(); failingSince.set(tile, since);
+        if (Date.now() - since > 3000) {
+          if (CREDIT_RX.test(text)) throw flowError(`Flow: ${text.slice(0, 300)}`, 'NO_CREDITS');
+          throw flowError(`Flow không tạo được ${kindVi(kind)} này: ${text.slice(0, 300)}`, POLICY_RX.test(text) ? 'SCENE_REFUSED' : 'FLOW_ERROR');
+        }
+      }
+      await delay(1000, signal);
+    }
+    throw flowError(`Đã chờ ${Math.round(timeoutMs / 1000)} giây mà Flow chưa trả ${kindVi(kind)} mới. Câu lệnh chỉ gửi một lần, không gửi lại.`, 'TIMEOUT');
+  }
+
   async function generate(req, signal) {
     inputMode = ['auto', 'dom', 'cdp'].includes(req.inputMode) ? req.inputMode : 'auto';
     uiMode = req.uiMode === 'classic' ? 'classic' : 'agent';
@@ -1037,6 +1149,7 @@
     // Wait for either the classic prompt box or the agent page to be drawn.
     let editor = await waitFor(() => findEditor() || (location.pathname.includes('/project/') && document.readyState === 'complete' && document.body.innerText.length > 50 ? 'page' : null), 15000, signal);
     if (editor === 'page') editor = findEditor();
+    if (!isClassicUi() && directModelMode()) return generateDirect(req, kind, signal);
     if (!isClassicUi()) return generateAgent(req, kind, signal);
     // The agent chat has its own text box; switch the agent off first so the prompt goes to Flow's own box.
     if (await switchAgentOff(signal)) editor = findEditor();

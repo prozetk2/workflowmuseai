@@ -1,4 +1,4 @@
-# Hướng dẫn test cos_alpha_flow 1.7.1
+# Hướng dẫn test cos_alpha_flow 1.7.2
 
 Tài liệu cho tester. Phần A là test bằng tay trên Chrome thật, phần B là chạy bộ test tự động (trang giả, không tốn credit).
 
@@ -9,7 +9,7 @@ Tài liệu cho tester. Phần A là test bằng tay trên Chrome thật, phần
 1. Tải repo về: nút **Code → Download ZIP** trên GitHub rồi giải nén, hoặc `git clone https://github.com/prozetk2/workflowmuseai.git`.
 2. Mở `chrome://extensions`, bật **Developer mode** (góc phải trên).
 3. Bấm **Load unpacked**, chọn thư mục `cos-alpha-flow` (thư mục có `manifest.json`).
-4. Kiểm tra thẻ extension ghi **1.7.1**. Nếu máy còn TheKey.studio Flow hoặc bản cos_alpha_flow cũ, tắt bản đó đi.
+4. Kiểm tra thẻ extension ghi **1.7.2**. Nếu máy còn TheKey.studio Flow hoặc bản cos_alpha_flow cũ, tắt bản đó đi.
 5. Mỗi lần kéo code mới về (`git pull`), quay lại `chrome://extensions` và bấm nút tải lại (mũi tên vòng) trên thẻ cos_alpha_flow, rồi tải lại tab Flow.
 
 ### 2. Chuẩn bị
@@ -95,14 +95,14 @@ Cần Node.js 18 trở lên.
 cd cos-alpha-flow-tests
 npm install
 npx playwright install chromium
-npm test                      # chạy t1..t18 với ../cos-alpha-flow
+npm test                      # chạy t1..t19 với ../cos-alpha-flow
 node run-all.js t14 t15       # chỉ chạy vài test
 node run-all.js D:\duong\dan\ban-khac t15   # test một bản extension khác
 ```
 
 Trên Linux/macOS có thể dùng `./run-all.sh` thay cho `npm test`.
 
-Mỗi test (t4–t18) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out-tN.txt`. Kết quả mong đợi ở bản 1.7.1: tất cả đều qua.
+Mỗi test (t4–t19) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out-tN.txt`. Kết quả mong đợi ở bản 1.7.2: tất cả đều qua.
 
 | Test | Kiểm tra |
 | --- | --- |
@@ -121,3 +121,4 @@ Mỗi test (t4–t18) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out
 | t16 | Ảnh nhiều góc: tự chèn khi thả ảnh, Ctrl+Z, ô Kiểu ảnh, mẫu mới, chạy cả chuỗi bằng Gemini API giả |
 | t17 | Ảnh / video Flow có link chuyển hướng sang host không cho đọc: vẫn chép về máy qua tab Flow, ảnh Flow → video, video phát trong node (cần lệnh `openssl`; không có thì test tự bỏ qua) |
 | t18 | Chạy tất cả qua chuỗi 3 video *Nối khung cuối* khi trang app không đọc được video (như khi nằm ở tab nền): không treo, khung cuối lấy từ tab Flow; tab Flow tải lại giữa chừng thì báo mất kết nối, không gửi lại cảnh đó, vẫn chạy node sau |
+| t19 | Flow giao diện tháng 11/2026 với **Tác nhân tắt**: app tự chuyển nút cài đặt sang Hình ảnh / Video (Khung hình hoặc Thành phần), tỉ lệ, thời lượng; khung đầu vào ô *Bắt đầu*; ảnh tải lên không bị lấy nhầm làm kết quả; "hoạt động bất thường" vẫn dừng cả lượt |
