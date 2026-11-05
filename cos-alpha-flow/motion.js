@@ -7,8 +7,15 @@
   const DURATIONS = [4, 6, 8, 10];
   // Written like TobyFlow's request (character = "image 1", the clip is the motion reference), not as "replace the person".
   // Image 1 = who; the reference video = only how they move. The sound line is added per clip (see composePrompt).
-  const DEFAULT_PROMPT = 'Image 1 is the character. The reference video is only a guide for motion and timing. Recreate the reference video shot for shot with the character from image 1 as the only person in it: the same body movement, gestures, head turns, facial expressions and mouth movement, the same timing and rhythm, the same camera position, framing and camera moves, the same room, props and lighting. In every frame the character keeps the face, hairstyle, body shape and outfit from image 1; nothing of the appearance of the person in the reference video (face, hair, clothes) carries over. Natural, realistic motion, no extra people, no on-screen text.';
-  const OLD_PROMPTS = ['Animate the character in image 1 so that they perform exactly the same movement as in the reference video: the same body motion, gestures, facial expressions and lip movement, the same timing, the same camera movement and framing, the same location and lighting. The character keeps their own face, hairstyle and outfit from image 1 in every frame. Keep the sound of the reference video.', 'Replace the person in the attached video with the character from the attached reference image(s). Keep exactly the same motion, body movement, gestures, facial expressions, lip movement and timing, and the same camera movement, framing, lighting and background as the video. The character must look exactly like the reference (same face, hair and outfit). Do not add or remove people or objects. Keep the original speech and sound.'];
+  // The prompt keeps the scene, the objects and the hand actions of the source clip; only the person changes.
+  const DEFAULT_PROMPT = [
+    'Image 1 is the character. The reference video is the scene and the action to recreate. Recreate the reference video shot for shot with the character from image 1 as the only person in it.',
+    'Keep exactly as in the reference video: the room and background, every piece of furniture and decoration in the same place, every object and product with the same shape, colours, size, printing and logos, the lighting and colours, and the camera position, framing, zoom and camera moves.',
+    'Same action at the same moment: every step, gesture, head turn, facial expression and mouth movement; the hands hold, lift, open, turn, place and use each object exactly where, when and how it happens in the reference video, and objects move only when the hands move them.',
+    'The character keeps the face, hairstyle, skin tone, body shape and outfit from image 1 in every frame; nothing of the appearance of the person in the reference video (face, hair, clothes) carries over. Match the realism and image quality of the reference video.',
+    'No extra people or hands, no added, missing or changed objects, no on-screen text or watermark.'
+  ].join('\n\n');
+  const OLD_PROMPTS = ['Image 1 is the character. The reference video is only a guide for motion and timing. Recreate the reference video shot for shot with the character from image 1 as the only person in it: the same body movement, gestures, head turns, facial expressions and mouth movement, the same timing and rhythm, the same camera position, framing and camera moves, the same room, props and lighting. In every frame the character keeps the face, hairstyle, body shape and outfit from image 1; nothing of the appearance of the person in the reference video (face, hair, clothes) carries over. Natural, realistic motion, no extra people, no on-screen text.', 'Animate the character in image 1 so that they perform exactly the same movement as in the reference video: the same body motion, gestures, facial expressions and lip movement, the same timing, the same camera movement and framing, the same location and lighting. The character keeps their own face, hairstyle and outfit from image 1 in every frame. Keep the sound of the reference video.', 'Replace the person in the attached video with the character from the attached reference image(s). Keep exactly the same motion, body movement, gestures, facial expressions, lip movement and timing, and the same camera movement, framing, lighting and background as the video. The character must look exactly like the reference (same face, hair and outfit). Do not add or remove people or objects. Keep the original speech and sound.'];
   const state = {
     project: null, sourceUrl: '', clipUrls: new Map(), resultUrls: new Map(), finalUrl: '',
     running: false, abort: null, requestId: '', ffmpeg: null, ffmpegLogs: []
@@ -40,7 +47,7 @@
   function saveNow() { clearTimeout(saveTimer); return idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')); }
   function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(() => idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')), 300); }
   function newProject() {
-    return { source: null, chars: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, audioMode: 'auto', silentFallback: true, pace: 5, parallel: 2, sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
+    return { source: null, chars: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, audioMode: 'auto', silentFallback: true, pace: 5, parallel: 2, sceneAI: true, sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
   }
 
   // ---------- small helpers ----------
@@ -59,14 +66,14 @@
       video.src = url;
     });
   }
-  function frameAt(url, time) {
+  function frameAt(url, time, size = 320) {
     return new Promise(resolve => {
       const video = document.createElement('video'); video.preload = 'auto'; video.muted = true; video.playsInline = true;
       const timer = setTimeout(() => resolve(''), 15000);
       video.onloadedmetadata = () => { video.currentTime = Math.min(Math.max(0, time), Math.max(0, video.duration - 0.05)); };
       video.onseeked = () => {
         try {
-          const scale = Math.min(1, 320 / Math.max(video.videoWidth, video.videoHeight)), canvas = document.createElement('canvas');
+          const scale = Math.min(1, size / Math.max(video.videoWidth, video.videoHeight)), canvas = document.createElement('canvas');
           canvas.width = Math.round(video.videoWidth * scale); canvas.height = Math.round(video.videoHeight * scale);
           canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
           clearTimeout(timer); resolve(canvas.toDataURL('image/jpeg', 0.8));
@@ -309,6 +316,67 @@
     saveSoon();
     return clip.transcript;
   }
+  // ---------- what must stay the same (scene, objects, camera, actions) ----------
+  // ChatGPT / Gemini looks at four frames of the clip and writes down the place, the objects, the camera and a
+  // timeline of what the hands do. It never describes the person, so nothing of their looks reaches the prompt.
+  const SCENE_SYSTEM = 'You help remake a short video clip with a different actor while everything else stays the same. The image is a 2x2 grid of frames from one clip in time order (top-left, top-right, bottom-left, bottom-right), each labelled with its time in seconds. Describe only what has to stay the same. Never describe the person\'s face, hair, skin, body or clothes and never guess who they are: call them "the person". Return JSON only: {"setting": "one sentence: the place, its layout, the main furniture and the lighting", "objects": ["up to 8 short items: each object or product the person uses or that stands out, with its colour, printing or logo and where it is"], "camera": "shot size, angle and any camera movement or cut", "actions": [{"start": seconds, "end": seconds, "text": "what the person does, above all with their hands and the objects: which hand, what they hold, lift, open, pull, turn or put down, and where"}]}. 2 to 5 actions covering the whole clip, times from the start of the clip. English, short and concrete.';
+  async function clipFrameGrid(clip) {
+    const url = await clipUrl(clip, 'clip'), length = Math.max(0.4, clip.end - clip.start);
+    const times = [0.1, length * 0.35, length * 0.65, Math.max(0.1, length - 0.15)];
+    const frames = [];
+    for (const time of times) frames.push({ time, src: await frameAt(url, time, 480) });
+    const images = await Promise.all(frames.map(frame => new Promise(resolve => { if (!frame.src) return resolve(null); const img = new Image(); img.onload = () => resolve(img); img.onerror = () => resolve(null); img.src = frame.src; })));
+    const first = images.find(Boolean); if (!first) throw new Error('Không lấy được khung hình của đoạn này.');
+    const w = first.naturalWidth, h = first.naturalHeight, canvas = document.createElement('canvas');
+    canvas.width = w * 2; canvas.height = h * 2;
+    const ctx = canvas.getContext('2d'); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    images.forEach((img, index) => {
+      const x = (index % 2) * w, y = Math.floor(index / 2) * h;
+      if (img) ctx.drawImage(img, x, y, w, h);
+      const label = `${frames[index].time.toFixed(1)} s`; ctx.font = `bold ${Math.round(h / 16)}px sans-serif`;
+      const pad = Math.round(h / 60), tw = ctx.measureText(label).width;
+      ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(x + pad, y + pad, tw + pad * 2, Math.round(h / 16) + pad * 2);
+      ctx.fillStyle = '#fff'; ctx.fillText(label, x + pad * 2, y + pad + Math.round(h / 16));
+    });
+    return canvas.toDataURL('image/jpeg', 0.85);
+  }
+  async function analyzeScene(clip, signal) {
+    const grid = await clipFrameGrid(clip);
+    const user = `Frames of a ${(clip.end - clip.start).toFixed(1)}-second clip.`;
+    const agent = state.project.settings.speechAgent || 'gemini-web';
+    let replyText;
+    if (agent === 'gemini-api') {
+      if (!window.CosAlphaAI?.text) throw new Error('Chưa tải được phần Gemini của app. Hãy tải lại trang Motion Studio.');
+      replyText = (await window.CosAlphaAI.text({ system: SCENE_SYSTEM, user, images: [grid], json: true, temperature: 0.2, signal })).text;
+    } else {
+      replyText = await chatWebAsk(agent, `${SCENE_SYSTEM}\n\n${user} Look at the attached image. Reply with the JSON object only.`, [{ dataUrl: grid, name: `motion-canh-${clip.index + 1}.jpg`, type: 'image/jpeg' }], signal);
+    }
+    const data = parseJsonReply(replyText);
+    const clean = value => String(value || '').replace(/\s+/g, ' ').trim();
+    clip.scene = {
+      setting: clean(data.setting), camera: clean(data.camera),
+      objects: (Array.isArray(data.objects) ? data.objects : []).map(clean).filter(Boolean).slice(0, 8),
+      actions: (Array.isArray(data.actions) ? data.actions : []).map(item => ({ start: Math.max(0, Number(item.start) || 0), end: Math.max(0, Number(item.end) || 0), text: clean(item.text) })).filter(item => item.text).slice(0, 6),
+      agent
+    };
+    saveSoon();
+    return clip.scene;
+  }
+  function sceneText(scene) {
+    if (!scene) return '';
+    if (scene.manual) return String(scene.text || '').trim();
+    const lines = [];
+    if (scene.setting) lines.push(`Scene (keep exactly): ${scene.setting.replace(/\.$/, '')}.`);
+    if (scene.objects?.length) lines.push(`Objects (keep exactly, same look and place): ${scene.objects.map(item => item.replace(/\.$/, '')).join('; ')}.`);
+    if (scene.camera) lines.push(`Camera (keep): ${scene.camera.replace(/\.$/, '')}.`);
+    if (scene.actions?.length) lines.push(`Action timeline (seconds from the start of the clip): ${scene.actions.map(item => `${item.start.toFixed(1)}–${item.end.toFixed(1)} s: ${item.text.replace(/\.$/, '')}`).join('; ')}.`);
+    return lines.join('\n');
+  }
+  async function ensureScene(clip, signal) {
+    if (!state.project.settings.sceneAI || clip.scene) return clip.scene || null;
+    status(`Đang cho ${AGENT_NAME[state.project.settings.speechAgent] || 'Gemini'} xem đoạn ${clip.index + 1} (bối cảnh, đồ vật, hành động)…`, 'warn');
+    return analyzeScene(clip, signal);
+  }
   async function ensureTranscript(clip, signal) {
     const t = clip.transcript;
     if (t && (t.manual || (t.target || '') === (state.project.settings.translate || ''))) return t;
@@ -326,6 +394,8 @@
   function composePrompt(clip) {
     const settings = state.project.settings, t = clip.transcript;
     const parts = [String(settings.prompt || DEFAULT_PROMPT).replace(SOUND_LINE, '').trim()];
+    const scene = settings.sceneAI !== false || clip.scene?.manual ? sceneText(clip.scene) : '';
+    if (scene) parts.push(scene);
     const speech = t?.has_speech && (settings.sync || settings.subtitles || settings.translate);
     const translated = Boolean(settings.translate && t?.translation);
     const line = speech ? (translated ? t.translation : t.text).replace(/"/g, "'") : '';
@@ -435,6 +505,20 @@
       }
     };
     try {
+      // ChatGPT / Gemini work first, one clip at a time (one chat tab), so the parallel sends below never wait on it.
+      let sceneWarned = false;
+      for (const clip of todo) {
+        if (signal.aborted) break;
+        if (state.project.settings.sceneAI && !clip.scene) {
+          try { await ensureScene(clip, signal); renderClips(); }
+          catch (error) {
+            if (error?.name === 'AbortError' || signal.aborted) throw error;
+            clip.sceneError = error.message;
+            if (!sceneWarned) { sceneWarned = true; status(`Không xem được cảnh đoạn ${clip.index + 1} (${error.message.slice(0, 160)}); vẫn tạo bằng câu lệnh chung.`, 'warn'); await sleep(1500, signal); }
+          }
+        }
+        if (needsDialogue()) { try { await ensureTranscript(clip, signal); } catch (error) { if (error?.name === 'AbortError' || signal.aborted) throw error; } }
+      }
       // Workers start a little apart so the first send reaches Flow before the second one asks for the prompt box.
       await Promise.all(Array.from({ length: Math.min(limit, todo.length) }, (_, slot) => sleep(slot * 1500, signal).then(worker)));
       if (stopped) status(stopped, 'error');
@@ -533,7 +617,7 @@
     $('#msSpeechAgent').value = settings.speechAgent || 'gemini-web';
     $('#msSync').checked = Boolean(settings.sync); $('#msVoiceDesc').value = settings.voiceDesc || ''; $('#msFlowVoice').value = settings.flowVoice || '';
     $('#msSubtitles').checked = Boolean(settings.subtitles); $('#msTranslate').value = settings.translate || ''; $('#msVoiceBox').classList.toggle('hidden', !settings.sync);
-    $('#msPrompt').value = settings.prompt; $('#msAudioMode').value = settings.audioMode || 'auto'; $('#msSilentFallback').checked = settings.silentFallback !== false; $('#msPace').value = String(settings.pace); $('#msParallel').value = String(settings.parallel || 2);
+    $('#msPrompt').value = settings.prompt; $('#msAudioMode').value = settings.audioMode || 'auto'; $('#msSilentFallback').checked = settings.silentFallback !== false; $('#msPace').value = String(settings.pace); $('#msSceneAI').checked = settings.sceneAI !== false; $('#msParallel').value = String(settings.parallel || 2);
   }
   function renderSource() {
     const source = state.project.source, video = $('#msSourceVideo');
@@ -594,6 +678,7 @@
     if (result) $('#msModalResult').src = result; else $('#msModalResult').removeAttribute('src');
     $('#msModalError').textContent = clip.status === 'error' || clip.error ? clip.error : '';
     $('#msModalTranscript').value = clip.transcript?.text || ''; $('#msModalTranslation').value = clip.transcript?.translation || '';
+    $('#msModalScene').value = sceneText(clip.scene); $('#msModalAnalyze').disabled = state.running;
     $('#msModalTranscribe').disabled = state.running;
     $('#msModalRegen').disabled = state.running;
     $('#msModalRegen').lastChild.textContent = clip.result ? 'Tạo lại đoạn này' : 'Tạo đoạn này';
@@ -630,7 +715,7 @@
       saveSoon(); renderAll(); status('Đã làm mới dự án.', 'ok');
     };
     const bind = (id, key, parse = value => value) => { $(id).onchange = () => { state.project.settings[key] = parse($(id).type === 'checkbox' ? $(id).checked : $(id).value); saveSoon(); }; };
-    bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msAudioMode', 'audioMode'); bind('#msSilentFallback', 'silentFallback', Boolean); bind('#msPace', 'pace', Number); bind('#msParallel', 'parallel', Number);
+    bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msAudioMode', 'audioMode'); bind('#msSilentFallback', 'silentFallback', Boolean); bind('#msPace', 'pace', Number); bind('#msSceneAI', 'sceneAI', Boolean); bind('#msParallel', 'parallel', Number);
     bind('#msSpeechAgent', 'speechAgent');
     bind('#msSync', 'sync', Boolean); bind('#msSubtitles', 'subtitles', Boolean); bind('#msTranslate', 'translate');
     $('#msSync').addEventListener('change', () => $('#msVoiceBox').classList.toggle('hidden', !$('#msSync').checked));
@@ -642,6 +727,19 @@
       try { const t = await transcribe(clip); $('#msModalTranscript').value = t.text; $('#msModalTranslation').value = t.translation; $('#msModalError').textContent = t.has_speech ? '' : 'Gemini không nghe thấy lời thoại trong đoạn này.'; renderClips(); }
       catch (error) { $('#msModalError').textContent = error.message; }
       finally { $('#msModalTranscribe').disabled = false; }
+    };
+    $('#msModalAnalyze').onclick = async () => {
+      const clip = modalClip; if (!clip || state.running) return;
+      $('#msModalAnalyze').disabled = true; $('#msModalError').textContent = '';
+      try { await analyzeScene(clip); $('#msModalScene').value = sceneText(clip.scene); renderClips(); }
+      catch (error) { $('#msModalError').textContent = error.message; }
+      finally { $('#msModalAnalyze').disabled = false; }
+    };
+    $('#msModalSaveScene').onclick = () => {
+      const clip = modalClip; if (!clip) return;
+      const text = $('#msModalScene').value.trim();
+      clip.scene = text ? { manual: true, text } : null;
+      saveSoon(); $('#msModalError').textContent = text ? 'Đã lưu mô tả cảnh cho đoạn này.' : 'Đã xoá mô tả cảnh; đoạn này sẽ được xem lại khi tạo.';
     };
     $('#msModalSaveDialogue').onclick = () => {
       const clip = modalClip; if (!clip) return;

@@ -1,0 +1,63 @@
+// 1.13.0 Motion Studio prompt: keeps the scene, the objects, the camera and the hand actions of the source clip.
+// ChatGPT (fake tab) looks at a 2x2 frame grid of each clip and its notes go into the clip's prompt; the notes can
+// be edited by hand.
+const { chromium } = require('playwright');
+const fs = require('fs'), path = require('path'), os = require('os');
+const { png, check, summary } = require('./common');
+const EXT = process.argv[2];
+const FAKE = fs.readFileSync(__dirname + '/fake-flow-direct.html', 'utf8');
+const CHAT = fs.readFileSync(__dirname + '/fake-chat.html', 'utf8');
+const MP4 = fs.readFileSync(__dirname + '/v.mp4');
+(async () => {
+  const ctx = await chromium.launchPersistentContext('', { headless: false, viewport: { width: 1400, height: 900 }, args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, '--headless=new'] });
+  const sw = ctx.serviceWorkers()[0] || await ctx.waitForEvent('serviceworker');
+  const id = sw.url().split('/')[2];
+  await ctx.route('https://flow.google.com/**', route => /\/media\/clip\d+\.mp4/.test(route.request().url()) ? route.fulfill({ contentType: 'video/mp4', body: MP4 }) : route.fulfill({ contentType: 'text/html', body: FAKE }));
+  await ctx.route(/https:\/\/chatgpt\.com\/.*/, r => r.fulfill({ contentType: 'text/html', body: CHAT }));
+  const errors = [];
+  const flow = await ctx.newPage(); flow.on('pageerror', e => errors.push('flow:' + e.message));
+  await flow.goto('https://flow.google.com/project/abc'); await flow.waitForTimeout(1000);
+  const page = await ctx.newPage(); page.on('pageerror', e => errors.push('motion:' + e.message)); page.on('dialog', d => d.accept());
+  await page.goto(`chrome-extension://${id}/motion.html`); await page.waitForTimeout(1000);
+  const chat = await ctx.newPage(); await chat.goto('https://chatgpt.com/'); await chat.waitForTimeout(800);
+  await page.evaluate(async () => { const [tab] = await chrome.tabs.query({ url: 'https://chatgpt.com/*' }); await chrome.storage.session.set({ cosalphaChatTabs: { chatgpt: tab.id } }); });
+  check('Mặc định bật "Cho AI xem từng đoạn"', await page.isChecked('#msSceneAI'));
+  const prompt = await page.inputValue('#msPrompt');
+  check('Câu lệnh mặc định giữ bối cảnh, đồ vật, góc máy và thao tác tay', /Keep exactly as in the reference video/.test(prompt) && /printing and logos/.test(prompt) && /the hands hold, lift, open, turn, place/.test(prompt) && /no added, missing or changed objects/.test(prompt), prompt);
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'motion-'));
+  const videoFile = path.join(tmp, 'source.mp4'), charFile = path.join(tmp, 'character.png');
+  fs.writeFileSync(videoFile, MP4); fs.writeFileSync(charFile, png(120, 160, [200, 60, 60]));
+  await page.setInputFiles('#msSourceInput', videoFile);
+  await page.waitForFunction(() => window.__cosAlphaMotion?.state.project.source, null, { timeout: 20000 });
+  await page.setInputFiles('#msCharInput', charFile);
+  await page.waitForFunction(() => window.__cosAlphaMotion.state.project.chars.length === 1);
+  await page.selectOption('#msSpeechAgent', 'chatgpt');
+  await page.evaluate(() => { const s = window.__cosAlphaMotion.state.project.settings; s.clipLen = 8; s.pace = 0; });
+  await page.click('#msSplit');
+  await page.waitForFunction(() => window.__cosAlphaMotion.state.project.clips.length && !document.querySelector('#msSplit').disabled, null, { timeout: 120000 });
+  await page.click('#msGenerate');
+  await page.waitForFunction(() => { const s = window.__cosAlphaMotion.state; return !s.running && s.project.clips.every(c => !['idle', 'running'].includes(c.status)); }, null, { timeout: 180000 });
+  const chatState = await chat.evaluate(() => ({ files: window.__chat.files, sent: window.__chat.sent }));
+  const sent = await flow.evaluate(() => window.__flowState.sent.map(s => s.text));
+  const scene = await page.evaluate(() => window.__cosAlphaMotion.state.project.clips[0].scene);
+  console.log(JSON.stringify(chatState.files), JSON.stringify(scene), (sent[0] || '').slice(-700));
+  check('Gửi ChatGPT 1 ảnh lưới khung hình (.jpg) cho mỗi đoạn', chatState.files.length >= 1 && chatState.files.every(f => f.type === 'image/jpeg' && /motion-canh-\d+\.jpg/.test(f.name)), JSON.stringify(chatState.files));
+  check('Câu hỏi dặn không mô tả gương mặt, tóc, quần áo của người trong video', /Never describe the person's face, hair, skin, body or clothes/.test(chatState.sent[0] || ''));
+  check('Ghi lại bối cảnh, đồ vật, góc máy, hành động', scene?.objects?.length === 2 && scene.actions?.length === 2 && /office/.test(scene.setting) && /Static/.test(scene.camera), JSON.stringify(scene));
+  const s0 = sent[0] || '';
+  check('Câu lệnh gửi Flow có phần bối cảnh, đồ vật, góc máy và mốc thời gian hành động', /Scene \(keep exactly\): A bright white office/.test(s0) && /Objects \(keep exactly, same look and place\): brown UPGEN LUMIX/.test(s0) && /Camera \(keep\): Static medium shot/.test(s0) && /Action timeline \(seconds from the start of the clip\): 0\.0–2\.5 s: The person reaches/.test(s0), s0.slice(-600));
+  check('Phần cảnh nằm trước câu về âm thanh, chỉ một câu "Sound:"', s0.indexOf('Action timeline') > 0 && s0.indexOf('Action timeline') < s0.indexOf('Sound:') && (s0.match(/Sound:/g) || []).length === 1);
+  // Edit the notes by hand, regenerate: the edited notes go out, ChatGPT is not asked again.
+  const asked = chatState.sent.length;
+  await page.click('.ms-clip');
+  check('Hộp thoại đoạn hiện mô tả cảnh', /Action timeline/.test(await page.inputValue('#msModalScene')));
+  await page.fill('#msModalScene', 'Scene (keep exactly): GHI TAY bàn trắng.'); await page.click('#msModalSaveScene'); await page.click('#msModalRegen');
+  await page.waitForTimeout(500);
+  await page.waitForFunction(() => !window.__cosAlphaMotion.state.running, null, { timeout: 120000 });
+  await page.waitForTimeout(600);
+  const sent2 = await flow.evaluate(() => window.__flowState.sent.map(s => s.text));
+  check('Sửa tay mô tả cảnh rồi tạo lại: dùng đúng bản đã sửa, không hỏi ChatGPT lại', /GHI TAY bàn trắng/.test(sent2.at(-1) || '') && !/Action timeline/.test(sent2.at(-1) || '') && (await chat.evaluate(() => window.__chat.sent.length)) === asked, (sent2.at(-1) || '').slice(-300));
+  check('Không có lỗi JavaScript trên trang', !errors.length, errors.join(' | '));
+  const failed = summary();
+  await ctx.close(); process.exit(failed ? 1 : 0);
+})().catch(e => { console.error('FAIL', e); process.exit(1); });

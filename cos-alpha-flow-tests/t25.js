@@ -31,7 +31,7 @@ const MP4 = fs.readFileSync(__dirname + '/v.mp4'), OTHER = fs.readFileSync(__dir
   await page.setInputFiles('#msCharInput', charFile);
   await page.waitForFunction(() => window.__cosAlphaMotion.state.project.chars.length === 1);
   const duration = await page.evaluate(() => window.__cosAlphaMotion.state.project.source.duration);
-  await page.evaluate(len => { const s = window.__cosAlphaMotion.state.project.settings; s.clipLen = len; s.pace = 0; }, Math.round(duration / 3.2 * 100) / 100);
+  await page.evaluate(len => { const s = window.__cosAlphaMotion.state.project.settings; s.clipLen = len; s.pace = 0; s.sceneAI = false; }, Math.round(duration / 3.2 * 100) / 100);
   await page.click('#msSplit');
   await page.waitForFunction(() => window.__cosAlphaMotion.state.project.clips.length && !document.querySelector('#msSplit').disabled, null, { timeout: 120000 });
   const count = await page.evaluate(() => window.__cosAlphaMotion.state.project.clips.length);

@@ -102,7 +102,7 @@ node run-all.js D:\duong\dan\ban-khac t15   # test một bản extension khác
 
 Trên Linux/macOS có thể dùng `./run-all.sh` thay cho `npm test`.
 
-Mỗi test (t4–t25) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out-tN.txt`. Kết quả mong đợi ở bản 1.12.0: tất cả đều qua.
+Mỗi test (t4–t26) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out-tN.txt`. Kết quả mong đợi ở bản 1.13.0: tất cả đều qua.
 
 | Test | Kiểm tra |
 | --- | --- |
@@ -128,3 +128,4 @@ Mỗi test (t4–t25) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out
 | t23 | Motion Studio âm thanh: ChatGPT (trang giả) nhận .wav và trả lời thoại có mốc thời gian; câu lệnh có Timeline + giọng mới; Flow báo "Không tạo được âm thanh" → tự bật "Trả về video không có âm thanh", gửi lại 1 lần; ghép lấy âm thanh gốc; nút Làm lại âm thanh |
 | t24 | Motion Studio: mỗi đoạn lấy đúng video mới của nó; Flow ký lại link video cũ (đổi query) không làm lấy nhầm video đoạn trước; trùng video thì dừng (DUPLICATE_RESULT) |
 | t25 | Motion Studio như TobyFlow: theo dõi kết quả qua câu trả lời mạng của Flow (mã item, trạng thái, mã lỗi); chạy 2 đoạn cùng lúc, mỗi đoạn đúng video của nó; ảnh nhân vật tải 1 lần rồi chọn lại trong thư viện Flow; mã từ chối (PROMINENT_PEOPLE) báo lỗi ngay |
+| t26 | Motion Studio câu lệnh mới: giữ bối cảnh, đồ vật, góc máy, thao tác tay; ChatGPT (trang giả) xem lưới 4 khung hình của đoạn, ghi bối cảnh + đồ vật + góc máy + mốc thời gian hành động vào câu lệnh (không mô tả người); sửa tay mô tả cảnh rồi tạo lại dùng đúng bản đã sửa |

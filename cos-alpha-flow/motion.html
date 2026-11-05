@@ -39,6 +39,7 @@
         <h3>Câu lệnh cho Flow</h3>
         <textarea id="msPrompt" rows="7"></textarea>
         <button id="msPromptReset" type="button" class="ms-link">Dùng lại câu lệnh mặc định</button>
+        <label class="ms-check"><input id="msSceneAI" type="checkbox" checked /> Cho AI xem từng đoạn và ghi rõ bối cảnh, đồ vật, góc máy, hành động của tay vào câu lệnh (dùng trợ lý ở ô "Chép lời bằng")</label>
       </section>
       <section>
         <h3>Lời thoại</h3>
@@ -98,6 +99,8 @@
       <div class="ms-dialogue">
         <label>Lời thoại gốc (sửa được)<textarea id="msModalTranscript" rows="3" placeholder="Chưa có lời thoại. Bấm Lấy lời thoại, hoặc gõ tay."></textarea></label>
         <label>Bản dịch (nếu chọn dịch)<textarea id="msModalTranslation" rows="3"></textarea></label>
+        <label>Bối cảnh, đồ vật, hành động (AI ghi, sửa được)<textarea id="msModalScene" rows="4" placeholder="Chưa có. Bấm Xem cảnh, hoặc tự gõ."></textarea></label>
+        <div class="ms-dialogue-actions"><button id="msModalAnalyze" type="button" class="ms-ghost"><i data-ic="scan-eye"></i>Xem cảnh</button><button id="msModalSaveScene" type="button" class="ms-ghost"><i data-ic="save"></i>Lưu mô tả cảnh</button></div>
         <div class="ms-dialogue-actions"><button id="msModalTranscribe" type="button" class="ms-ghost"><i data-ic="audio-lines"></i>Lấy lời thoại</button><button id="msModalSaveDialogue" type="button" class="ms-ghost"><i data-ic="save"></i>Lưu lời thoại</button></div>
       </div>
       <p id="msModalError" class="ms-error"></p>

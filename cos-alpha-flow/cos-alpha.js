@@ -809,7 +809,7 @@
       $('#paTone').value.trim() && `Tone / genre: ${$('#paTone').value.trim()}.`,
       count > 1 && $('#paStory').checked && 'The prompts are consecutive shots of ONE continuous story (a storyboard): each shot follows from the previous one, with a hook at the start and a clear ending.',
       count > 1 && $('#paConsistent').checked && 'Keep characters, outfits, products and locations identical across all prompts: repeat their full visual description word for word in every prompt.',
-      kind === 'video' && `Each video prompt is about ${Math.min(8, per)} seconds: write it as "Start: <first frame> End: <how it ends>", with one main action, the camera movement and pacing; keep faces, hands and objects stable, no cuts.`,
+      kind === 'video' && `Each video prompt is about ${Math.min(8, per)} seconds: write it as "Start: <first frame> End: <how it ends>", with one main action in clear beats, the camera movement and pacing; keep faces, hands and objects stable, no cuts. End each video prompt with "Sound: <ambience and sound effects; dialogue in quotes only if the idea has speech; no music unless asked>".`,
       cues && 'The user gave subtitles: write one prompt per subtitle line, in the same order, each illustrating that line (no text or captions in the image).',
       pa.refs.length && 'Reference images are attached: describe their subject (person, product, place) faithfully and keep it the same in every prompt.',
       $('#paNegative').value.trim() && `Avoid: ${$('#paNegative').value.trim()}.`,

@@ -41,7 +41,7 @@ const MP4 = fs.readFileSync(__dirname + '/v.mp4');
   await page.waitForFunction(() => window.__cosAlphaMotion?.state.project.source, null, { timeout: 20000 });
   await page.setInputFiles('#msCharInput', charFile);
   await page.waitForFunction(() => window.__cosAlphaMotion.state.project.chars.length === 1);
-  await page.evaluate(() => { const s = window.__cosAlphaMotion.state.project.settings; s.clipLen = 8; s.pace = 0; });
+  await page.evaluate(() => { const s = window.__cosAlphaMotion.state.project.settings; s.clipLen = 8; s.pace = 0; s.sceneAI = false; });
   await page.click('#msSplit');
   await page.waitForFunction(() => window.__cosAlphaMotion.state.project.clips.length && !document.querySelector('#msSplit').disabled, null, { timeout: 120000 });
   // Dialogue settings through the page controls.

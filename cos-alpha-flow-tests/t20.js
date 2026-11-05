@@ -40,7 +40,7 @@ const MP4 = fs.readFileSync(__dirname + '/v.mp4');
   await page.waitForFunction(() => window.__cosAlphaMotion.state.project.chars.length === 1);
   // Clips of 1 s, so the short test video gives several clips (the length list starts at 4 s in the UI).
   const duration = source.duration, wanted = Math.round(duration / 2.5 * 100) / 100;
-  await page.evaluate(len => { window.__cosAlphaMotion.state.project.settings.clipLen = len; window.__cosAlphaMotion.state.project.settings.pace = 0; }, wanted);
+  await page.evaluate(len => { window.__cosAlphaMotion.state.project.settings.clipLen = len; window.__cosAlphaMotion.state.project.settings.pace = 0; window.__cosAlphaMotion.state.project.settings.sceneAI = false; }, wanted);
   await page.click('#msSplit');
   await page.waitForFunction(() => { const s = window.__cosAlphaMotion.state; return s.project.clips.length && !document.querySelector('#msSplit').disabled; }, null, { timeout: 120000 });
   const clips = await page.evaluate(() => window.__cosAlphaMotion.state.project.clips.map(c => ({ start: c.start, end: c.end, thumb: Boolean(c.thumb) })));
@@ -53,7 +53,7 @@ const MP4 = fs.readFileSync(__dirname + '/v.mp4');
   console.log('status', JSON.stringify(st), JSON.stringify(sent));
   check('Tạo hết các đoạn, không treo', finished && st.every(c => c.s === 'success' && c.r), JSON.stringify(st));
   check('Mỗi đoạn gửi 1 lần ở Video · Thành phần, kèm 1 video + 1 ảnh nhân vật', sent.length === clips.length && sent.every(s => s.mode === 'video' && s.vtype === 'ingredients' && s.videos === 1 && s.attachments === 1), JSON.stringify(sent));
-  check('Câu lệnh kiểu "nhân vật trong ảnh 1 làm theo chuyển động", không viết "replace the person"', sent.every(s => /Image 1 is the character/.test(s.text) && /only a guide for motion/.test(s.text) && !/replace the person/i.test(s.text)));
+  check('Câu lệnh: nhân vật ảnh 1, giữ nguyên bối cảnh, đồ vật, thao tác tay; không viết "replace the person"', sent.every(s => /Image 1 is the character/.test(s.text) && /Keep exactly as in the reference video/.test(s.text) && /the hands hold, lift, open/.test(s.text) && !/replace the person/i.test(s.text)));
   check('Ảnh nhân vật gắn trước, đoạn video gắn sau (nhân vật là ảnh 1)', sent.every(s => s.order === 'image,video'), sent.map(s => s.order).join(' | '));
   check('Motion Studio dùng mô hình đã chọn (mặc định Omni 1.1 Flash)', sent.every(s => s.model === 'Omni 1.1 Flash'), sent.map(s => s.model).join(','));
   check('Tỉ lệ theo video gốc (ngang → 16:9)', sent.every(s => s.aspect === (source.width >= source.height ? '16:9' : '9:16')), sent.map(s => s.aspect).join(','));
