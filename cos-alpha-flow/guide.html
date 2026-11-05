@@ -16,6 +16,7 @@
 <div class="layout">
 <nav class="toc" aria-label="Mục lục">
   <strong>Mục lục</strong>
+  <a href="#moi-1-11">Mới trong bản 1.11: sửa lỗi các đoạn ra cùng một video</a>
   <a href="#moi-1-10">Mới trong bản 1.10: âm thanh Motion Studio</a>
   <a href="#moi-1-9">Mới trong bản 1.9: lời thoại Motion Studio</a>
   <a href="#moi-1-8">Mới trong bản 1.8: Motion Studio</a>
@@ -51,6 +52,14 @@
 </nav>
 
 <main>
+<section id="moi-1-11">
+<h2>Mới trong cos_alpha_flow 1.11: mỗi đoạn Motion Studio ra đúng video của nó</h2>
+<ul>
+  <li><b>Sửa lỗi</b>: ở bản 1.10, từ đoạn 2 trở đi Motion Studio có thể lấy lại video của đoạn trước, nên nhiều đoạn ra cùng một cảnh. Lý do: Flow đổi chữ ký của link video cũ mỗi khi lưới hiện lại, nên app tưởng đó là video mới. Giờ app so sánh link không tính phần chữ ký và bỏ qua mọi ô đã có trên lưới trước khi gửi.</li>
+  <li><b>Chặn trùng</b>: nếu Flow vẫn trả về đúng video của một đoạn khác, đoạn đó báo lỗi và Motion Studio dừng, không ghép video trùng.</li>
+  <li>Các video bản 1.10 đã tạo vẫn nằm trong dự án Flow; hãy bấm tạo lại các đoạn bị trùng (hoặc lấy video từ Flow).</li>
+</ul>
+</section>
 <section id="moi-1-10">
 <h2>Mới trong cos_alpha_flow 1.10: âm thanh và câu lệnh Motion Studio</h2>
 <ul>
@@ -761,7 +770,7 @@ Audio: tiếng chuông xe đạp, nhạc vui tươi</pre>
 <details><summary>Có thêm nhạc hoặc giọng đọc riêng được không?</summary><p>App xuất phim có âm thanh do Flow tạo. Để lồng nhạc hoặc giọng đọc riêng, hãy mở file MP4 bằng phần mềm dựng như CapCut hoặc Premiere.</p></details>
 </section>
 
-<footer>cos_alpha_flow 1.10.0 · Chúc bạn sáng tạo vui vẻ </footer>
+<footer>cos_alpha_flow 1.11.0 · Chúc bạn sáng tạo vui vẻ </footer>
 </main>
 </div>
 </body>

@@ -374,11 +374,15 @@
     await keepResult(clip, reply);
   }
   async function keepResult(clip, reply) {
+    // The same Flow video for two clips means the result of an earlier clip was picked up again: stop, never merge it.
+    const key = String(reply.remoteUrl || '').split(/[?#]/)[0];
+    const twin = key && !key.startsWith('blob:') ? state.project.clips.find(other => other !== clip && other.resultKey === key) : null;
+    if (twin) throw Object.assign(new Error(`Flow trả lại đúng video của đoạn ${state.project.clips.indexOf(twin) + 1}, không phải video mới của đoạn này. Hãy mở tab Flow xem đoạn này đã tạo xong chưa rồi bấm tạo lại.`), { code: 'DUPLICATE_RESULT' });
     const result = await (await fetch(reply.url)).blob();
     if (!result.size) throw new Error('Video Flow trả về bị rỗng.');
     await putBlob(`result:${clip.id}`, result.type ? result : new Blob([result], { type: 'video/mp4' }));
     objectUrl(state.resultUrls, clip.id, result);
-    clip.result = true; clip.status = 'success'; clip.error = (reply.warnings || []).join(' ');
+    clip.result = true; clip.status = 'success'; clip.error = (reply.warnings || []).join(' '); clip.resultKey = key;
     clip.resultThumb = await frameAt(state.resultUrls.get(clip.id), 0.1);
     clip.resultSilent = !(await blobHasAudio(result));
   }
@@ -411,7 +415,7 @@
           if (error?.name === 'AbortError' || signal.aborted) throw error;
           clip.status = 'error'; clip.error = error.message; failed++;
           // Google's "unusual activity" notice or no credits: stop instead of sending more.
-          if (['FLOW_BLOCKED', 'NO_CREDITS', 'FLOW_NOT_READY'].includes(error.code)) { status(error.message, 'error'); break; }
+          if (['FLOW_BLOCKED', 'NO_CREDITS', 'FLOW_NOT_READY', 'DUPLICATE_RESULT'].includes(error.code)) { status(error.message, 'error'); break; }
           // Flow refused the content (for example a real or well-known person): the other clips use the same video
           // and pictures, so stop instead of sending them all to be refused too.
           if (error.code === 'SCENE_REFUSED') { status(`Flow từ chối nội dung đoạn ${clip.index + 1}, nên Motion Studio dừng các đoạn còn lại. Hãy dùng video bạn tự quay và ảnh nhân vật do AI tạo, rồi bấm tạo lại. (${error.message.slice(0, 200)})`, 'error'); break; }

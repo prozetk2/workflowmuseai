@@ -631,7 +631,7 @@
     await typePrompt(composer, message, signal);
 
     const panel = agentPanel(composer);
-    const baselineMedia = new Set(bigMedia(kind).map(item => item.src));
+    const baselineKeys = mediaSnapshot();
     const baselineEls = new Set(document.querySelectorAll('video, img'));
     const hovered = new WeakSet();
     // What appeared on the page since sending; added to timeout and refusal errors so they can be fixed.
@@ -681,7 +681,7 @@
       // Prefer the new result in the main grid; something new only inside the chat (for example the
       // attached image echoed back) is taken only if nothing shows up in the grid for 20 s.
       const currentPanelForMedia = agentPanel(findComposer() || composer);
-      const newMedia = bigMedia(kind).filter(item => !baselineMedia.has(item.src));
+      const newMedia = bigMedia(kind).filter(item => !isOldMedia(item.el, item.src, baselineKeys));
       let fresh = newMedia.find(item => !currentPanelForMedia.contains(item.el));
       if (!fresh && newMedia.length) {
         panelMediaSince = panelMediaSince || Date.now();
@@ -750,6 +750,21 @@
   }
   function pendingCount() {
     return query(SEL.pending).length + tiles().filter(tile => tile.percent).length;
+  }
+  // Flow signs its media links (Expires/Signature) and swaps them when a tile is shown again or hovered, so
+  // "is this media new?" compares the link without its query, and also asks whether the media sits in a tile
+  // that was already on the page before the send (the previous result's tile loads its <video> on hover).
+  function mediaKey(src) { return String(src || '').split(/[?#]/)[0]; }
+  function mediaSnapshot() {
+    const keys = new Set();
+    for (const el of document.querySelectorAll('video, img')) { const src = mediaSrc(el); if (src) keys.add(mediaKey(src)); }
+    keys.tiles = new Set(query(SEL.tiles));
+    return keys;
+  }
+  function isOldMedia(el, src, keys) {
+    if (keys.has(mediaKey(src))) return true;
+    const tile = el?.closest?.(list(SEL.tiles).join(','));
+    return Boolean(tile && keys.tiles?.has(tile));
   }
   function allMediaSources() {
     const set = new Set();
@@ -1114,7 +1129,7 @@
     const uploadName = /thekey-(firstFrame|reference|source)-\d/i;
     const tileOf = el => el.closest?.(list(SEL.tiles).join(',')) || null;
     const isUpload = el => uploadName.test(`${el.getAttribute?.('alt') || ''} ${tileOf(el)?.innerText || ''}`);
-    const baselineMedia = new Set(bigMedia(kind).map(item => item.src));
+    const baselineKeys = mediaSnapshot();
     const baselineEls = new Set(document.querySelectorAll('video, img'));
     const baselineTiles = new Set(query(SEL.tiles));
     const baselineAlerts = new Set(alertTexts());
@@ -1139,7 +1154,7 @@
       if (CREDIT_RX.test(alert)) throw flowError(`Flow: ${alert}`, 'NO_CREDITS');
       if (POLICY_RX.test(alert)) throw flowError(`Flow từ chối câu lệnh này: ${alert}`, 'SCENE_REFUSED');
       const currentArea = area();
-      const fresh = bigMedia(kind).find(item => !baselineMedia.has(item.src) && !currentArea.contains(item.el) && !isUpload(item.el));
+      const fresh = bigMedia(kind).find(item => !isOldMedia(item.el, item.src, baselineKeys) && !currentArea.contains(item.el) && !isUpload(item.el));
       if (!fresh && kind === 'video') {
         // A finished video may show only its still until the mouse is over it.
         const stills = newTiles.flatMap(tile => [...tile.querySelectorAll('img, video')]).filter(el => !baselineEls.has(el) && !hovered.has(el) && visible(el) && (el.tagName === 'IMG' || !mediaSrc(el)));
@@ -1204,7 +1219,7 @@
     const target = findEditor() || editor;
     await typePrompt(target, req.prompt, signal);
 
-    const baselineMedia = allMediaSources();
+    const baselineKeys = mediaSnapshot();
     const baselineIds = new Set(tiles().map(tile => tile.id).filter(Boolean));
     const baselineAlerts = new Set(alertTexts());
     const basePending = pendingCount();
@@ -1229,7 +1244,7 @@
       if (alert && CREDIT_RX.test(alert)) throw flowError(`Flow: ${alert}`, 'NO_CREDITS');
       if (alert && POLICY_RX.test(alert)) throw flowError(`Flow từ chối câu lệnh này: ${alert}`, 'SCENE_REFUSED');
       const current = tiles();
-      const fresh = current.find(tile => kind === 'video' ? tile.video && !baselineMedia.has(tile.video) : tile.image && !tile.video && !tile.pending && !tile.percent && !baselineMedia.has(tile.image));
+      const fresh = current.find(tile => kind === 'video' ? tile.video && !baselineKeys.has(mediaKey(tile.video)) && !baselineKeys.has(mediaKey(tile.image)) : tile.image && !tile.video && !tile.pending && !tile.percent && !baselineKeys.has(mediaKey(tile.image)));
       if (fresh) {
         const url = kind === 'video' ? fresh.video : fresh.image;
         const copied = await copyLocally(url, kind);

@@ -86,6 +86,8 @@ $('#send').onclick = () => {
   if (/BLOCKME/.test(text)) { setTimeout(() => { t.innerHTML = '<span>Chúng tôi phát hiện thấy hoạt động bất thường.</span>'; }, 800); return; }
   if (/FAILME/.test(text)) { setTimeout(() => { t.innerHTML = '<span>Không tạo được. Đã xảy ra lỗi.</span>'; }, 800); return; }
   n++;
+  // Like Flow: showing the grid again signs the earlier results' links anew (new query string).
+  if (S.resign) for (const v of document.querySelectorAll('#grid video')) if (/\/media\/clip/.test(v.getAttribute('src'))) v.setAttribute('src', v.getAttribute('src').split('?')[0] + '?sig=' + Math.random().toString(36).slice(2));
   setTimeout(() => { t.innerHTML = S.mode === 'video' ? `<video muted src="/media/clip${n}.mp4"></video><span>Video ${n}</span>` : `<img src="/media/img${n}.png"><span>Ảnh ${n}</span>`; }, 1500);
 };
 </script></body></html>

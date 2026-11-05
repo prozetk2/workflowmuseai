@@ -1239,7 +1239,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
       const failed=state.nodes.find(n=>['generateImage','generateVideo'].includes(n.type)&&n.data.status==='running');
       if(failed){failed.data.status='error';failed.data.error=err?.message||String(err);render();}
       const message=err?.message||String(err);
-      setRunStatus(/failed to fetch/i.test(message)?'Không kết nối được với tab Flow. Hãy tải lại cos_alpha_flow rồi kiểm tra tab Flow.':'cos_alpha_flow 1.10.0 · '+message,'error');
+      setRunStatus(/failed to fetch/i.test(message)?'Không kết nối được với tab Flow. Hãy tải lại cos_alpha_flow rồi kiểm tra tab Flow.':'cos_alpha_flow 1.11.0 · '+message,'error');
       try{clearTimeout(autoSaveTimer);await queueWorkflowSave();}catch(saveError){setRunStatus(`${runStatus.textContent} · Tự lưu thất bại: ${saveError?.message||String(saveError)}`,'error');}
     }
     finally{state.isRunning=false;state.activeGenerationId=null;state.generationAbortController=null;state.generationRequestId=null;$('#runBtn').disabled=false;$('#runBtn').textContent='Chạy tất cả';$('#runBtn').title='Chạy mọi node theo đúng thứ tự nối dây';render();setTimeout(()=>cosAlphaHook('onRunEnd',{aborted:abortController.signal.aborted}),0);}
@@ -1477,7 +1477,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
         }catch{externalMedia++;return url;}
       };
       for(const node of workflow.nodes){const data=node.data||{};if(data.localDataUrl)data.localDataUrl=await packageUrl(data.localDataUrl);if(data.videoUrl)data.videoUrl=await packageUrl(data.videoUrl);if(Array.isArray(data.frames))for(let i=0;i<data.frames.length;i++)data.frames[i]=await packageUrl(data.frames[i]);for(const field of ['asset','endFrame'])if(data[field]?.url)data[field].url=await packageUrl(data[field].url);}
-      const file={format:'26flow-workflow',version:1,appVersion:'cos_alpha_flow-1.10.0',exportedAt:new Date().toISOString(),workflow};
+      const file={format:'26flow-workflow',version:1,appVersion:'cos_alpha_flow-1.11.0',exportedAt:new Date().toISOString(),workflow};
       const blob=new Blob([JSON.stringify(file)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`cos_alpha_flow-Workflow-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
       setRunStatus(externalMedia?`Đã lưu file; ${externalMedia} ảnh/video không nhúng được vào file và cần phiên Flow gốc để mở.`:'Đã lưu workflow kèm ảnh/video.','ok');
     }catch(error){setRunStatus(`Không lưu được file workflow: ${error?.message||String(error)}`,'error');}
@@ -1503,7 +1503,7 @@ const reply=await generateWithProvider(n,{isVideo,prompt,negativePrompt,referenc
   function toggleProviderFields(){const provider=$('#providerSelect').value==='api'?'api':$('#providerSelect').value==='flow'?'flow':'web';document.querySelectorAll('[data-provider]').forEach(el=>el.classList.toggle('hidden',el.dataset.provider!==provider));}
   function syncSettingsUI(){
     const s=state.settings||{};
-    backendStatus.textContent=`Tạo bằng: ${providerLabel()} · v1.10.0`;
+    backendStatus.textContent=`Tạo bằng: ${providerLabel()} · v1.11.0`;
     $('#providerSelect').value=providerName();$('#inputModeSelect').value=s.inputMode||'auto';$('#timeoutSelect').value=String(s.timeoutSec||900);
     $('#flowVideoModel').value=s.flowVideoModel||'';$('#flowUiMode').value=s.flowUiMode==='classic'?'classic':'agent';$('#flowImageModel').value=s.flowImageModel||'';$('#flowSelectors').value=s.flowSelectors||'';
     $('#apiVideoModel').value=s.apiVideoModel||'veo-3.1-fast-generate-preview';$('#apiImageModel').value=s.apiImageModel||'gemini-nano-banana-2.1';$('#apiResolution').value=s.apiResolution||'720p';
