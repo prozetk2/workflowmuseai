@@ -23,7 +23,7 @@ const MP4 = fs.readFileSync(__dirname + '/v.mp4');
   await page.evaluate(async () => { const [tab] = await chrome.tabs.query({ url: 'https://chatgpt.com/*' }); await chrome.storage.session.set({ cosalphaChatTabs: { chatgpt: tab.id } }); });
   check('Mặc định bật "Cho AI xem từng đoạn"', await page.isChecked('#msSceneAI'));
   const prompt = await page.inputValue('#msPrompt');
-  check('Câu lệnh mặc định giữ bối cảnh, đồ vật, góc máy và thao tác tay', /Keep exactly as in the reference video/.test(prompt) && /printing and logos/.test(prompt) && /the hands hold, lift, cut, open, unwrap, pull, turn, show, put down/i.test(prompt) && /changes state/.test(prompt) && /{{scene}}/.test(prompt) && /no added, missing or changed objects/.test(prompt), prompt);
+  check('Câu lệnh mặc định giữ bối cảnh, đồ vật, góc máy và thao tác tay', /Keep exactly as in the reference video/.test(prompt) && /printing and logos/.test(prompt) && /hands grip, lift, cut, open, unwrap, turn, show and put down/i.test(prompt) && /Real-world physics/.test(prompt) && /never pass through them/.test(prompt) && /{{scene}}/.test(prompt) && /hands going through objects/.test(prompt), prompt);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'motion-'));
   const videoFile = path.join(tmp, 'source.mp4'), charFile = path.join(tmp, 'character.png');
   fs.writeFileSync(videoFile, MP4); fs.writeFileSync(charFile, png(120, 160, [200, 60, 60]));
@@ -46,7 +46,7 @@ const MP4 = fs.readFileSync(__dirname + '/v.mp4');
   check('Ghi lại bối cảnh, đồ vật, góc máy, hành động', scene?.objects?.length === 2 && scene.actions?.length === 2 && /office/.test(scene.setting) && /Static/.test(scene.camera), JSON.stringify(scene));
   const s0 = sent[0] || '';
   check('Câu lệnh gửi Flow có phần bối cảnh, đồ vật, góc máy và mốc thời gian hành động', /Scene \(keep exactly\): A bright white office/.test(s0) && /Objects \(keep exactly, same look, place and starting state\): brown UPGEN LUMIX/.test(s0) && /Camera and cuts \(keep, same times\): Static medium shot/.test(s0) && /Action timeline, follow it beat by beat \(seconds from the start of the clip\): 0\.0–2\.5 s: The person reaches/.test(s0), s0.slice(-600));
-  check('Mô tả cảnh nằm ngay sau phần hành động, trước phần giữ bối cảnh; không còn chữ {{scene}}', s0.indexOf('Copy the action second by second') < s0.indexOf('Action timeline') && s0.indexOf('Action timeline') < s0.indexOf('Keep exactly as in the reference video') && !/\{\{scene\}\}/.test(s0), s0.slice(0, 900));
+  check('Mô tả cảnh nằm ngay sau phần hành động, trước phần giữ bối cảnh; không còn chữ {{scene}}', s0.indexOf('Copy the action beat by beat') < s0.indexOf('Action timeline') && s0.indexOf('Action timeline') < s0.indexOf('Keep exactly as in the reference video') && !/\{\{scene\}\}/.test(s0), s0.slice(0, 900));
   check('Phần cảnh nằm trước câu về âm thanh, chỉ một câu "Sound:"', s0.indexOf('Action timeline') > 0 && s0.indexOf('Action timeline') < s0.indexOf('Sound:') && (s0.match(/Sound:/g) || []).length === 1);
   // Edit the notes by hand, regenerate: the edited notes go out, ChatGPT is not asked again.
   const asked = chatState.sent.length;

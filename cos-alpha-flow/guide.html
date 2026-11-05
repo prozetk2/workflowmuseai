@@ -16,6 +16,7 @@
 <div class="layout">
 <nav class="toc" aria-label="Mục lục">
   <strong>Mục lục</strong>
+  <a href="#moi-1-14">Mới trong bản 1.14: nối tiếp giữa các đoạn</a>
   <a href="#moi-1-13">Mới trong bản 1.13: câu lệnh giữ nguyên cảnh</a>
   <a href="#moi-1-12">Mới trong bản 1.12: chạy mượt như TobyFlow</a>
   <a href="#moi-1-11">Mới trong bản 1.11: sửa lỗi các đoạn ra cùng một video</a>
@@ -54,6 +55,13 @@
 </nav>
 
 <main>
+<section id="moi-1-14">
+<h2>Mới trong cos_alpha_flow 1.14: Motion Studio nối tiếp giữa các đoạn</h2>
+<ul>
+  <li><b>Câu lệnh tổng quát</b> dùng cho mọi video: chép hành động theo nhịp, quy tắc vật lý (đồ vật giữ hình dạng và số bộ phận, không tự xuất hiện / biến mất, tay không xuyên đồ), giữ bối cảnh, chỉ đổi người. Phần riêng của từng đoạn (bối cảnh, đồ vật, cắt cảnh, hành động từng giây, vị trí cuối của đồ vật) do ChatGPT / Gemini tự viết khi bạn bấm Tạo.</li>
+  <li><b>Nối tiếp giữa các đoạn</b> (ô mới, giống TobyFlow): đoạn sau nhận khung cuối của kết quả đoạn trước làm ảnh 2, để nhân vật, đồ vật, trạng thái và vị trí đồ vật liền mạch khi ghép. Khi bật, các đoạn chạy lần lượt (đoạn sau cần kết quả đoạn trước).</li>
+</ul>
+</section>
 <section id="moi-1-13">
 <h2>Mới trong cos_alpha_flow 1.13: câu lệnh tốt hơn, Motion Studio chỉ đổi nhân vật</h2>
 <ul>
@@ -61,6 +69,7 @@
   <li><b>AI xem từng đoạn</b> (bật sẵn, ô "Cho AI xem từng đoạn"): ChatGPT / Gemini (theo ô "Chép lời bằng") xem 4 khung hình của đoạn và ghi lại bối cảnh, đồ vật, góc máy và mốc thời gian hành động của tay, rồi app đưa vào câu lệnh của đoạn đó. AI được dặn không tả gương mặt, tóc, quần áo của người trong video gốc. Bấm vào một đoạn để xem / sửa phần này (nút <i>Xem cảnh</i>, <i>Lưu mô tả cảnh</i>).</li>
   <li><b>Mẫu workflow</b>: các câu lệnh video có thêm góc máy, câu giữ đúng nhân vật / sản phẩm và câu Âm thanh để Flow không tự chèn nhạc hay lời lạ.</li>
   <li><b>1.13.1</b>: câu lệnh chép hành động <i>từng giây</i>, mỗi đồ vật đổi trạng thái (cắt băng keo, mở nắp, tháo túi, đặt xuống) đúng lúc như video gốc, giữ đúng các lần cắt cảnh. AI xem <b>8 khung hình</b> mỗi đoạn (trước là 4), ghi hành động theo nhịp khoảng 1 giây, trạng thái ban đầu của đồ vật và thời điểm cắt cảnh. Mô tả này được chèn ngay sau phần hành động (chỗ <b>{{scene}}</b> trong câu lệnh).</li>
+  <li><b>1.13.2</b>: thêm phần <i>vật lý thật</i> vào câu lệnh: đồ vật giữ nguyên hình dáng, kích thước, màu, số bộ phận; không tự xuất hiện, biến mất, méo, dính vào nhau; tay cầm đồ từ bên ngoài, không xuyên qua đồ vật; đồ rơi theo trọng lực và nằm yên ở chỗ được đặt; thêm dòng <i>Avoid</i> liệt kê các lỗi hay gặp. AI ghi thêm <i>vị trí cuối</i> của từng đồ vật (ví dụ túi xanh nằm trên sàn bên phải thùng).</li>
   <li><b>Trợ lý viết prompt</b>: viết theo thứ tự góc máy → nhân vật/sản phẩm (giữ đúng theo ảnh) → hành động theo nhịp thời gian → bối cảnh → ánh sáng → phong cách, video có câu "Sound:" ở cuối.</li>
 </ul>
 </section>
@@ -793,7 +802,7 @@ Audio: tiếng chuông xe đạp, nhạc vui tươi</pre>
 <details><summary>Có thêm nhạc hoặc giọng đọc riêng được không?</summary><p>App xuất phim có âm thanh do Flow tạo. Để lồng nhạc hoặc giọng đọc riêng, hãy mở file MP4 bằng phần mềm dựng như CapCut hoặc Premiere.</p></details>
 </section>
 
-<footer>cos_alpha_flow 1.13.1 · Chúc bạn sáng tạo vui vẻ </footer>
+<footer>cos_alpha_flow 1.14.0 · Chúc bạn sáng tạo vui vẻ </footer>
 </main>
 </div>
 </body>

@@ -10,6 +10,15 @@
   // The prompt keeps the scene, the objects and the hand actions of the source clip; only the person changes.
   // {{scene}} is where each clip's own notes go (scene, objects, camera cuts and the action timeline).
   const DEFAULT_PROMPT = [
+    'Image 1 is the character. Recreate the reference video shot for shot (same length, cuts, camera, room, lighting and objects) with the character from image 1 as the only person in it. Only the person changes.',
+    'Copy the action beat by beat, at the same moments and speed: steps, body position, gestures, head turns, gaze and expressions, and exactly how the hands grip, lift, cut, open, unwrap, turn, show and put down each object.',
+    '{{scene}}',
+    'Real-world physics in every frame: each object keeps the same shape, size, colour and number of parts; nothing appears, disappears, melts, bends, merges or duplicates. Hands hold objects from the outside with five fingers and never pass through them, the box or each other. Objects move only when the hands move them, fall with gravity and stay where they are put; anything taken out stays visible (in a hand, on the box or on the floor) until it leaves the frame. Plastic wrap crumples and falls naturally.',
+    'Keep exactly as in the reference video: background, furniture and their positions, every object and product with the same printing and logos, lighting, colours, framing and camera moves.',
+    'The character keeps the face, hairstyle, skin tone, body shape and outfit from image 1 in every frame; nothing of the appearance of the person in the reference video carries over. Same realism and image quality as the reference video.',
+    'Avoid: morphing or flickering objects, objects popping in or out, hands going through objects, extra or missing fingers, floating objects, extra people or hands, skipped or extra actions, on-screen text, watermark.'
+  ].join('\n\n');
+  const PROMPT_1131 = [
     'Image 1 is the character. The reference video is the scene and the action to recreate. Recreate the reference video shot for shot, with the same length, cuts and timing, with the character from image 1 as the only person in it.',
     'Copy the action second by second: every step, body position, gesture, head turn, gaze, facial expression and mouth movement happens at the same moment and speed as in the reference video. The hands hold, lift, cut, open, unwrap, pull, turn, show, put down and use each object exactly where, when and how the reference video shows it. Every object changes state (taped, opened, in its bag, unwrapped, held, put aside) at the same moment as in the reference video, and nothing moves unless the hands move it.',
     '{{scene}}',
@@ -24,7 +33,7 @@
     'The character keeps the face, hairstyle, skin tone, body shape and outfit from image 1 in every frame; nothing of the appearance of the person in the reference video (face, hair, clothes) carries over. Match the realism and image quality of the reference video.',
     'No extra people or hands, no added, missing or changed objects, no on-screen text or watermark.'
   ].join('\n\n');
-  const OLD_PROMPTS = [PROMPT_113, 'Image 1 is the character. The reference video is only a guide for motion and timing. Recreate the reference video shot for shot with the character from image 1 as the only person in it: the same body movement, gestures, head turns, facial expressions and mouth movement, the same timing and rhythm, the same camera position, framing and camera moves, the same room, props and lighting. In every frame the character keeps the face, hairstyle, body shape and outfit from image 1; nothing of the appearance of the person in the reference video (face, hair, clothes) carries over. Natural, realistic motion, no extra people, no on-screen text.', 'Animate the character in image 1 so that they perform exactly the same movement as in the reference video: the same body motion, gestures, facial expressions and lip movement, the same timing, the same camera movement and framing, the same location and lighting. The character keeps their own face, hairstyle and outfit from image 1 in every frame. Keep the sound of the reference video.', 'Replace the person in the attached video with the character from the attached reference image(s). Keep exactly the same motion, body movement, gestures, facial expressions, lip movement and timing, and the same camera movement, framing, lighting and background as the video. The character must look exactly like the reference (same face, hair and outfit). Do not add or remove people or objects. Keep the original speech and sound.'];
+  const OLD_PROMPTS = [PROMPT_1131, PROMPT_113, 'Image 1 is the character. The reference video is only a guide for motion and timing. Recreate the reference video shot for shot with the character from image 1 as the only person in it: the same body movement, gestures, head turns, facial expressions and mouth movement, the same timing and rhythm, the same camera position, framing and camera moves, the same room, props and lighting. In every frame the character keeps the face, hairstyle, body shape and outfit from image 1; nothing of the appearance of the person in the reference video (face, hair, clothes) carries over. Natural, realistic motion, no extra people, no on-screen text.', 'Animate the character in image 1 so that they perform exactly the same movement as in the reference video: the same body motion, gestures, facial expressions and lip movement, the same timing, the same camera movement and framing, the same location and lighting. The character keeps their own face, hairstyle and outfit from image 1 in every frame. Keep the sound of the reference video.', 'Replace the person in the attached video with the character from the attached reference image(s). Keep exactly the same motion, body movement, gestures, facial expressions, lip movement and timing, and the same camera movement, framing, lighting and background as the video. The character must look exactly like the reference (same face, hair and outfit). Do not add or remove people or objects. Keep the original speech and sound.'];
   const state = {
     project: null, sourceUrl: '', clipUrls: new Map(), resultUrls: new Map(), finalUrl: '',
     running: false, abort: null, requestId: '', ffmpeg: null, ffmpegLogs: []
@@ -56,7 +65,7 @@
   function saveNow() { clearTimeout(saveTimer); return idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')); }
   function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(() => idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')), 300); }
   function newProject() {
-    return { source: null, chars: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, audioMode: 'auto', silentFallback: true, pace: 5, parallel: 2, sceneAI: true, sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
+    return { source: null, chars: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, audioMode: 'auto', silentFallback: true, pace: 5, parallel: 2, sceneAI: true, continuity: false, sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
   }
 
   // ---------- small helpers ----------
@@ -328,7 +337,7 @@
   // ---------- what must stay the same (scene, objects, camera, actions) ----------
   // ChatGPT / Gemini looks at four frames of the clip and writes down the place, the objects, the camera and a
   // timeline of what the hands do. It never describes the person, so nothing of their looks reaches the prompt.
-  const SCENE_SYSTEM = 'You help remake a short video clip with a different actor while everything else stays exactly the same. The image is a grid of frames from one clip in time order (left to right, then the next row), each labelled with its time in seconds. Describe only what has to stay the same. Never describe the person\'s face, hair, skin, body or clothes and never guess who they are: call them "the person". Return JSON only: {"setting": "one sentence: the place, its layout, the main furniture and the lighting", "objects": ["up to 10 short items: each object or product the person touches or that stands out, with its colour, printing or logo, where it is and its state at the start (closed, taped, in a plastic bag, wrapped)"], "camera": "shot size, angle and movement of each shot, with the time of every cut, e.g. wide shot 0.0-0.6 s, cut to a static medium shot of the box 0.6-8.0 s", "actions": [{"start": seconds, "end": seconds, "text": "one beat of about one second: where the person stands and looks, which hand does what to which object, how the object changes (cut, opened, pulled out, unwrapped, bag pulled off, turned, put down) and where it ends up"}]}. 4 to 10 beats in time order covering the whole clip without gaps, times from the start of the clip; describe only what you see, never invent steps. English, short and concrete.';
+  const SCENE_SYSTEM = 'You help remake a short video clip with a different actor while everything else stays exactly the same. The image is a grid of frames from one clip in time order (left to right, then the next row), each labelled with its time in seconds. Describe only what has to stay the same. Never describe the person\'s face, hair, skin, body or clothes and never guess who they are: call them "the person". Return JSON only: {"setting": "one sentence: the place, its layout, the main furniture and the lighting", "objects": ["up to 10 short items: each object or product the person touches or that stands out, with its colour, printing or logo, where it is and its state at the start (closed, taped, in a plastic bag, wrapped)"], "camera": "shot size, angle and movement of each shot, with the time of every cut, e.g. wide shot 0.0-0.6 s, cut to a static medium shot of the box 0.6-8.0 s", "actions": [{"start": seconds, "end": seconds, "text": "one beat of about one second: where the person stands and looks, which hand does what to which object, how the object changes (cut, opened, pulled out, unwrapped, bag pulled off, turned, put down) and where it ends up"}], "end_state": ["where each object the person moved is at the end of the clip, e.g. blue plastic bag: dropped on the floor right of the box"]}. 4 to 10 beats in time order covering the whole clip without gaps, times from the start of the clip; describe only what you see, never invent steps. English, short and concrete.';
   async function clipFrameGrid(clip) {
     const url = await clipUrl(clip, 'clip'), length = Math.max(0.4, clip.end - clip.start);
     // 8 frames (4 per row) spread over the clip, so short beats and cuts show up.
@@ -369,6 +378,7 @@
       setting: clean(data.setting), camera: clean(data.camera),
       objects: (Array.isArray(data.objects) ? data.objects : []).map(clean).filter(Boolean).slice(0, 10),
       actions: (Array.isArray(data.actions) ? data.actions : []).map(item => ({ start: Math.max(0, Number(item.start) || 0), end: Math.max(0, Number(item.end) || 0), text: clean(item.text) })).filter(item => item.text).sort((a, b) => a.start - b.start).slice(0, 12),
+      endState: (Array.isArray(data.end_state) ? data.end_state : []).map(clean).filter(Boolean).slice(0, 10),
       agent
     };
     saveSoon();
@@ -382,6 +392,7 @@
     if (scene.objects?.length) lines.push(`Objects (keep exactly, same look, place and starting state): ${scene.objects.map(item => item.replace(/\.$/, '')).join('; ')}.`);
     if (scene.camera) lines.push(`Camera and cuts (keep, same times): ${scene.camera.replace(/\.$/, '')}.`);
     if (scene.actions?.length) lines.push(`Action timeline, follow it beat by beat (seconds from the start of the clip): ${scene.actions.map(item => `${item.start.toFixed(1)}–${item.end.toFixed(1)} s: ${item.text.replace(/\.$/, '')}`).join('; ')}.`);
+    if (scene.endState?.length) lines.push(`Where things are at the end (they stay there once put down): ${scene.endState.map(item => item.replace(/\.$/, '')).join('; ')}.`);
     return lines.join('\n');
   }
   async function ensureScene(clip, signal) {
@@ -403,9 +414,11 @@
     if (!segments.length) return '';
     return segments.map(item => `${Number(item.start).toFixed(1)}–${Number(item.end).toFixed(1)} s: "${String(translated ? item.translation : item.text).replace(/"/g, "'").trim()}"`).join('; ');
   }
-  function composePrompt(clip) {
+  const CONTINUITY_LINE = 'Image 2 is the last frame of the previous clip: this clip continues straight on from it, so at the start the character, every object, its state and its position, the lighting and the framing match image 2 exactly; the action then follows the reference video. The character still looks exactly like image 1.';
+  function composePrompt(clip, { continuity = false } = {}) {
     const settings = state.project.settings, t = clip.transcript;
-    const scene = settings.sceneAI !== false || clip.scene?.manual ? sceneText(clip.scene) : '';
+    const notes = settings.sceneAI !== false || clip.scene?.manual ? sceneText(clip.scene) : '';
+    const scene = [continuity ? CONTINUITY_LINE : '', notes].filter(Boolean).join('\n');
     // The clip's notes go where the prompt has {{scene}} (right after the action rules); otherwise after the prompt.
     let base = String(settings.prompt || DEFAULT_PROMPT).replace(SOUND_LINE, '').trim();
     const placed = base.includes('{{scene}}');
@@ -450,11 +463,16 @@
     const blob = await getBlob(`clip:${clip.id}`); if (!blob) throw new Error('Đoạn này mất file gốc. Hãy cắt lại video.');
     clip.status = 'running'; clip.error = ''; renderClips(); saveSoon();
     if (needsDialogue()) await ensureTranscript(clip, signal);
+    // Continuity (like TobyFlow): the last frame of the previous clip's result goes in as image 2, so the character,
+    // the objects and where they are carry straight on from one clip to the next.
+    const previous = settings.continuity ? state.project.clips.filter(other => other.index < clip.index && other.status !== 'skipped').sort((a, b) => b.index - a.index)[0] : null;
+    let lastFrame = '';
+    if (previous?.result) { const url = await clipUrl(previous, 'result'); lastFrame = await frameAt(url, Math.max(0, (previous.end - previous.start) - 0.08), 720); }
     const requestId = uid('motion');
     const reply = await flowMessage({
-      type: 'THEKEY_FLOW_GENERATE', requestId, remoteOk: true, kind: 'video', prompt: composePrompt(clip), voice: settings.sync ? (settings.flowVoice || '').trim() : '',
+      type: 'THEKEY_FLOW_GENERATE', requestId, remoteOk: true, kind: 'video', prompt: composePrompt(clip, { continuity: Boolean(lastFrame) }), voice: settings.sync ? (settings.flowVoice || '').trim() : '',
       aspect: settings.aspect, duration: flowDuration(clip.end - clip.start), resolution: settings.resolution, model: settings.model || '', inputType: 'ingredients',
-      sourceVideo: await blobToDataUrl(blob), references: state.project.chars.map(item => item.dataUrl), firstFrame: '', uiMode: 'agent', timeoutSec: 1200
+      sourceVideo: await blobToDataUrl(blob), references: [...state.project.chars.map(item => item.dataUrl), ...(lastFrame ? [lastFrame] : [])], firstFrame: '', uiMode: 'agent', timeoutSec: 1200
     }, signal);
     if (!reply?.ok) throw Object.assign(new Error(reply?.error || 'Flow không trả video.'), { code: reply?.code || '' });
     await keepResult(clip, reply);
@@ -497,7 +515,8 @@
     let done = 0, failed = 0, next = 0, stopped = '';
     // Several clips in flight: Flow's prompt box takes one send at a time (the bridge holds it until Flow has named
     // the new item), and each clip then waits for its own item, so the next clip goes in while the first is made.
-    const limit = Math.max(1, Math.min(3, Number(state.project.settings.parallel) || 1));
+    // Continuity needs each clip's result before the next one starts, so it runs one clip at a time.
+    const limit = state.project.settings.continuity ? 1 : Math.max(1, Math.min(3, Number(state.project.settings.parallel) || 1));
     const running = new Set();
     const showProgress = () => { if (!stopped && running.size) status(`Đang tạo ${[...running].map(clip => `đoạn ${clip.index + 1}`).join(', ')} trên Flow (xong ${done}/${todo.length})…`, 'warn'); };
     const worker = async () => {
@@ -633,7 +652,7 @@
     $('#msSpeechAgent').value = settings.speechAgent || 'gemini-web';
     $('#msSync').checked = Boolean(settings.sync); $('#msVoiceDesc').value = settings.voiceDesc || ''; $('#msFlowVoice').value = settings.flowVoice || '';
     $('#msSubtitles').checked = Boolean(settings.subtitles); $('#msTranslate').value = settings.translate || ''; $('#msVoiceBox').classList.toggle('hidden', !settings.sync);
-    $('#msPrompt').value = settings.prompt; $('#msAudioMode').value = settings.audioMode || 'auto'; $('#msSilentFallback').checked = settings.silentFallback !== false; $('#msPace').value = String(settings.pace); $('#msSceneAI').checked = settings.sceneAI !== false; $('#msParallel').value = String(settings.parallel || 2);
+    $('#msPrompt').value = settings.prompt; $('#msAudioMode').value = settings.audioMode || 'auto'; $('#msSilentFallback').checked = settings.silentFallback !== false; $('#msPace').value = String(settings.pace); $('#msSceneAI').checked = settings.sceneAI !== false; $('#msContinuity').checked = Boolean(settings.continuity); $('#msParallel').value = String(settings.parallel || 2);
   }
   function renderSource() {
     const source = state.project.source, video = $('#msSourceVideo');
@@ -731,7 +750,7 @@
       saveSoon(); renderAll(); status('Đã làm mới dự án.', 'ok');
     };
     const bind = (id, key, parse = value => value) => { $(id).onchange = () => { state.project.settings[key] = parse($(id).type === 'checkbox' ? $(id).checked : $(id).value); saveSoon(); }; };
-    bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msAudioMode', 'audioMode'); bind('#msSilentFallback', 'silentFallback', Boolean); bind('#msPace', 'pace', Number); bind('#msSceneAI', 'sceneAI', Boolean); bind('#msParallel', 'parallel', Number);
+    bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msAudioMode', 'audioMode'); bind('#msSilentFallback', 'silentFallback', Boolean); bind('#msPace', 'pace', Number); bind('#msSceneAI', 'sceneAI', Boolean); bind('#msContinuity', 'continuity', Boolean); bind('#msParallel', 'parallel', Number);
     bind('#msSpeechAgent', 'speechAgent');
     bind('#msSync', 'sync', Boolean); bind('#msSubtitles', 'subtitles', Boolean); bind('#msTranslate', 'translate');
     $('#msSync').addEventListener('change', () => $('#msVoiceBox').classList.toggle('hidden', !$('#msSync').checked));
