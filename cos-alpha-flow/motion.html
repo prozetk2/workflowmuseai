@@ -39,6 +39,7 @@
         </div>
         <select id="msModel" hidden><option value="Omni 1.1 Flash">Omni 1.1 Flash</option></select>
         <label class="ms-check" title="AI (ChatGPT / Gemini) xem 8 khung hình của mỗi đoạn và ghi bối cảnh, đồ vật, cắt cảnh, hành động từng giây vào câu lệnh."><input id="msSceneAI" type="checkbox" checked /> AI xem từng đoạn để chép đúng hành động</label>
+        <label class="ms-check" title="Sau khi AI ghi xong tất cả các đoạn, app dừng lại để bạn bấm vào từng đoạn xem câu lệnh, sửa mô tả, rồi mới gửi Flow."><input id="msReview" type="checkbox" /> Xem lại mô tả AI trước khi gửi Flow</label>
         <label class="ms-check" title="Đoạn sau nhận khung cuối của đoạn trước làm ảnh 2, nên nhân vật và đồ vật liền mạch. Các đoạn chạy lần lượt."><input id="msContinuity" type="checkbox" /> Nối tiếp giữa các đoạn</label>
         <label>Trợ lý AI<select id="msSpeechAgent"><option value="chatgpt">ChatGPT (tab đã đăng nhập)</option><option value="gemini-web">Gemini (tab đã đăng nhập)</option><option value="gemini-api">Gemini API (cần key)</option></select></label>
       </section>
@@ -69,6 +70,7 @@
         <small id="msCost" class="ms-cost"></small>
         <div class="ms-side-actions">
           <button id="msGenerate" type="button" class="ms-primary"><i data-ic="sparkles"></i>Tạo tất cả đoạn</button>
+          <button id="msContinue" type="button" class="ms-primary hidden"><i data-ic="send"></i>Gửi Flow</button>
           <button id="msStop" type="button" class="ms-ghost hidden"><i data-ic="x"></i>Dừng</button>
         </div>
         <p class="ms-note">Cần một dự án Flow đang mở, nút <b>Tác nhân</b> tắt. Mô hình: Omni 1.1 Flash.</p>
@@ -110,10 +112,13 @@
         <figure><figcaption>Video gốc</figcaption><video id="msModalSource" controls playsinline></video></figure>
         <figure><figcaption>Kết quả Flow</figcaption><video id="msModalResult" controls playsinline></video><div id="msModalNoResult" class="ms-empty">Chưa có kết quả</div></figure>
       </div>
+      <div class="ms-edges-box"><strong>Khung đầu / khung cuối</strong><small>Lệch so với gốc thì sửa mô tả cảnh rồi tạo lại đoạn này.</small><div id="msModalEdges" class="ms-edges"></div></div>
       <div class="ms-dialogue">
         <label>Lời thoại gốc (sửa được)<textarea id="msModalTranscript" rows="3" placeholder="Chưa có lời thoại. Bấm Lấy lời thoại, hoặc gõ tay."></textarea></label>
         <label>Bản dịch (nếu chọn dịch)<textarea id="msModalTranslation" rows="3"></textarea></label>
+        <label>Câu lệnh sẽ gửi Flow (đã gồm mô tả của AI)<textarea id="msModalPrompt" rows="5" readonly></textarea></label>
         <label>Bối cảnh, đồ vật, hành động (AI ghi, sửa được)<textarea id="msModalScene" rows="4" placeholder="Chưa có. Bấm Xem cảnh, hoặc tự gõ."></textarea></label>
+        <p id="msModalMissing" class="ms-error"></p>
         <div class="ms-dialogue-actions"><button id="msModalAnalyze" type="button" class="ms-ghost"><i data-ic="scan-eye"></i>Xem cảnh</button><button id="msModalSaveScene" type="button" class="ms-ghost"><i data-ic="save"></i>Lưu mô tả cảnh</button></div>
         <div class="ms-dialogue-actions"><button id="msModalTranscribe" type="button" class="ms-ghost"><i data-ic="audio-lines"></i>Lấy lời thoại</button><button id="msModalSaveDialogue" type="button" class="ms-ghost"><i data-ic="save"></i>Lưu lời thoại</button></div>
       </div>

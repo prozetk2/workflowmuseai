@@ -102,7 +102,7 @@ node run-all.js D:\duong\dan\ban-khac t15   # test một bản extension khác
 
 Trên Linux/macOS có thể dùng `./run-all.sh` thay cho `npm test`.
 
-Mỗi test (t4–t28) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out-tN.txt`. Kết quả mong đợi ở bản 1.15.1: tất cả đều qua.
+Mỗi test (t4–t29) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out-tN.txt`. Kết quả mong đợi ở bản 1.16.0: tất cả đều qua.
 
 | Test | Kiểm tra |
 | --- | --- |
@@ -131,3 +131,4 @@ Mỗi test (t4–t28) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out
 | t26 | Motion Studio câu lệnh mới: giữ bối cảnh, đồ vật, góc máy, thao tác tay; ChatGPT (trang giả) xem lưới 4 khung hình của đoạn, ghi bối cảnh + đồ vật + góc máy + mốc thời gian hành động vào câu lệnh (không mô tả người); sửa tay mô tả cảnh rồi tạo lại dùng đúng bản đã sửa |
 | t27 | Motion Studio nối tiếp giữa các đoạn: đoạn sau nhận khung cuối của đoạn trước làm ảnh 2, câu lệnh dặn nối tiếp, chạy lần lượt từng đoạn |
 | t28 | Motion Studio: ảnh bối cảnh mới (ảnh 2, bỏ câu giữ căn phòng gốc); giọng khép khẩu hình theo giọng gốc (ghép lại giọng gốc) và thuyết minh; làm nhiều video một lượt (cắt, tạo, ghép, lưu từng video) |
+| t29 | Motion Studio → ChatGPT → Motion Studio → Flow: câu trả lời thiếu thì hỏi lại 1 lần kèm chỗ thiếu; ô đoạn hiện các bước Cắt › AI › Lời › Flow; chế độ xem lại mô tả trước khi gửi Flow + nút Gửi Flow; hộp thoại hiện đúng câu lệnh gửi Flow; khung đầu / khung cuối gốc và kết quả trên ô đoạn và trong hộp thoại |

@@ -100,6 +100,13 @@ input[type=text]{font:inherit;width:100%;background:#0e1017;color:#eee;border:1p
 .ms-batch-row.done small{color:#4ade80}.ms-batch-row.error small{color:#f87171}.ms-batch-row.running small{color:#fbbf24}
 .ms-batch-row button{background:none;border:0;color:#9aa0ad;cursor:pointer;font-size:16px}
 #msBatchRun{align-self:flex-start}
+.ms-clip .steps{display:flex;align-items:center;gap:3px;font-size:10.5px;margin-top:2px}
+.ms-clip .steps b{color:#4b4e5a;font-weight:400}
+.ms-clip .steps i{font-style:normal;padding:0 5px;border-radius:6px;background:#1f2129;color:#8b8e99}
+.ms-clip .steps i.ok{background:#14321f;color:#4ade80}.ms-clip .steps i.run{background:#3a2f0e;color:#fbbf24}
+.ms-clip .steps i.err{background:#3a1515;color:#f87171}.ms-clip .steps i.warn{background:#33280f;color:#fcd34d}
+.ms-clip .steps i.hold{background:#2a2550;color:#c9c0ff}.ms-clip .steps i.skip{opacity:.4;text-decoration:line-through}
+#msModalPrompt{font-size:11.5px;color:#c9cbd4}
 /* 1.15.1 tidy left panel: numbered cards, optional parts folded */
 .ms-side{display:flex;flex-direction:column;gap:10px;padding:12px}
 .ms-side .ms-card{background:#14151d;border:1px solid #23252f;border-radius:12px;padding:10px 12px;margin:0}
@@ -119,3 +126,18 @@ input[type=text]{font:inherit;width:100%;background:#0e1017;color:#eee;border:1p
 .ms-cost{display:block;color:#c9c0ff;font-size:12px;margin-bottom:6px}
 .ms-side-foot .ms-note{margin:6px 0 0}
 .ms-clip .talk.ai{color:#a78bfa}.ms-clip .talk.ai-err{color:#f87171}
+/* 1.16: first / last frame of source and result */
+.ms-clip{width:176px}
+.ms-clip .thumbs.edges{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;height:auto;gap:1px;background:#000}
+.ms-clip .thumbs.edges figure{position:relative;margin:0;height:74px;background:#0b0c10}
+.ms-clip .thumbs.edges img{width:100%;height:100%;object-fit:cover;display:block}
+.ms-clip .thumbs.edges figcaption{position:absolute;left:3px;bottom:2px;font-size:9px;color:#fff;background:#000a;padding:0 3px;border-radius:3px}
+.ms-clip .thumbs.edges figure.empty figcaption{color:#666}
+.ms-edges-box{margin:4px 16px 0}
+.ms-edges-box strong{font-size:12px;color:#d4d6de;margin-right:8px}
+.ms-edges-box small{font-size:11px;color:#7d808d}
+.ms-edges{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.ms-edges figure{margin:0;background:#0b0c10;border:1px solid #23252f;border-radius:8px;overflow:hidden}
+.ms-edges img{display:block;width:100%;height:200px;object-fit:contain;background:#000}
+.ms-edges .ms-empty{height:200px;display:grid;place-items:center;color:#555;font-size:11px}
+.ms-edges figcaption{font-size:11px;color:#a8aab3;padding:3px 6px}

@@ -16,6 +16,7 @@
 <div class="layout">
 <nav class="toc" aria-label="Mục lục">
   <strong>Mục lục</strong>
+  <a href="#moi-1-16">Mới trong bản 1.16: Motion → ChatGPT/Gemini → Flow rõ từng bước</a>
   <a href="#moi-1-15">Mới trong bản 1.15: bối cảnh, kiểu giọng, nhiều video</a>
   <a href="#moi-1-14">Mới trong bản 1.14: nối tiếp giữa các đoạn</a>
   <a href="#moi-1-13">Mới trong bản 1.13: câu lệnh giữ nguyên cảnh</a>
@@ -56,6 +57,16 @@
 </nav>
 
 <main>
+<section id="moi-1-16">
+<h2>Mới trong cos_alpha_flow 1.16: Motion Studio → ChatGPT / Gemini → Flow, rõ từng bước</h2>
+<ul>
+  <li><b>Vì sao có bước ChatGPT / Gemini</b>: Flow chỉ nhận video gốc và một câu lệnh. Trợ lý AI xem 8 khung hình của từng đoạn rồi ghi cụ thể bối cảnh, đồ vật, thời điểm cắt cảnh, hành động từng giây và vị trí cuối của đồ vật; app ghép phần này vào câu lệnh để Flow làm đúng thứ tự thao tác.</li>
+  <li><b>Từng ô đoạn hiện các bước</b>: Cắt › AI › Lời › Flow (xanh = xong, vàng = đang làm, đỏ = lỗi, tím = chờ bạn duyệt).</li>
+  <li><b>App tự kiểm tra câu trả lời của AI</b>: thiếu thời lượng, ít nhịp, không có đồ vật hoặc góc máy thì hỏi lại một lần và nói rõ chỗ thiếu; trợ lý đang chọn không trả lời thì thử trợ lý còn lại (ChatGPT ↔ Gemini).</li>
+  <li><b>Khung đầu / khung cuối</b>: mỗi ô đoạn hiện khung đầu và khung cuối của đoạn gốc cạnh khung đầu, khung cuối của kết quả Flow; bấm vào đoạn để xem to. Lệch so với gốc thì sửa mô tả cảnh rồi bấm <i>Tạo lại đoạn này</i> ngay.</li>
+  <li><b>Xem lại mô tả AI trước khi gửi Flow</b> (ô mới ở thẻ 3): AI ghi xong tất cả các đoạn thì app dừng; bấm vào từng đoạn để xem <i>Câu lệnh sẽ gửi Flow</i>, sửa phần mô tả nếu cần, rồi bấm <i>Gửi Flow</i>.</li>
+</ul>
+</section>
 <section id="moi-1-15">
 <h2>Mới trong cos_alpha_flow 1.15: Motion Studio thêm ba tính năng như TobyFlow</h2>
 <ul>
@@ -812,7 +823,7 @@ Audio: tiếng chuông xe đạp, nhạc vui tươi</pre>
 <details><summary>Có thêm nhạc hoặc giọng đọc riêng được không?</summary><p>App xuất phim có âm thanh do Flow tạo. Để lồng nhạc hoặc giọng đọc riêng, hãy mở file MP4 bằng phần mềm dựng như CapCut hoặc Premiere.</p></details>
 </section>
 
-<footer>cos_alpha_flow 1.15.1 · Chúc bạn sáng tạo vui vẻ </footer>
+<footer>cos_alpha_flow 1.16.0 · Chúc bạn sáng tạo vui vẻ </footer>
 </main>
 </div>
 </body>

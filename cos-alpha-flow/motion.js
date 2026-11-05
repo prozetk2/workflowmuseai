@@ -65,7 +65,7 @@
   function saveNow() { clearTimeout(saveTimer); return idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')); }
   function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(() => idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')), 300); }
   function newProject() {
-    return { source: null, chars: [], bgs: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, audioMode: 'auto', silentFallback: true, pace: 5, parallel: 2, sceneAI: true, continuity: false, voiceMode: 'character', sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
+    return { source: null, chars: [], bgs: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, audioMode: 'auto', silentFallback: true, pace: 5, parallel: 2, sceneAI: true, reviewNotes: false, continuity: false, voiceMode: 'character', sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
   }
 
   // ---------- small helpers ----------
@@ -262,6 +262,7 @@
         const clipBlob = new Blob([data], { type: 'video/mp4' });
         await putBlob(`clip:${clip.id}`, clipBlob);
         clip.thumb = await frameAt(objectUrl(state.clipUrls, clip.id, clipBlob), 0.1);
+        clip.thumbEnd = await frameAt(state.clipUrls.get(clip.id), Math.max(0.1, end - start - 0.1));
         state.project.clips.push(clip); renderClips();
       }
       await ff.deleteFile('/source').catch(() => {});
@@ -372,26 +373,68 @@
     });
     return canvas.toDataURL('image/jpeg', 0.85);
   }
-  async function analyzeScene(clip, signal) {
-    const grid = await clipFrameGrid(clip);
-    const user = `Frames of a ${(clip.end - clip.start).toFixed(1)}-second clip.`;
-    const agent = state.project.settings.speechAgent || 'gemini-web';
-    let replyText;
-    if (agent === 'gemini-api') {
-      if (!window.CosAlphaAI?.text) throw new Error('Chưa tải được phần Gemini của app. Hãy tải lại trang Motion Studio.');
-      replyText = (await window.CosAlphaAI.text({ system: SCENE_SYSTEM, user, images: [grid], json: true, temperature: 0.2, signal })).text;
-    } else {
-      replyText = await chatWebAsk(agent, `${SCENE_SYSTEM}\n\n${user} Look at the attached image. Reply with the JSON object only.`, [{ dataUrl: grid, name: `motion-canh-${clip.index + 1}.jpg`, type: 'image/jpeg' }], signal);
-    }
-    const data = parseJsonReply(replyText);
+  // What is still missing in the AI's notes for a clip of this length (empty = good enough).
+  function sceneProblems(scene, length) {
+    const problems = [], actions = scene.actions || [];
+    const want = Math.min(4, Math.max(2, Math.round(length / 2)));
+    if (actions.length < want) problems.push(`there are only ${actions.length} beats; give 4 to 10 beats of about one second each`);
+    const last = actions.reduce((max, item) => Math.max(max, item.end), 0);
+    if (actions.length && last < length - 1) problems.push(`the timeline stops at ${last.toFixed(1)} s but the clip is ${length.toFixed(1)} s long; cover it to the end`);
+    if (actions.length && actions[0].start > 1) problems.push(`the timeline starts at ${actions[0].start.toFixed(1)} s; start at 0 s`);
+    if (actions.some((item, index) => index && item.start - actions[index - 1].end > 1.2)) problems.push('there are gaps between beats; leave no gaps');
+    if (!(scene.objects || []).length) problems.push('list the objects the person touches or that stand out');
+    if (!scene.camera) problems.push('describe the camera and the time of every cut');
+    return problems;
+  }
+  function readScene(data, agent) {
     const clean = value => String(value || '').replace(/\s+/g, ' ').trim();
-    clip.scene = {
+    return {
       setting: clean(data.setting), camera: clean(data.camera),
       objects: (Array.isArray(data.objects) ? data.objects : []).map(clean).filter(Boolean).slice(0, 10),
       actions: (Array.isArray(data.actions) ? data.actions : []).map(item => ({ start: Math.max(0, Number(item.start) || 0), end: Math.max(0, Number(item.end) || 0), text: clean(item.text) })).filter(item => item.text).sort((a, b) => a.start - b.start).slice(0, 12),
       endState: (Array.isArray(data.end_state) ? data.end_state : []).map(clean).filter(Boolean).slice(0, 10),
       agent
     };
+  }
+  async function askScene(agent, grid, user, clip, signal) {
+    if (agent === 'gemini-api') {
+      if (!window.CosAlphaAI?.text) throw new Error('Chưa tải được phần Gemini của app. Hãy tải lại trang Motion Studio.');
+      return (await window.CosAlphaAI.text({ system: SCENE_SYSTEM, user, images: [grid], json: true, temperature: 0.2, signal })).text;
+    }
+    return chatWebAsk(agent, `${SCENE_SYSTEM}\n\n${user} Look at the attached image. Reply with the JSON object only.`, [{ dataUrl: grid, name: `motion-canh-${clip.index + 1}.jpg`, type: 'image/jpeg' }], signal);
+  }
+  // Motion Studio → ChatGPT / Gemini → back: the answer is checked (whole clip covered, enough beats, objects and
+  // camera); if something is missing the AI is asked once more with exactly what to fix. If the chosen web assistant
+  // does not answer at all, the other one is tried once. The best answer is kept, with what is still missing.
+  async function analyzeScene(clip, signal) {
+    const grid = await clipFrameGrid(clip);
+    const length = Math.max(0.4, clip.end - clip.start);
+    const user = `Frames of a ${length.toFixed(1)}-second clip.`;
+    const chosen = state.project.settings.speechAgent || 'gemini-web';
+    const agents = chosen === 'gemini-api' ? [chosen] : [chosen, chosen === 'chatgpt' ? 'gemini-web' : 'chatgpt'];
+    let best = null, lastError = null;
+    for (const agent of agents) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (signal?.aborted) throw new DOMException('Đã dừng.', 'AbortError');
+        const fix = attempt && best ? ` Your previous answer for this clip had problems: ${best.problems.join('; ')}. Look at the frames again and answer again with the corrected, complete JSON.` : '';
+        let scene;
+        try { scene = readScene(parseJsonReply(await askScene(agent, grid, user + fix, clip, signal)), agent); }
+        catch (error) {
+          if (error?.name === 'AbortError') throw error;
+          lastError = error;
+          if (/đăng nhập|gắn vào tab|không trả lời|login/i.test(error.message)) break;
+          continue;
+        }
+        const problems = sceneProblems(scene, length);
+        if (!best || problems.length < best.problems.length) best = { scene, problems };
+        if (!problems.length) break;
+        status(`${AGENT_NAME[agent] || agent} ghi đoạn ${clip.index + 1} còn thiếu (${problems[0]}); hỏi lại một lần…`, 'warn');
+      }
+      if (best) break;
+      if (agents.length > 1 && agent === chosen) status(`${AGENT_NAME[agent] || agent} không trả lời được (${(lastError?.message || '').slice(0, 120)}); thử ${AGENT_NAME[agents[1]]}…`, 'warn');
+    }
+    if (!best) throw lastError || new Error('Trợ lý AI không trả lời được.');
+    clip.scene = { ...best.scene, missing: best.problems };
     saveSoon();
     return clip.scene;
   }
@@ -521,6 +564,7 @@
     objectUrl(state.resultUrls, clip.id, result);
     clip.result = true; clip.status = 'success'; clip.error = (reply.warnings || []).join(' '); clip.resultKey = key;
     clip.resultThumb = await frameAt(state.resultUrls.get(clip.id), 0.1);
+    clip.resultThumbEnd = await frameAt(state.resultUrls.get(clip.id), Math.max(0.1, clip.end - clip.start - 0.1));
     clip.resultSilent = !(await blobHasAudio(result));
   }
   // Flow could make the picture but not its sound: with the user's OK, switch on Flow's "return the video without
@@ -576,22 +620,36 @@
         if (signal.aborted) break;
         if (state.project.settings.sceneAI && !clip.scene) {
           try {
-            await ensureScene(clip, signal); clip.sceneError = '';
+            clip.phase = 'ai'; renderClips();
+            await ensureScene(clip, signal); clip.sceneError = ''; clip.phase = '';
             const sc = clip.scene || {};
             status(`${AGENT_NAME[state.project.settings.speechAgent] || 'Gemini'} đã xem đoạn ${clip.index + 1}: ${sc.actions?.length || 0} nhịp hành động, ${sc.objects?.length || 0} đồ vật${sc.camera ? ', có góc máy / cắt cảnh' : ''}. Bấm vào ô đoạn để xem chi tiết.`, 'ok');
             renderClips(); await sleep(800, signal);
           }
           catch (error) {
+            clip.phase = '';
             if (error?.name === 'AbortError' || signal.aborted) throw error;
             clip.sceneError = error.message; renderClips();
             if (!sceneWarned) { sceneWarned = true; status(`${AGENT_NAME[state.project.settings.speechAgent] || 'Gemini'} không xem được đoạn ${clip.index + 1}: ${error.message.slice(0, 160)}. Đoạn này vẫn tạo bằng câu lệnh chung.`, 'warn'); await sleep(2500, signal); }
           }
         }
-        if (needsDialogue()) { try { await ensureTranscript(clip, signal); } catch (error) { if (error?.name === 'AbortError' || signal.aborted) throw error; } }
+        if (needsDialogue()) { try { clip.phase = 'talk'; renderClips(); await ensureTranscript(clip, signal); } catch (error) { if (error?.name === 'AbortError' || signal.aborted) throw error; } finally { clip.phase = ''; } }
+      }
+      // Optional stop: the user reads (and may fix) each clip's notes, then sends everything to Flow.
+      if (state.project.settings.reviewNotes && !signal.aborted && todo.some(clip => clip.scene)) {
+        for (const clip of todo) clip.phase = 'review';
+        renderClips();
+        status(`Trợ lý AI đã ghi xong ${todo.filter(clip => clip.scene).length}/${todo.length} đoạn. Bấm vào từng đoạn để xem câu lệnh và sửa phần mô tả, rồi bấm "Gửi Flow" để tạo video.`, 'ok');
+        $('#msContinue').classList.remove('hidden');
+        await new Promise((resolve, reject) => {
+          state.reviewResolve = resolve;
+          signal.addEventListener('abort', () => reject(new DOMException('Đã dừng.', 'AbortError')), { once: true });
+        }).finally(() => { state.reviewResolve = null; $('#msContinue').classList.add('hidden'); for (const clip of todo) if (clip.phase === 'review') clip.phase = ''; });
       }
       // Workers start a little apart so the first send reaches Flow before the second one asks for the prompt box.
       await Promise.all(Array.from({ length: Math.min(limit, todo.length) }, (_, slot) => sleep(slot * 1500, signal).then(worker)));
       state.lastRun = { done, failed, stopped, aborted: signal.aborted };
+      ensureEdgeFrames(todo).catch(() => {});
       if (stopped) status(stopped, 'error');
       else if (!signal.aborted) status(failed ? `Xong ${done} đoạn, ${failed} đoạn lỗi. Bấm vào đoạn lỗi để xem và tạo lại.` : `Đã tạo xong ${done} đoạn. Bấm "Ghép video" để ra video hoàn chỉnh.`, failed ? 'warn' : 'ok');
     } catch (error) {
@@ -744,7 +802,7 @@
     $('#msSpeechAgent').value = settings.speechAgent || 'gemini-web';
     $('#msSync').checked = Boolean(settings.sync); $('#msVoiceDesc').value = settings.voiceDesc || ''; $('#msFlowVoice').value = settings.flowVoice || '';
     $('#msSubtitles').checked = Boolean(settings.subtitles); $('#msTranslate').value = settings.translate || ''; $('#msVoiceBox').classList.toggle('hidden', !settings.sync);
-    $('#msPrompt').value = settings.prompt; $('#msAudioMode').value = settings.audioMode || 'auto'; $('#msSilentFallback').checked = settings.silentFallback !== false; $('#msPace').value = String(settings.pace); $('#msSceneAI').checked = settings.sceneAI !== false; $('#msContinuity').checked = Boolean(settings.continuity); $('#msVoiceMode').value = settings.voiceMode || 'character'; $('#msParallel').value = String(settings.parallel || 2);
+    $('#msPrompt').value = settings.prompt; $('#msAudioMode').value = settings.audioMode || 'auto'; $('#msSilentFallback').checked = settings.silentFallback !== false; $('#msPace').value = String(settings.pace); $('#msSceneAI').checked = settings.sceneAI !== false; $('#msReview').checked = Boolean(settings.reviewNotes); $('#msContinuity').checked = Boolean(settings.continuity); $('#msVoiceMode').value = settings.voiceMode || 'character'; $('#msParallel').value = String(settings.parallel || 2);
   }
   function renderSource() {
     const source = state.project.source, video = $('#msSourceVideo');
@@ -793,13 +851,27 @@
     box.innerHTML = '';
     for (const clip of clips) {
       const card = document.createElement('button'); card.type = 'button'; card.className = `ms-clip ${clip.status}`; card.dataset.clip = clip.id;
-      const thumbs = document.createElement('div'); thumbs.className = 'thumbs';
-      for (const src of [clip.thumb, clip.resultThumb].filter(Boolean)) { const img = document.createElement('img'); img.src = src; img.alt = ''; thumbs.appendChild(img); }
+      // First and last frame of the source next to Flow's, so a clip that drifts from the source shows at once.
+      const thumbs = document.createElement('div'); thumbs.className = 'thumbs edges';
+      for (const [src, label] of [[clip.thumb, 'Gốc đầu'], [clip.thumbEnd, 'Gốc cuối'], [clip.resultThumb, 'Mới đầu'], [clip.resultThumbEnd, 'Mới cuối']]) {
+        const cell = document.createElement('figure'); cell.className = src ? '' : 'empty';
+        if (src) { const img = document.createElement('img'); img.src = src; img.alt = label; cell.appendChild(img); }
+        const cap = document.createElement('figcaption'); cap.textContent = label; cell.appendChild(cap); thumbs.appendChild(cell);
+      }
       const meta = document.createElement('div'); meta.className = 'meta';
       meta.innerHTML = `<b>Đoạn ${clip.index + 1}</b><span>${fmt(clip.start)} – ${fmt(clip.end)}</span><span class="st"></span>`;
       meta.querySelector('.st').textContent = STATUS_VI[clip.status] || clip.status;
+      // Where this clip is: cut → AI notes → dialogue → Flow → done.
+      const steps = document.createElement('span'); steps.className = 'steps';
+      const s = state.project.settings, mark = (label, state) => `<i class="${state}">${label}</i>`;
+      const ai = !s.sceneAI && !clip.scene?.manual ? 'skip' : clip.phase === 'ai' ? 'run' : clip.scene ? (clip.scene.missing?.length ? 'warn' : 'ok') : clip.sceneError ? 'err' : 'wait';
+      const talk = !needsDialogue() ? 'skip' : clip.phase === 'talk' ? 'run' : clip.transcript ? 'ok' : 'wait';
+      const flow = clip.status === 'running' ? 'run' : clip.result ? 'ok' : clip.status === 'error' ? 'err' : clip.phase === 'review' ? 'hold' : 'wait';
+      steps.innerHTML = [mark('Cắt', 'ok'), mark('AI', ai), mark('Lời', talk), mark('Flow', flow)].join('<b>›</b>');
+      steps.title = 'Cắt đoạn › Trợ lý AI ghi hành động › Lời thoại › Flow tạo video';
+      meta.appendChild(steps);
       // What the AI wrote for this clip (or why it could not).
-      if (clip.scene || clip.sceneError) { const ai = document.createElement('span'); ai.className = clip.sceneError && !clip.scene ? 'talk ai-err' : 'talk ai'; ai.textContent = clip.scene ? (clip.scene.manual ? 'AI: mô tả cảnh sửa tay' : `AI: ${clip.scene.actions?.length || 0} nhịp hành động, ${clip.scene.objects?.length || 0} đồ vật`) : `AI lỗi: ${clip.sceneError.slice(0, 40)}`; ai.title = clip.scene ? sceneText(clip.scene) : clip.sceneError; meta.appendChild(ai); }
+      if (clip.scene || clip.sceneError) { const ai = document.createElement('span'); ai.className = clip.sceneError && !clip.scene ? 'talk ai-err' : 'talk ai'; ai.textContent = clip.scene ? (clip.scene.manual ? 'AI: mô tả cảnh sửa tay' : `AI: ${clip.scene.actions?.length || 0} nhịp hành động, ${clip.scene.objects?.length || 0} đồ vật${clip.scene.missing?.length ? ' (còn thiếu, bấm để sửa)' : ''}`) : `AI lỗi: ${clip.sceneError.slice(0, 40)}`; ai.title = clip.scene ? sceneText(clip.scene) : clip.sceneError; meta.appendChild(ai); }
       if (clip.transcript) { const talk = document.createElement('span'); talk.className = 'talk'; talk.textContent = clip.transcript.has_speech ? `Lời thoại: ${clip.transcript.text.slice(0, 40)}${clip.transcript.text.length > 40 ? '…' : ''}` : 'Không có lời thoại'; meta.appendChild(talk); }
       if (clip.error) card.title = clip.error;
       card.append(thumbs, meta); card.onclick = () => openClip(clip.id); box.appendChild(card);
@@ -808,6 +880,29 @@
   function renderAll() { renderSettings(); renderSource(); renderChars(); renderBgs(); renderBatch(); renderClips(); renderFinal(); renderButtons(); }
 
   let modalClip = null;
+  // Older projects have no last frames yet: fill them in once (source and Flow result).
+  async function ensureEdgeFrames(clips = state.project.clips) {
+    let changed = false;
+    for (const clip of clips) {
+      const length = Math.max(0.2, clip.end - clip.start);
+      if (!clip.thumbEnd) { const url = await clipUrl(clip, 'clip').catch(() => ''); if (url) { clip.thumbEnd = await frameAt(url, length - 0.1); changed = true; } }
+      if (clip.result && !clip.resultThumbEnd) { const url = await clipUrl(clip, 'result').catch(() => ''); if (url) { clip.resultThumbEnd = await frameAt(url, length - 0.1); changed = true; } }
+    }
+    if (changed) { renderClips(); saveSoon(); }
+  }
+  function showEdges(clip) {
+    const box = $('#msModalEdges'); box.innerHTML = '';
+    for (const [src, label] of [[clip.thumb, 'Gốc · khung đầu'], [clip.resultThumb, 'Mới · khung đầu'], [clip.thumbEnd, 'Gốc · khung cuối'], [clip.resultThumbEnd, 'Mới · khung cuối']]) {
+      const cell = document.createElement('figure');
+      if (src) { const img = document.createElement('img'); img.src = src; img.alt = label; cell.appendChild(img); } else { const none = document.createElement('div'); none.className = 'ms-empty'; none.textContent = 'Chưa có'; cell.appendChild(none); }
+      const cap = document.createElement('figcaption'); cap.textContent = label; cell.appendChild(cap); box.appendChild(cell);
+    }
+  }
+  // The exact prompt this clip will send to Flow (the AI notes are inside it).
+  function showPromptPreview(clip) {
+    const continuity = Boolean(state.project.settings.continuity && state.project.clips.some(other => other.index < clip.index && other.result));
+    $('#msModalPrompt').value = composePrompt(clip, { continuity });
+  }
   async function openClip(id) {
     const clip = state.project.clips.find(item => item.id === id); if (!clip) return;
     modalClip = clip;
@@ -819,7 +914,10 @@
     if (result) $('#msModalResult').src = result; else $('#msModalResult').removeAttribute('src');
     $('#msModalError').textContent = clip.status === 'error' || clip.error ? clip.error : '';
     $('#msModalTranscript').value = clip.transcript?.text || ''; $('#msModalTranslation').value = clip.transcript?.translation || '';
-    $('#msModalScene').value = sceneText(clip.scene); $('#msModalAnalyze').disabled = state.running;
+    $('#msModalScene').value = sceneText(clip.scene); $('#msModalAnalyze').disabled = state.running && !state.reviewResolve;
+    $('#msModalMissing').textContent = clip.scene?.missing?.length ? `AI còn thiếu: ${clip.scene.missing.join('; ')}.` : '';
+    showPromptPreview(clip); showEdges(clip);
+    ensureEdgeFrames([clip]).then(() => { if (modalClip === clip) showEdges(clip); });
     $('#msModalTranscribe').disabled = state.running;
     $('#msModalRegen').disabled = state.running;
     $('#msModalRegen').lastChild.textContent = clip.result ? 'Tạo lại đoạn này' : 'Tạo đoạn này';
@@ -861,7 +959,8 @@
       saveSoon(); renderAll(); status('Đã làm mới dự án.', 'ok');
     };
     const bind = (id, key, parse = value => value) => { $(id).onchange = () => { state.project.settings[key] = parse($(id).type === 'checkbox' ? $(id).checked : $(id).value); saveSoon(); }; };
-    bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msAudioMode', 'audioMode'); bind('#msSilentFallback', 'silentFallback', Boolean); bind('#msPace', 'pace', Number); bind('#msSceneAI', 'sceneAI', Boolean); bind('#msContinuity', 'continuity', Boolean); bind('#msVoiceMode', 'voiceMode'); bind('#msParallel', 'parallel', Number);
+    bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msAudioMode', 'audioMode'); bind('#msSilentFallback', 'silentFallback', Boolean); bind('#msPace', 'pace', Number); bind('#msSceneAI', 'sceneAI', Boolean); bind('#msReview', 'reviewNotes', Boolean);
+    $('#msContinue').onclick = () => { state.reviewResolve?.(); }; bind('#msContinuity', 'continuity', Boolean); bind('#msVoiceMode', 'voiceMode'); bind('#msParallel', 'parallel', Number);
     bind('#msSpeechAgent', 'speechAgent');
     bind('#msSync', 'sync', Boolean); bind('#msSubtitles', 'subtitles', Boolean); bind('#msTranslate', 'translate');
     for (const box of document.querySelectorAll('.ms-side details')) { try { if (localStorage.getItem(`ms-open-${box.id}`) === '1') box.open = true; } catch {} box.addEventListener('toggle', () => { try { localStorage.setItem(`ms-open-${box.id}`, box.open ? '1' : '0'); } catch {} }); }
@@ -880,7 +979,7 @@
     $('#msModalAnalyze').onclick = async () => {
       const clip = modalClip; if (!clip || state.running) return;
       $('#msModalAnalyze').disabled = true; $('#msModalError').textContent = '';
-      try { await analyzeScene(clip); $('#msModalScene').value = sceneText(clip.scene); renderClips(); }
+      try { await analyzeScene(clip); $('#msModalScene').value = sceneText(clip.scene); $('#msModalMissing').textContent = clip.scene?.missing?.length ? `AI còn thiếu: ${clip.scene.missing.join('; ')}.` : ''; showPromptPreview(clip); renderClips(); }
       catch (error) { $('#msModalError').textContent = error.message; }
       finally { $('#msModalAnalyze').disabled = false; }
     };
@@ -888,7 +987,7 @@
       const clip = modalClip; if (!clip) return;
       const text = $('#msModalScene').value.trim();
       clip.scene = text ? { manual: true, text } : null;
-      saveSoon(); $('#msModalError').textContent = text ? 'Đã lưu mô tả cảnh cho đoạn này.' : 'Đã xoá mô tả cảnh; đoạn này sẽ được xem lại khi tạo.';
+      saveSoon(); showPromptPreview(clip); renderClips(); $('#msModalError').textContent = text ? 'Đã lưu mô tả cảnh cho đoạn này.' : 'Đã xoá mô tả cảnh; đoạn này sẽ được xem lại khi tạo.';
     };
     $('#msModalSaveDialogue').onclick = () => {
       const clip = modalClip; if (!clip) return;
