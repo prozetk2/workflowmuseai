@@ -65,7 +65,7 @@
   function saveNow() { clearTimeout(saveTimer); return idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')); }
   function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(() => idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')), 300); }
   function newProject() {
-    return { source: null, chars: [], bgs: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, audioMode: 'auto', silentFallback: true, pace: 5, parallel: 2, sceneAI: true, reviewNotes: false, continuity: false, voiceMode: 'character', sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
+    return { source: null, chars: [], bgs: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, audioMode: 'auto', silentFallback: true, pace: 5, parallel: 2, sceneAI: true, reviewNotes: false, autoFinish: true, continuity: false, voiceMode: 'character', sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
   }
 
   // ---------- small helpers ----------
@@ -181,8 +181,38 @@
     const pill = $('#msFlow');
     try {
       const reply = await flowMessage({ type: 'THEKEY_FLOW_CHECK_SESSION' });
-      pill.textContent = reply?.ready ? 'Flow sẵn sàng' : 'Mở một dự án trong Flow'; pill.className = `ms-pill ${reply?.ready ? 'ok' : 'warn'}`;
-    } catch (error) { pill.textContent = 'Chưa có tab Flow'; pill.className = 'ms-pill warn'; pill.title = error.message; }
+      pill.textContent = reply?.ready ? 'Flow sẵn sàng' : reply?.loginRequired ? 'Đăng nhập Flow' : 'Bấm để mở dự án Flow'; pill.className = `ms-pill ${reply?.ready ? 'ok' : 'warn'}`;
+      pill.title = reply?.ready ? '' : 'Bấm để Motion Studio tự mở Google Flow và một dự án';
+    } catch (error) { pill.textContent = 'Bấm để mở Flow'; pill.className = 'ms-pill warn'; pill.title = 'Chưa có tab Google Flow. Bấm để Motion Studio tự mở.'; }
+  }
+  // Flow ready without the user doing anything: open flow.google.com in the background if no tab is open, then the
+  // most recent project (or a new one). Only a sign-in is left to the user.
+  async function tabComplete(tabId, ms = 30000) {
+    for (let waited = 0; waited < ms; waited += 500) {
+      const tab = await chrome.tabs.get(tabId).catch(() => null);
+      if (!tab) return false;
+      if (tab.status === 'complete' && waited >= 1000) return true;
+      await sleep(500);
+    }
+    return false;
+  }
+  async function ensureFlowReady(signal) {
+    let tab = await flowTab();
+    if (!tab) {
+      status('Đang mở Google Flow…', 'warn');
+      tab = await chrome.tabs.create({ url: 'https://flow.google.com/', active: false });
+      await tabComplete(tab.id); await sleep(2500, signal);
+    }
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const check = await flowMessage({ type: 'THEKEY_FLOW_CHECK_SESSION' }, signal).catch(error => ({ ok: false, error: error.message }));
+      if (check?.ready) { checkFlow(); return true; }
+      if (check?.loginRequired) throw Object.assign(new Error('Google Flow cần bạn đăng nhập: mở tab Flow, đăng nhập rồi bấm Tạo video lại.'), { code: 'FLOW_NOT_READY' });
+      const prep = await flowMessage({ type: 'THEKEY_FLOW_PREPARE' }, signal).catch(() => null);
+      if (prep?.loginRequired) throw Object.assign(new Error('Google Flow cần bạn đăng nhập: mở tab Flow, đăng nhập rồi bấm Tạo video lại.'), { code: 'FLOW_NOT_READY' });
+      if (prep?.navigating) { status(prep.opened === 'new' ? 'Đang tạo một dự án mới trong Flow…' : 'Đang mở dự án Flow gần nhất…', 'warn'); await sleep(1500, signal); const current = await flowTab(); if (current) await tabComplete(current.id); await sleep(3000, signal); continue; }
+      await sleep(2000, signal);
+    }
+    throw Object.assign(new Error('Chưa mở được dự án trong Google Flow. Hãy mở flow.google.com, chọn một dự án rồi bấm Tạo video lại.'), { code: 'FLOW_NOT_READY' });
   }
 
   // ---------- source & characters ----------
@@ -658,6 +688,30 @@
       status('Đã dừng.', 'warn');
     } finally { state.running = false; state.abort = null; setBusy(false); renderAll(); saveSoon(); }
   }
+  // The whole job from one button: Flow ready → cut → AI notes / Flow per clip → merge → saved to Downloads.
+  async function runAll() {
+    if (state.running) return;
+    if (!state.project.source) { status('Chọn video gốc trước (thả vào khung Video gốc).', 'warn'); $('#msSourceInput').click(); return; }
+    if (!state.project.chars.length) { status('Thêm 1 ảnh nhân vật ở thẻ số 1 trước.', 'warn'); $('#msCharInput').click(); return; }
+    const pending = state.project.clips.filter(clip => !clip.result && clip.status !== 'skipped');
+    try {
+      if (!state.project.clips.length || pending.length) await ensureFlowReady();
+    } catch (error) { status(error.message, 'error'); checkFlow(); return; }
+    if (!state.project.clips.length && !(await splitSource({ force: true }))) return;
+    const todo = state.project.clips.filter(clip => !clip.result && clip.status !== 'skipped');
+    state.lastRun = null;
+    if (todo.length) await generate(todo);
+    const run = state.lastRun || {};
+    if (run.aborted || run.stopped) return;
+    if (!state.project.settings.autoFinish) return;
+    const missing = state.project.clips.filter(clip => clip.status !== 'skipped' && !clip.result);
+    if (missing.length) return;
+    state.lastMerge = null; await merge();
+    if (!state.lastMerge) return;
+    const name = `motion-${String(state.project.source?.name || 'video').replace(/\.[a-z0-9]+$/i, '')}.mp4`;
+    await download(state.finalUrl, name);
+    status(`Xong! Video hoàn chỉnh đã lưu vào thư mục Tải xuống: ${name}. Bấm vào từng đoạn để so khung đầu / cuối với video gốc.`, 'ok');
+  }
   async function stop() {
     if (!state.running) return;
     state.abort?.abort();
@@ -785,10 +839,13 @@
     const project = state.project, clips = project.clips;
     $('#msSplit').disabled = state.running || !project.source;
     const left = clips.filter(clip => !clip.result && clip.status !== 'skipped').length;
-    $('#msGenerate').disabled = state.running || !left;
-    $('#msGenerate').lastChild.textContent = !clips.length || left === clips.length ? 'Tạo tất cả đoạn' : left ? `Tạo tiếp ${left} đoạn chưa xong` : 'Đã tạo hết các đoạn';
+    // One main button: cut (if needed) → AI notes → Flow → merge → save. Disabled only while running.
+    const planned = !clips.length && project.source ? plan(project.source.duration, Number(project.settings.clipLen) || 8).length : 0;
+    $('#msGenerate').disabled = state.running || (clips.length > 0 && !left && Boolean(project.final));
+    $('#msGenerate').lastChild.textContent = !project.source ? 'Chọn video gốc' : !project.chars.length ? 'Thêm ảnh nhân vật' : !clips.length ? 'Tạo video' : left === clips.length ? 'Tạo video' : left ? `Tạo tiếp ${left} đoạn` : project.final ? 'Đã xong' : 'Ghép & lưu video';
     // About 20 credits per clip (Omni with a video ingredient).
-    $('#msCost').textContent = left ? `${left} đoạn cần tạo · khoảng ${left * 20} tín dụng` : clips.length ? 'Đã tạo hết các đoạn' : 'Chọn video gốc rồi bấm Cắt thành đoạn';
+    const todoCount = left || planned;
+    $('#msCost').textContent = !project.source ? 'Bước 1: chọn video gốc · Bước 2: thêm ảnh nhân vật · Bước 3: bấm Tạo video' : todoCount ? `${todoCount} đoạn · khoảng ${todoCount * 20} tín dụng` : clips.length ? 'Đã tạo hết các đoạn' : '';
     $('#msMerge').disabled = state.running || !clips.some(clip => clip.result);
     $('#msDownload').disabled = !state.finalUrl;
     $('#msRedoAudio').disabled = state.running || !clips.some(clip => clip.result);
@@ -830,6 +887,7 @@
       card.append(img, name, remove); box.appendChild(card);
     }
     $('#msCharDrop').classList.toggle('hidden', state.project.chars.length >= 1);
+    if (document.querySelector('#msCost')) renderButtons();
   }
   function renderBgs() {
     const box = $('#msBgs'); if (!box) return; box.innerHTML = '';
@@ -946,7 +1004,8 @@
     dropZone($('#msBatchDrop'), addBatch);
     $('#msBatchRun').onclick = runBatch;
     $('#msSplit').onclick = splitSource;
-    $('#msGenerate').onclick = () => generate(state.project.clips.filter(clip => !clip.result));
+    $('#msGenerate').onclick = runAll;
+    $('#msFlow').onclick = async () => { try { await ensureFlowReady(); status('Google Flow đã sẵn sàng.', 'ok'); } catch (error) { status(error.message, 'error'); } };
     $('#msStop').onclick = () => { batch.stop = true; stop(); };
     $('#msMerge').onclick = () => merge();
     $('#msRedoAudio').onclick = () => merge({ originalAudio: true });

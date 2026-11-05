@@ -32,7 +32,7 @@ const MP4 = fs.readFileSync(__dirname + '/v.mp4'), OTHER = fs.readFileSync(__dir
   check('Có ô ảnh bối cảnh', await page.isVisible('#msBgDrop'));
   await page.setInputFiles('#msBgInput', bgFile);
   await page.waitForFunction(() => window.__cosAlphaMotion.state.project.bgs.length === 1);
-  await page.evaluate(() => { const s = window.__cosAlphaMotion.state.project.settings; s.clipLen = 8; s.pace = 0; s.sceneAI = false; s.parallel = 1; });
+  await page.evaluate(() => { const s = window.__cosAlphaMotion.state.project.settings; s.clipLen = 8; s.pace = 0; s.autoFinish = false; s.sceneAI = false; s.parallel = 1; });
   await page.click('#msSplit');
   await page.waitForFunction(() => window.__cosAlphaMotion.state.project.clips.length && !document.querySelector('#msSplit').disabled, null, { timeout: 120000 });
   // A spoken line for the clip, typed by hand (as the clip dialog allows).

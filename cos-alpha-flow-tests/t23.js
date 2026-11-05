@@ -40,7 +40,7 @@ const hasAudio = buffer => { try { const file = path.join(os.tmpdir(), `t23-${Da
   await page.selectOption('#msSpeechAgent', 'chatgpt');
   await page.check('#msSync'); await page.fill('#msVoiceDesc', 'giọng nữ trẻ, ấm');
   // The scene makes Flow fail on sound the first time.
-  await page.evaluate(() => { const s = window.__cosAlphaMotion.state.project.settings; s.clipLen = 8; s.pace = 0; s.sceneAI = false; s.prompt = s.prompt + ' AUDIOFAIL'; });
+  await page.evaluate(() => { const s = window.__cosAlphaMotion.state.project.settings; s.clipLen = 8; s.pace = 0; s.autoFinish = false; s.sceneAI = false; s.prompt = s.prompt + ' AUDIOFAIL'; });
   await page.click('#msSplit');
   await page.waitForFunction(() => window.__cosAlphaMotion.state.project.clips.length && !document.querySelector('#msSplit').disabled, null, { timeout: 120000 });
   await page.click('#msGenerate');

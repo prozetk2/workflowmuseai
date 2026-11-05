@@ -188,6 +188,7 @@
     if (message.type === 'THEKEY_FLOW_QUEUE_STATE') { try { renderQueueOverlay(message.snapshot); } catch (error) { console.warn('[cos_alpha_flow] overlay', error); } sendResponse({ ok: true }); return false; }
     SEL = { ...DEFAULT_SELECTORS, ...(message.selectors && typeof message.selectors === 'object' ? message.selectors : {}) };
     if (message.type === 'THEKEY_FLOW_CHECK_SESSION') { checkSession().then(sendResponse); return true; }
+    if (message.type === 'THEKEY_FLOW_PREPARE') { sendResponse(prepareProject()); return false; }
     if (message.type === 'THEKEY_FLOW_DIAGNOSE') { sendResponse(diagnose()); return false; }
     if (message.type === 'THEKEY_FLOW_SILENT_FALLBACK') { setSilentFallback(message.on !== false).then(sendResponse, error => sendResponse({ ok: false, error: error.message || String(error) })); return true; }
     if (message.type === 'THEKEY_FLOW_GENERATE') {
@@ -896,6 +897,18 @@
     return { ok: true, ready: Boolean(editor), loginRequired, inProject: Boolean(editor), url: location.href, title: document.title };
   }
 
+  // Motion Studio found Flow open on its home page: open the most recent project (or start one) so the user does
+  // not have to. Never on a sign-in page.
+  function prepareProject() {
+    if (findEditor()) return { ok: true, ready: true };
+    if (/accounts\.google\.com$/i.test(location.host)) return { ok: true, loginRequired: true };
+    const recent = [...document.querySelectorAll('a[href*="/project/"]')].find(link => /\/project\/[0-9a-f-]{36}/i.test(link.href));
+    if (recent) { setTimeout(() => { location.href = recent.href; }, 50); return { ok: true, navigating: true, opened: 'recent' }; }
+    const create = clickables().filter(visible).find(el => /^(\+\s*)?(dự án mới|new project|tạo dự án)$/i.test(textOf(el)) || /dự án mới|new project/i.test(labelOf(el)));
+    if (create) { setTimeout(() => create.click(), 50); return { ok: true, navigating: true, opened: 'new' }; }
+    return { ok: true, ready: false };
+  }
+
   function diagnose() {
     const editor = findEditor();
     const icons = new Set(), flowTags = new Set();
@@ -1373,6 +1386,11 @@
     // Wait for either the classic prompt box or the agent page to be drawn.
     let editor = await waitFor(() => findEditor() || (location.pathname.includes('/project/') && document.readyState === 'complete' && document.body.innerText.length > 50 ? 'page' : null), 15000, signal);
     if (editor === 'page') editor = findEditor();
+    // Motion Studio needs Flow's direct mode: switch the "Tác nhân" chip off instead of asking the user to.
+    if (!isClassicUi() && !directModelMode() && req.sourceVideo) {
+      const chip = firstVisible(SEL.agentModeChip || []);
+      if (chip && chip.getAttribute('aria-pressed') === 'true') { await press(chip, signal, () => chip.getAttribute('aria-pressed') === 'false', 3000); await waitFor(() => directModelMode(), 3000, signal); }
+    }
     if (!isClassicUi() && directModelMode()) return generateDirect(req, kind, signal);
     if (req.sourceVideo) throw flowError('Motion Studio cần Flow ở chế độ gửi thẳng: trong ô nhập của Flow, tắt nút "Tác nhân" rồi chạy lại. Chưa gửi gì cả.', 'FLOW_NOT_READY');
     if (!isClassicUi()) return generateAgent(req, kind, signal);

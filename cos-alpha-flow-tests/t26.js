@@ -32,7 +32,7 @@ const MP4 = fs.readFileSync(__dirname + '/v.mp4');
   await page.setInputFiles('#msCharInput', charFile);
   await page.waitForFunction(() => window.__cosAlphaMotion.state.project.chars.length === 1);
   await page.selectOption('#msSpeechAgent', 'chatgpt');
-  await page.evaluate(() => { const s = window.__cosAlphaMotion.state.project.settings; s.clipLen = 8; s.pace = 0; });
+  await page.evaluate(() => { const s = window.__cosAlphaMotion.state.project.settings; s.clipLen = 8; s.pace = 0; s.autoFinish = false; });
   await page.click('#msSplit');
   await page.waitForFunction(() => window.__cosAlphaMotion.state.project.clips.length && !document.querySelector('#msSplit').disabled, null, { timeout: 120000 });
   await page.click('#msGenerate');

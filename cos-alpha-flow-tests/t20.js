@@ -40,7 +40,7 @@ const MP4 = fs.readFileSync(__dirname + '/v.mp4');
   await page.waitForFunction(() => window.__cosAlphaMotion.state.project.chars.length === 1);
   // Clips of 1 s, so the short test video gives several clips (the length list starts at 4 s in the UI).
   const duration = source.duration, wanted = Math.round(duration / 2.5 * 100) / 100;
-  await page.evaluate(len => { window.__cosAlphaMotion.state.project.settings.clipLen = len; window.__cosAlphaMotion.state.project.settings.pace = 0; window.__cosAlphaMotion.state.project.settings.sceneAI = false; }, wanted);
+  await page.evaluate(len => { window.__cosAlphaMotion.state.project.settings.clipLen = len; window.__cosAlphaMotion.state.project.settings.pace = 0; window.__cosAlphaMotion.state.project.settings.autoFinish = false; window.__cosAlphaMotion.state.project.settings.sceneAI = false; }, wanted);
   await page.click('#msSplit');
   await page.waitForFunction(() => { const s = window.__cosAlphaMotion.state; return s.project.clips.length && !document.querySelector('#msSplit').disabled; }, null, { timeout: 120000 });
   const clips = await page.evaluate(() => window.__cosAlphaMotion.state.project.clips.map(c => ({ start: c.start, end: c.end, thumb: Boolean(c.thumb) })));

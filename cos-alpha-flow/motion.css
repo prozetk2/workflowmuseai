@@ -141,3 +141,4 @@ input[type=text]{font:inherit;width:100%;background:#0e1017;color:#eee;border:1p
 .ms-edges img{display:block;width:100%;height:200px;object-fit:contain;background:#000}
 .ms-edges .ms-empty{height:200px;display:grid;place-items:center;color:#555;font-size:11px}
 .ms-edges figcaption{font-size:11px;color:#a8aab3;padding:3px 6px}
+button.ms-pill{cursor:pointer;font-family:inherit}button.ms-pill:hover{filter:brightness(1.2)}
