@@ -561,9 +561,22 @@
 
   // ---------- generation ----------
   function flowDuration(seconds) { return DURATIONS.find(value => value >= seconds - 0.05) || 10; }
-  async function generateClip(clip, signal) {
+  // The source clip without its sound track: Flow then never tries to edit the speech in it.
+  async function silentClip(blob) {
+    const ff = await ffmpeg();
+    await ff.writeFile('/mute-in.mp4', new Uint8Array(await blob.arrayBuffer()));
+    try {
+      if (!(await hasAudio(ff, '/mute-in.mp4'))) return blob;
+      await run(ff, ['-i', '/mute-in.mp4', '-an', '-c:v', 'copy', '-movflags', '+faststart', '-y', '/mute-out.mp4']);
+      return new Blob([await ff.readFile('/mute-out.mp4')], { type: 'video/mp4' });
+    } finally { await ff.deleteFile('/mute-in.mp4').catch(() => {}); await ff.deleteFile('/mute-out.mp4').catch(() => {}); }
+  }
+  async function generateClip(clip, signal, { mute = false } = {}) {
     const settings = state.project.settings;
-    const blob = await getBlob(`clip:${clip.id}`); if (!blob) throw new Error('Đoạn này mất file gốc. Hãy cắt lại video.');
+    let blob = await getBlob(`clip:${clip.id}`); if (!blob) throw new Error('Đoạn này mất file gốc. Hãy cắt lại video.');
+    // When the source sound goes back in at merge (or Flow already failed on the speech), Flow gets a silent clip.
+    const lipsync = settings.sync && settings.voiceMode === 'lipsync';
+    if (mute || settings.audioMode === 'original' || lipsync) blob = await silentClip(blob).catch(() => blob);
     clip.status = 'running'; clip.error = ''; renderClips(); saveSoon();
     if (needsDialogue()) await ensureTranscript(clip, signal);
     // Continuity (like TobyFlow): the last frame of the previous clip's result goes in as image 2, so the character,
@@ -606,7 +619,7 @@
       status(`Flow không tạo được âm thanh cho đoạn ${clip.index + 1} (được hoàn credit). Bật "Trả về video không có âm thanh" trong Flow rồi tạo lại…`, 'warn');
       const set = await flowMessage({ type: 'THEKEY_FLOW_SILENT_FALLBACK', on: true }, signal).catch(problem => ({ ok: false, error: problem.message }));
       if (!set?.ok) throw Object.assign(new Error(`${error.message} (Không tự bật được "Trả về video không có âm thanh": ${set?.error || 'không rõ lý do'}. Hãy bật trong Cài đặt của Flow rồi tạo lại.)`), { code: 'AUDIO_FAILED' });
-      await generateClip(clip, signal);
+      await generateClip(clip, signal, { mute: true });
       clip.error = [clip.error, 'Flow trả video không tiếng; khi ghép sẽ dùng âm thanh của video gốc.'].filter(Boolean).join(' ');
     }
   }

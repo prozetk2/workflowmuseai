@@ -78,7 +78,8 @@
   const CREDIT_RX = /(not enough credits|insufficient credits|out of credits|no credits left|run out of credits|hết tín dụng|không đủ tín dụng)/i;
   const FAIL_RX = /(failed|error|something went wrong|try again|unsuccessful|thất bại|đã xảy ra lỗi|không thành công|không tạo được)/i;
   // Flow made the picture but could not make its sound ("Không tạo được âm thanh"); credits are refunded.
-  const AUDIO_FAIL_RX = /(không tạo được âm thanh|could ?n[o']t generate (the )?audio|unable to generate (the )?audio|audio generation failed)/i;
+  // Flow could not make or edit the sound (also "Không thể chỉnh sửa lời nói trong video này" when the source clip has speech).
+  const AUDIO_FAIL_RX = /(không tạo được âm thanh|không thể chỉnh sửa lời nói|could ?n[o']t generate (the )?audio|unable to generate (the )?audio|audio generation failed|can'?t edit (the )?speech|could ?n[o']t edit (the )?speech|unable to edit (the )?speech)/i;
   const MAX_TRANSFER_BYTES = 40 * 1024 * 1024;
 
   let SEL = DEFAULT_SELECTORS;
@@ -114,7 +115,7 @@
   function netFailure(item) {
     const codes = (item.errors || []).join(' ');
     if (!codes) return null;
-    if (/AUDIO/i.test(codes)) return { code: 'AUDIO_FAILED', text: `Flow không tạo được âm thanh (${codes}).` };
+    if (/AUDIO|SPEECH|VOICE/i.test(codes)) return { code: 'AUDIO_FAILED', text: `Flow không tạo được âm thanh hoặc lời nói (${codes}).` };
     if (/QUOTA|CREDIT/i.test(codes)) return { code: 'NO_CREDITS', text: `Flow báo hết tín dụng (${codes}).` };
     if (/PEOPLE|CELEB|PROMINENT|SAFETY|POLICY|FILTER|SEXUAL|CHILD|HARM|VIOLAT|UNSAFE|BLOCK/i.test(codes)) return { code: 'SCENE_REFUSED', text: `Flow từ chối nội dung này (${codes}).` };
     return { code: 'FLOW_ERROR', text: `Flow báo lỗi (${codes}).` };

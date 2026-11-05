@@ -1,4 +1,4 @@
-cos_alpha_flow 1.17.0 (make by Cos_alpha)
+cos_alpha_flow 1.17.1 (make by Cos_alpha)
 Build type: Chrome Extension Manifest V3, zero dependency
 Based on TheKey.studio Flow 0.3.9 + side panel, quick generate, prompt assistant, presets, styles, characters, prompt library, history, image-to-prompt, AI Agent/Text Extract/Download nodes, queue, Flow overlay, AI script writer, project album
 Integration: signed-in Google Flow tab (flow.google.com) or the Gemini API (Veo); no local backend

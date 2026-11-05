@@ -86,6 +86,7 @@ $('#upload').onclick = () => {
     const file = input.files[0]; if (!file) return; $('#menu').style.display = 'none';
     const isVideo = /^video\//.test(file.type);
     S.uploadCount++; S.uploads.push({ name: file.name.replace(/\.[a-z0-9]+$/i, ''), url: URL.createObjectURL(file), video: isVideo });
+    if (isVideo) (S.videoSizes = S.videoSizes || []).push(file.size);
     const img = document.createElement(isVideo ? 'video' : 'img'); img.src = URL.createObjectURL(file); if (isVideo) { S.videos = (S.videos || 0) + 1; img.muted = true; }
     if (target !== 'slot') S.attachOrder = [...(S.attachOrder || []), isVideo ? 'video' : 'image'];
     if (target === 'slot') { $('#startSlot').textContent = ''; $('#startSlot').appendChild(img); S.slot++; } else { $('#atts').appendChild(img); S.attachments++; }
@@ -108,6 +109,9 @@ $('#send').onclick = () => {
   t.setAttribute('aria-label', title);
   setTimeout(() => netReply('YhhmEf', [null, 646, [[uuid(), null, null, [title, [1, 2], null, null, id], PROJECT]], [netItem(id, text, 2)]]), 150);
   const finish = (state, errors) => setTimeout(() => netReply('jwpduf', [null, 646, [netItem(id, text, state, errors ? [null, errors] : [])]]), 50);
+  // The source clip carries speech: Flow cannot edit it unless the clip comes without sound (or the silent setting is on).
+  S.uploadSizes = S.uploadSizes || [];
+  if (/SPEECHFAIL/.test(text) && !S.silentFallback) { setTimeout(() => { t.innerHTML = '<span>warning Không thành công Không thể chỉnh sửa lời nói trong video này. Vui lòng thử một câu lệnh khác.</span>'; finish(5, ['PUBLIC_ERROR_SPEECH_EDIT_FAILED']); }, 800); return; }
   if (/AUDIOFAIL/.test(text) && !S.silentFallback) { setTimeout(() => { t.innerHTML = '<span>warning Không thành công Không tạo được âm thanh. Vui lòng thử một câu lệnh khác hoặc gửi ý kiến phản hồi.</span>'; finish(5, ['PUBLIC_ERROR_AUDIO_GENERATION_FAILED']); }, 800); return; }
   if (/AUDIOFAIL/.test(text)) { n++; const k = n; setTimeout(() => { t.innerHTML = `<video muted src="/media/silent${k}.mp4"></video><span>Video ${k}</span>`; finish(3); }, 1500); return; }
   if (/BLOCKME/.test(text)) { setTimeout(() => { t.innerHTML = '<span>Chúng tôi phát hiện thấy hoạt động bất thường.</span>'; }, 800); return; }
