@@ -25,9 +25,18 @@ button{margin:2px}
   <flow-generate-icon-button><button id="send" aria-label="Bắt đầu tạo"><mat-icon>arrow_forward</mat-icon></button></flow-generate-icon-button>
 </flow-base-prompt-box></flow-prompt-box>
 <div class="cdk-overlay-container"></div>
-<div id="menu"><button id="upload">Tải nội dung lên</button></div>
+<div id="menu"><input id="pickSearch" placeholder="Tìm kiếm thành phần"><div id="pickList"></div><button id="upload">Tải nội dung lên</button><button id="pickAdd">Thêm vào câu lệnh</button></div>
 <script>
-const S = window.__flowState = { mode: 'image', vtype: 'ingredients', aspect: '9:16', dur: 6, model: 'Omni 1.1 Flash', sent: [], attachments: 0, slot: 0 };
+const S = window.__flowState = { mode: 'image', vtype: 'ingredients', aspect: '9:16', dur: 6, model: 'Omni 1.1 Flash', sent: [], attachments: 0, slot: 0, uploads: [], uploadCount: 0, reused: 0, net: true };
+// Like Flow, every send and every finished item is announced in a batchexecute reply (here served from a data: link).
+const PROJECT = '02409d32-7c8c-4a48-ba90-d1964b19e7db';
+const uuid = () => 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, () => (Math.random() * 16 | 0).toString(16));
+function netReply(rpc, data) {
+  if (!S.net) return;
+  const body = ")]}'\n\n100\n" + JSON.stringify([['wrb.fr', rpc, JSON.stringify(data), null, null, null, 'generic']]) + '\n';
+  fetch('data:text/plain;charset=utf-8,' + encodeURIComponent(body) + '#/_/AiSandboxAngularFrontend/data/batchexecute?rpcids=' + rpc).catch(() => {});
+}
+const netItem = (id, text, state, extra = []) => [id, PROJECT, uuid(), null, null, [[1, 2], text, null, null, null, null, [null, [['abra_r2v_8s', 1]]], null, [state], 1, ...extra]];
 window.__flowLog = S;
 const $ = s => document.querySelector(s);
 let n = 0, target = null;
@@ -56,13 +65,27 @@ function openSettings() {
 }
 $('#chip').onclick = () => { if ($('flow-prompt-box-settings')) { $('.cdk-overlay-container').innerHTML = ''; chip(); } else openSettings(); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('.cdk-overlay-container').innerHTML = ''; $('#menu').style.display = 'none'; chip(); } });
-$('#add').onclick = () => { target = 'atts'; $('#menu').style.display = 'block'; };
+$('#add').onclick = () => { target = 'atts'; $('#menu').style.display = 'block'; drawPicker(); };
+let picked = null;
+function drawPicker() {
+  const q = $('#pickSearch').value.trim();
+  $('#pickList').innerHTML = '';
+  for (const up of S.uploads.filter(u => !q || u.name.includes(q))) { const b = document.createElement('button'); b.setAttribute('role', 'option'); b.textContent = up.name; b.onclick = () => { picked = up; }; $('#pickList').appendChild(b); }
+}
+$('#pickSearch').addEventListener('input', drawPicker);
+$('#pickAdd').onclick = () => {
+  if (!picked) return;
+  const el = document.createElement(picked.video ? 'video' : 'img'); el.src = picked.url; if (picked.video) { el.muted = true; S.videos = (S.videos || 0) + 1; }
+  S.attachOrder = [...(S.attachOrder || []), picked.video ? 'video' : 'image'];
+  $('#atts').appendChild(el); S.attachments++; S.reused++; picked = null; $('#pickSearch').value = ''; $('#menu').style.display = 'none';
+};
 $('#startSlot').onclick = () => { target = 'slot'; $('#menu').style.display = 'block'; };
 $('#upload').onclick = () => {
   const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*,video/*';
   input.addEventListener('change', () => {
     const file = input.files[0]; if (!file) return; $('#menu').style.display = 'none';
     const isVideo = /^video\//.test(file.type);
+    S.uploadCount++; S.uploads.push({ name: file.name.replace(/\.[a-z0-9]+$/i, ''), url: URL.createObjectURL(file), video: isVideo });
     const img = document.createElement(isVideo ? 'video' : 'img'); img.src = URL.createObjectURL(file); if (isVideo) { S.videos = (S.videos || 0) + 1; img.muted = true; }
     if (target !== 'slot') S.attachOrder = [...(S.attachOrder || []), isVideo ? 'video' : 'image'];
     if (target === 'slot') { $('#startSlot').textContent = ''; $('#startSlot').appendChild(img); S.slot++; } else { $('#atts').appendChild(img); S.attachments++; }
@@ -81,13 +104,19 @@ $('#send').onclick = () => {
   S.sent.push({ order, text, mode: S.mode, model: S.mode === 'video' ? S.model : '', vtype: S.vtype, aspect: S.aspect, dur: S.dur, attachments: $('#atts').querySelectorAll('img').length, videos: $('#atts').querySelectorAll('video').length, slot: $('#startSlot').querySelectorAll('img').length });
   $('#box').textContent = ''; $('#atts').innerHTML = ''; $('#startSlot').textContent = 'Bắt đầu';
   const t = tile('<span>Đang tạo 10%</span>');
-  if (/AUDIOFAIL/.test(text) && !S.silentFallback) { setTimeout(() => { t.innerHTML = '<span>warning Không thành công Không tạo được âm thanh. Vui lòng thử một câu lệnh khác hoặc gửi ý kiến phản hồi.</span>'; }, 800); return; }
-  if (/AUDIOFAIL/.test(text)) { n++; setTimeout(() => { t.innerHTML = `<video muted src="/media/silent${n}.mp4"></video><span>Video ${n}</span>`; }, 1500); return; }
+  const id = uuid(), title = 'Kết quả ' + (S.sent.length);
+  t.setAttribute('aria-label', title);
+  setTimeout(() => netReply('YhhmEf', [null, 646, [[uuid(), null, null, [title, [1, 2], null, null, id], PROJECT]], [netItem(id, text, 2)]]), 150);
+  const finish = (state, errors) => setTimeout(() => netReply('jwpduf', [null, 646, [netItem(id, text, state, errors ? [null, errors] : [])]]), 50);
+  if (/AUDIOFAIL/.test(text) && !S.silentFallback) { setTimeout(() => { t.innerHTML = '<span>warning Không thành công Không tạo được âm thanh. Vui lòng thử một câu lệnh khác hoặc gửi ý kiến phản hồi.</span>'; finish(5, ['PUBLIC_ERROR_AUDIO_GENERATION_FAILED']); }, 800); return; }
+  if (/AUDIOFAIL/.test(text)) { n++; const k = n; setTimeout(() => { t.innerHTML = `<video muted src="/media/silent${k}.mp4"></video><span>Video ${k}</span>`; finish(3); }, 1500); return; }
   if (/BLOCKME/.test(text)) { setTimeout(() => { t.innerHTML = '<span>Chúng tôi phát hiện thấy hoạt động bất thường.</span>'; }, 800); return; }
-  if (/FAILME/.test(text)) { setTimeout(() => { t.innerHTML = '<span>Không tạo được. Đã xảy ra lỗi.</span>'; }, 800); return; }
+  if (/FAILME/.test(text)) { setTimeout(() => { t.innerHTML = '<span>Không tạo được. Đã xảy ra lỗi.</span>'; finish(5, ['PUBLIC_ERROR_UNKNOWN']); }, 800); return; }
+  if (/PEOPLEME/.test(text)) { setTimeout(() => { t.innerHTML = '<span>Câu lệnh này có thể vi phạm chính sách của chúng tôi về người nổi tiếng.</span>'; finish(5, ['PUBLIC_ERROR_PROMINENT_PEOPLE_FILTER_FAILED']); }, 600); return; }
   n++;
+  const k = n;
   // Like Flow: showing the grid again signs the earlier results' links anew (new query string).
   if (S.resign) for (const v of document.querySelectorAll('#grid video')) if (/\/media\/clip/.test(v.getAttribute('src'))) v.setAttribute('src', v.getAttribute('src').split('?')[0] + '?sig=' + Math.random().toString(36).slice(2));
-  setTimeout(() => { t.innerHTML = S.mode === 'video' ? `<video muted src="/media/clip${n}.mp4"></video><span>Video ${n}</span>` : `<img src="/media/img${n}.png"><span>Ảnh ${n}</span>`; }, 1500);
+  setTimeout(() => { t.innerHTML = S.mode === 'video' ? `<video muted src="/media/clip${k}.mp4"></video><span>Video ${k}</span>` : `<img src="/media/img${k}.png"><span>Ảnh ${k}</span>`; finish(3); }, 1500);
 };
 </script></body></html>

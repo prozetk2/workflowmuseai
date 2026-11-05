@@ -40,7 +40,7 @@
   function saveNow() { clearTimeout(saveTimer); return idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')); }
   function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(() => idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')), 300); }
   function newProject() {
-    return { source: null, chars: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, audioMode: 'auto', silentFallback: true, pace: 5, sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
+    return { source: null, chars: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, audioMode: 'auto', silentFallback: true, pace: 5, parallel: 2, sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
   }
 
   // ---------- small helpers ----------
@@ -364,9 +364,9 @@
     const blob = await getBlob(`clip:${clip.id}`); if (!blob) throw new Error('Đoạn này mất file gốc. Hãy cắt lại video.');
     clip.status = 'running'; clip.error = ''; renderClips(); saveSoon();
     if (needsDialogue()) await ensureTranscript(clip, signal);
-    state.requestId = uid('motion');
+    const requestId = uid('motion');
     const reply = await flowMessage({
-      type: 'THEKEY_FLOW_GENERATE', requestId: state.requestId, kind: 'video', prompt: composePrompt(clip), voice: settings.sync ? (settings.flowVoice || '').trim() : '',
+      type: 'THEKEY_FLOW_GENERATE', requestId, remoteOk: true, kind: 'video', prompt: composePrompt(clip), voice: settings.sync ? (settings.flowVoice || '').trim() : '',
       aspect: settings.aspect, duration: flowDuration(clip.end - clip.start), resolution: settings.resolution, model: settings.model || '', inputType: 'ingredients',
       sourceVideo: await blobToDataUrl(blob), references: state.project.chars.map(item => item.dataUrl), firstFrame: '', uiMode: 'agent', timeoutSec: 1200
     }, signal);
@@ -375,10 +375,13 @@
   }
   async function keepResult(clip, reply) {
     // The same Flow video for two clips means the result of an earlier clip was picked up again: stop, never merge it.
-    const key = String(reply.remoteUrl || '').split(/[?#]/)[0];
+    const key = reply.mediaId ? `flow:${reply.mediaId}` : String(reply.remoteUrl || '').split(/[?#]/)[0];
     const twin = key && !key.startsWith('blob:') ? state.project.clips.find(other => other !== clip && other.resultKey === key) : null;
     if (twin) throw Object.assign(new Error(`Flow trả lại đúng video của đoạn ${state.project.clips.indexOf(twin) + 1}, không phải video mới của đoạn này. Hãy mở tab Flow xem đoạn này đã tạo xong chưa rồi bấm tạo lại.`), { code: 'DUPLICATE_RESULT' });
-    const result = await (await fetch(reply.url)).blob();
+    // A signed Flow link is fetched here directly (the extension may read flow-content.google), not passed as text.
+    const response = await fetch(reply.url);
+    if (!response.ok) throw new Error(`Không tải được video từ Flow (HTTP ${response.status}). Video vẫn nằm trong dự án Flow.`);
+    const result = await response.blob();
     if (!result.size) throw new Error('Video Flow trả về bị rỗng.');
     await putBlob(`result:${clip.id}`, result.type ? result : new Blob([result], { type: 'video/mp4' }));
     objectUrl(state.resultUrls, clip.id, result);
@@ -405,32 +408,46 @@
     const todo = clips.filter(clip => clip.status !== 'skipped');
     if (!todo.length) { status('Không còn đoạn nào cần tạo.', 'ok'); return; }
     state.running = true; state.abort = new AbortController(); const signal = state.abort.signal; setBusy(true);
-    let done = 0, failed = 0;
-    try {
-      for (const [index, clip] of todo.entries()) {
-        if (index > 0 && Number(state.project.settings.pace) > 0) { status(`Nghỉ ${state.project.settings.pace} giây trước đoạn kế tiếp…`, 'warn'); await sleep(Number(state.project.settings.pace) * 1000, signal); }
-        status(`Đang tạo đoạn ${clip.index + 1} (${index + 1}/${todo.length}) trên Flow…`, 'warn');
+    let done = 0, failed = 0, next = 0, stopped = '';
+    // Several clips in flight: Flow's prompt box takes one send at a time (the bridge holds it until Flow has named
+    // the new item), and each clip then waits for its own item, so the next clip goes in while the first is made.
+    const limit = Math.max(1, Math.min(3, Number(state.project.settings.parallel) || 1));
+    const running = new Set();
+    const showProgress = () => { if (!stopped && running.size) status(`Đang tạo ${[...running].map(clip => `đoạn ${clip.index + 1}`).join(', ')} trên Flow (xong ${done}/${todo.length})…`, 'warn'); };
+    const worker = async () => {
+      while (!stopped && !signal.aborted) {
+        const index = next++;
+        if (index >= todo.length) return;
+        const clip = todo[index];
+        if (index > 0 && Number(state.project.settings.pace) > 0) await sleep(Number(state.project.settings.pace) * 1000, signal);
+        if (stopped) return;
+        running.add(clip); showProgress();
         try { await generateWithFallback(clip, signal); done++; }
         catch (error) {
           if (error?.name === 'AbortError' || signal.aborted) throw error;
           clip.status = 'error'; clip.error = error.message; failed++;
           // Google's "unusual activity" notice or no credits: stop instead of sending more.
-          if (['FLOW_BLOCKED', 'NO_CREDITS', 'FLOW_NOT_READY', 'DUPLICATE_RESULT'].includes(error.code)) { status(error.message, 'error'); break; }
+          if (['FLOW_BLOCKED', 'NO_CREDITS', 'FLOW_NOT_READY', 'DUPLICATE_RESULT'].includes(error.code)) stopped = stopped || error.message;
           // Flow refused the content (for example a real or well-known person): the other clips use the same video
           // and pictures, so stop instead of sending them all to be refused too.
-          if (error.code === 'SCENE_REFUSED') { status(`Flow từ chối nội dung đoạn ${clip.index + 1}, nên Motion Studio dừng các đoạn còn lại. Hãy dùng video bạn tự quay và ảnh nhân vật do AI tạo, rồi bấm tạo lại. (${error.message.slice(0, 200)})`, 'error'); break; }
-        } finally { renderClips(); await saveNow(); }
+          if (error.code === 'SCENE_REFUSED') stopped = stopped || `Flow từ chối nội dung đoạn ${clip.index + 1}, nên Motion Studio dừng các đoạn còn lại. Hãy dùng video bạn tự quay và ảnh nhân vật do AI tạo, rồi bấm tạo lại. (${error.message.slice(0, 200)})`;
+        } finally { running.delete(clip); renderClips(); await saveNow(); showProgress(); }
       }
-      if (!signal.aborted) status(failed ? `Xong ${done} đoạn, ${failed} đoạn lỗi. Bấm vào đoạn lỗi để xem và tạo lại.` : `Đã tạo xong ${done} đoạn. Bấm "Ghép video" để ra video hoàn chỉnh.`, failed ? 'warn' : 'ok');
+    };
+    try {
+      // Workers start a little apart so the first send reaches Flow before the second one asks for the prompt box.
+      await Promise.all(Array.from({ length: Math.min(limit, todo.length) }, (_, slot) => sleep(slot * 1500, signal).then(worker)));
+      if (stopped) status(stopped, 'error');
+      else if (!signal.aborted) status(failed ? `Xong ${done} đoạn, ${failed} đoạn lỗi. Bấm vào đoạn lỗi để xem và tạo lại.` : `Đã tạo xong ${done} đoạn. Bấm "Ghép video" để ra video hoàn chỉnh.`, failed ? 'warn' : 'ok');
     } catch (error) {
-      const active = state.project.clips.find(clip => clip.status === 'running'); if (active) { active.status = 'idle'; active.error = 'Đã dừng.'; }
+      for (const active of state.project.clips.filter(clip => clip.status === 'running')) { active.status = 'idle'; active.error = 'Đã dừng.'; }
       status('Đã dừng.', 'warn');
     } finally { state.running = false; state.abort = null; setBusy(false); renderAll(); saveSoon(); }
   }
   async function stop() {
     if (!state.running) return;
     state.abort?.abort();
-    const tab = await flowTab(); if (tab?.id) chrome.tabs.sendMessage(tab.id, { type: 'THEKEY_FLOW_STOP_GENERATION', requestId: state.requestId }).catch(() => {});
+    const tab = await flowTab(); if (tab?.id) chrome.tabs.sendMessage(tab.id, { type: 'THEKEY_FLOW_STOP_GENERATION' }).catch(() => {});
   }
 
   // ---------- merge ----------
@@ -516,7 +533,7 @@
     $('#msSpeechAgent').value = settings.speechAgent || 'gemini-web';
     $('#msSync').checked = Boolean(settings.sync); $('#msVoiceDesc').value = settings.voiceDesc || ''; $('#msFlowVoice').value = settings.flowVoice || '';
     $('#msSubtitles').checked = Boolean(settings.subtitles); $('#msTranslate').value = settings.translate || ''; $('#msVoiceBox').classList.toggle('hidden', !settings.sync);
-    $('#msPrompt').value = settings.prompt; $('#msAudioMode').value = settings.audioMode || 'auto'; $('#msSilentFallback').checked = settings.silentFallback !== false; $('#msPace').value = String(settings.pace);
+    $('#msPrompt').value = settings.prompt; $('#msAudioMode').value = settings.audioMode || 'auto'; $('#msSilentFallback').checked = settings.silentFallback !== false; $('#msPace').value = String(settings.pace); $('#msParallel').value = String(settings.parallel || 2);
   }
   function renderSource() {
     const source = state.project.source, video = $('#msSourceVideo');
@@ -613,7 +630,7 @@
       saveSoon(); renderAll(); status('Đã làm mới dự án.', 'ok');
     };
     const bind = (id, key, parse = value => value) => { $(id).onchange = () => { state.project.settings[key] = parse($(id).type === 'checkbox' ? $(id).checked : $(id).value); saveSoon(); }; };
-    bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msAudioMode', 'audioMode'); bind('#msSilentFallback', 'silentFallback', Boolean); bind('#msPace', 'pace', Number);
+    bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msAudioMode', 'audioMode'); bind('#msSilentFallback', 'silentFallback', Boolean); bind('#msPace', 'pace', Number); bind('#msParallel', 'parallel', Number);
     bind('#msSpeechAgent', 'speechAgent');
     bind('#msSync', 'sync', Boolean); bind('#msSubtitles', 'subtitles', Boolean); bind('#msTranslate', 'translate');
     $('#msSync').addEventListener('change', () => $('#msVoiceBox').classList.toggle('hidden', !$('#msSync').checked));

@@ -86,6 +86,102 @@
   let usedTrustedInput = false;
   const activeGenerations = new Map();
 
+  // ---------- Flow's own replies (summaries from flow-page-hook.js) ----------
+  // Each item Flow reports: id, the prompt it was made from, its state (2 = making, 3 = done), thumbnail, title,
+  // error codes and, once Flow has asked for it, the signed video link. A send is tied to its item by the prompt
+  // text and by being the first unclaimed new item after the send, so results never get mixed up, even with
+  // several clips in flight.
+  const netItems = new Map();
+  const claimedItems = new Set();
+  document.addEventListener('cosalpha-flow-net', event => {
+    let data; try { data = JSON.parse(String(event.detail || '{}')); } catch { return; }
+    const at = Number(data.at) || Date.now();
+    for (const item of data.items || []) {
+      if (!item?.id) continue;
+      const old = netItems.get(item.id);
+      const merged = { ...(old || { firstSeen: at }), ...item, seen: at };
+      if (old?.errors && item.errors) merged.errors = [...new Set([...old.errors, ...item.errors])];
+      netItems.set(item.id, merged);
+    }
+  });
+  const promptKey = text => norm(String(text || '')).replace(/[^\p{L}\p{N}]+/gu, ' ').trim().slice(0, 160);
+  function findNetItem(prompt, baselineIds, sentAt) {
+    const key = promptKey(prompt);
+    const fresh = [...netItems.values()].filter(item => !baselineIds.has(item.id) && !claimedItems.has(item.id) && item.prompt && item.firstSeen >= sentAt - 2000);
+    const same = fresh.filter(item => { const other = promptKey(item.prompt); return other === key || (other.length >= 60 && (key.startsWith(other) || other.startsWith(key))); });
+    return same.sort((a, b) => a.firstSeen - b.firstSeen)[0] || null;
+  }
+  function netFailure(item) {
+    const codes = (item.errors || []).join(' ');
+    if (!codes) return null;
+    if (/AUDIO/i.test(codes)) return { code: 'AUDIO_FAILED', text: `Flow không tạo được âm thanh (${codes}).` };
+    if (/QUOTA|CREDIT/i.test(codes)) return { code: 'NO_CREDITS', text: `Flow báo hết tín dụng (${codes}).` };
+    if (/PEOPLE|CELEB|PROMINENT|SAFETY|POLICY|FILTER|SEXUAL|CHILD|HARM|VIOLAT|UNSAFE|BLOCK/i.test(codes)) return { code: 'SCENE_REFUSED', text: `Flow từ chối nội dung này (${codes}).` };
+    return { code: 'FLOW_ERROR', text: `Flow báo lỗi (${codes}).` };
+  }
+  const asbToken = url => { const match = String(url || '').match(/\/(?:rd-)?asb\/([^/?#=]+)/); return match ? match[1] : ''; };
+  // The grid tile of an item: same thumbnail, else same title, among tiles that were not there before the send.
+  function tileForItem(item, baselineTiles) {
+    const fresh = query(SEL.tiles).filter(tile => !baselineTiles.has(tile));
+    const token = asbToken(item.thumb);
+    if (token) { const hit = fresh.find(tile => [...tile.querySelectorAll('img')].some(img => asbToken(mediaSrc(img)) === token)); if (hit) return hit; }
+    if (item.title) { const hits = fresh.filter(tile => norm(tile.getAttribute('aria-label') || '') === norm(item.title)); if (hits.length) return hits[0]; }
+    // Before Flow names it, a new tile is labelled with its prompt.
+    if (item.prompt) { const key = promptKey(item.prompt).slice(0, 80); const hits = fresh.filter(tile => promptKey(tile.getAttribute('aria-label') || '').slice(0, 80) === key); if (hits.length === 1) return hits[0]; }
+    return null;
+  }
+  // Only one send at a time may use the prompt box; waiting for results happens outside this lock.
+  let composerQueue = Promise.resolve();
+  function withComposer(work) {
+    const run = composerQueue.then(work, work);
+    composerQueue = run.then(() => {}, () => {});
+    return run;
+  }
+  // Uploads this tab already made, by content, so the next clip picks the same picture from Flow's library.
+  const uploadedKey = () => `cosalpha-uploads:${location.pathname.split('/project/')[1]?.split('/')[0] || ''}`;
+  const uploadedNames = () => { try { return new Set(JSON.parse(sessionStorage.getItem(uploadedKey()) || '[]')); } catch { return new Set(); } };
+  const rememberUpload = name => { try { const set = uploadedNames(); set.add(name); sessionStorage.setItem(uploadedKey(), JSON.stringify([...set].slice(-50))); } catch {} };
+  function contentHash(text) {
+    let hash = 2166136261; const value = String(text || '');
+    const step = Math.max(1, Math.floor(value.length / 200000));
+    for (let i = 0; i < value.length; i += step) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
+    return (hash >>> 0).toString(16).padStart(8, '0') + value.length.toString(36);
+  }
+  // Picks an earlier upload from the + picker by its file name. Any trouble: close the picker and say no, so the
+  // caller uploads the file instead.
+  async function attachExisting(name, composer, signal) {
+    const area = () => { const c = findComposer() || composer; return c.closest('flow-prompt-box') || c.closest('flow-base-prompt-box') || composerArea(c); };
+    const shown = () => [...area().querySelectorAll('img, video')].filter(img => (mediaSrc(img) || img.poster) && visible(img));
+    const before = new Set(shown());
+    const base = name.replace(/\.[a-z0-9]+$/i, '');
+    try {
+      const add = [...area().querySelectorAll(CLICKABLE)].filter(visible).find(el => iconNames(el).some(icon => list(SEL.addIcons).includes(icon)) || /thêm|add|đính kèm|attach/i.test(labelOf(el)));
+      if (!add) return false;
+      // The picker's own search box ("Tìm kiếm thành phần"), not the page's search above the grid.
+      const search = () => { const boxes = [...document.querySelectorAll('input')].filter(input => visible(input) && !area().contains(input) && /tìm|search/i.test(`${input.placeholder || ''} ${input.getAttribute('aria-label') || ''}`)); return boxes.find(input => /thành phần|ingredient|asset|component/i.test(`${input.placeholder || ''} ${input.getAttribute('aria-label') || ''}`)) || boxes.find(input => input.closest('[role="dialog"], .cdk-overlay-pane')) || null; };
+      await press(add, signal, () => search(), 2500);
+      const box = await waitFor(search, 3000, signal);
+      if (!box) { await closePopups(signal); return false; }
+      box.focus();
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(box, base);
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+      const root = box.closest('[role="dialog"], .cdk-overlay-pane') || document;
+      const option = await waitFor(() => [...root.querySelectorAll('[role="option"]')].filter(visible).find(el => !area().contains(el) && textOf(el).includes(base)), 5000, signal, 300);
+      if (!option) { await closePopups(signal); return false; }
+      await press(option, signal);
+      const addTo = await waitFor(() => clickables().filter(visible).find(el => /^(thêm vào câu lệnh|add to prompt)$/i.test(textOf(el)) && !isDisabled(el)), 3000, signal, 200);
+      const attached = () => shown().some(img => !before.has(img));
+      if (addTo) await press(addTo, signal, attached, 3000);
+      const ok = await waitFor(attached, 6000, signal, 300);
+      if (!ok) await closePopups(signal);
+      return Boolean(ok);
+    } catch (error) {
+      if (error?.name === 'AbortError') throw error;
+      try { await closePopups(signal); } catch {}
+      return false;
+    }
+  }
+
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (!message?.type?.startsWith('THEKEY_FLOW_')) return false;
     // Queue state from the cos_alpha_flow app: draw the floating panel; must not touch SEL.
@@ -299,7 +395,15 @@
     const accepted = () => norm(readEditor(currentEditor(editor)).replace(/[\u200b\ufeff]/g, '')).includes(norm(clean).slice(0, 60));
     await waitFor(() => canType(currentEditor(editor)), 15000, signal, 300);
     if (inputMode !== 'cdp') {
-      // A background tab has no keyboard focus, so rich-text editors ignore typing there.
+      // Try in place first; only when Flow ignores it (a background tab has no keyboard focus) bring Flow forward.
+      {
+        const el = currentEditor(editor);
+        el.focus();
+        if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) { Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), 'value').set.call(el, clean); el.dispatchEvent(new Event('input', { bubbles: true })); }
+        else { selectAll(el); document.execCommand('delete'); document.execCommand('insertText', false, clean); }
+        await delay(300, signal);
+        if (accepted()) return;
+      }
       await bringToFront(signal);
       const strategies = [
         el => {
@@ -1087,6 +1191,15 @@
   }
   const settingsSummary = () => norm(settingsButton()?.innerText || '');
   async function generateDirect(req, kind, signal) {
+    let unlock = null;
+    const locked = new Promise(resolve => { unlock = resolve; });
+    let release;
+    const held = withComposer(() => new Promise(resolve => { release = resolve; unlock(); }));
+    await locked;
+    try { return await generateDirectLocked(req, kind, signal, () => release?.()); }
+    finally { release?.(); await held.catch(() => {}); }
+  }
+  async function generateDirectLocked(req, kind, signal, releaseComposer) {
     const warnings = [];
     let composer = findComposer();
     if (!composer) throw flowError(`Không thấy ô nhập "Bạn muốn tạo những gì?" của Flow. Hãy mở một dự án trong Flow rồi thử lại. (Trang: ${location.pathname})`, 'FLOW_NOT_READY');
@@ -1115,7 +1228,12 @@
       const opener = kind === 'video' && item.role === 'firstFrame' ? startSlot : null;
       const extension = (type.split('/')[1] || 'png').replace('jpeg', 'jpg').replace('quicktime', 'mov');
       if (opener && !opener()) throw flowError('Flow đang ở chế độ Khung hình nhưng không thấy ô "Bắt đầu" để gắn khung đầu. Chưa gửi gì cả.');
-      await attachAgentImage({ dataUrl: item.image, type, name: `thekey-${item.role}-${index + 1}.${extension}` }, findComposer() || composer, warnings, signal, opener);
+      // A character picture sent before (same content) is picked from Flow's library instead of uploaded again.
+      const reusable = item.role === 'reference' && !opener;
+      const name = reusable ? `thekey-ref-${contentHash(item.image)}.${extension}` : `thekey-${item.role}-${index + 1}.${extension}`;
+      if (reusable && uploadedNames().has(name) && await attachExisting(name, findComposer() || composer, signal)) continue;
+      await attachAgentImage({ dataUrl: item.image, type, name }, findComposer() || composer, warnings, signal, opener);
+      if (reusable) rememberUpload(name);
     }
     if (images.length) {
       const busy = () => { const c = findComposer(); return !c || !canType(c) || [...composerArea(c).querySelectorAll('[role="progressbar"], mat-progress-spinner, mat-spinner, [class*="spinner"]')].some(visible); };
@@ -1126,13 +1244,14 @@
     // The model gets the scene prompt itself; the agent's "Generate exactly 1 …" wording is only for the agent.
     await typePrompt(composer, String(req.prompt || '').trim(), signal);
 
-    const uploadName = /thekey-(firstFrame|reference|source)-\d/i;
+    const uploadName = /thekey-(firstFrame|reference|source|ref)-[0-9a-z]/i;
     const tileOf = el => el.closest?.(list(SEL.tiles).join(',')) || null;
     const isUpload = el => uploadName.test(`${el.getAttribute?.('alt') || ''} ${tileOf(el)?.innerText || ''}`);
     const baselineKeys = mediaSnapshot();
     const baselineEls = new Set(document.querySelectorAll('video, img'));
     const baselineTiles = new Set(query(SEL.tiles));
     const baselineAlerts = new Set(alertTexts());
+    const baselineIds = new Set(netItems.keys());
     const hovered = new WeakSet();
 
     let submit = findAgentSubmit(composer);
@@ -1140,10 +1259,20 @@
     if (!submit) throw flowError('Nút "Bắt đầu tạo" của Flow vẫn bị khoá (ảnh còn đang tải lên hoặc đã hết credit). Chưa gửi gì cả.');
     const sent = () => !norm(readEditor(findComposer() || composer)) || query(SEL.tiles).some(tile => !baselineTiles.has(tile)) || query(SEL.pending).length > 0;
     // One submission only: the trusted retry inside press() fires only if nothing changed after the first click.
+    const sentAt = Date.now();
     if (!(await press(submit, signal, sent, 4000))) throw flowError('Flow không xác nhận đã nhận lệnh. Hãy xem tab Flow; cos_alpha_flow không gửi lại.');
 
     const timeoutMs = Math.min(1800, Math.max(60, Number(req.timeoutSec) || 900)) * 1000;
     const deadline = Date.now() + timeoutMs;
+    // Flow's reply names the new item within a second or two: from then on this send follows its own item, and the
+    // prompt box is free for the next send. Without that reply (Flow changed), fall back to watching the grid alone.
+    const mine = await waitFor(() => findNetItem(req.prompt, baselineIds, sentAt), 15000, signal, 250);
+    if (mine) {
+      claimedItems.add(mine.id);
+      releaseComposer();
+      try { return await followNetItem(mine.id, { req, kind, signal, deadline, baselineTiles, baselineAlerts, warnings, hovered }); }
+      finally { claimedItems.delete(mine.id); }
+    }
     const failingSince = new Map();
     while (Date.now() < deadline) {
       if (signal.aborted) throw abortError();
@@ -1185,6 +1314,53 @@
     throw flowError(`Đã chờ ${Math.round(timeoutMs / 1000)} giây mà Flow chưa trả ${kindVi(kind)} mới. Câu lệnh chỉ gửi một lần, không gửi lại.`, 'TIMEOUT');
   }
 
+  // Waits for one claimed Flow item: fails at once on Flow's error codes, and takes the video from the signed link in
+  // Flow's reply or, if none came, from that item's own tile (never from another tile).
+  async function followNetItem(id, { req, kind, signal, deadline, baselineTiles, baselineAlerts, warnings, hovered }) {
+    const failingSince = { at: 0 };
+    while (Date.now() < deadline) {
+      if (signal.aborted) throw abortError();
+      const item = netItems.get(id) || { id };
+      const alert = alertTexts().find(text => !baselineAlerts.has(text)) || '';
+      if (BLOCKED_RX.test(alert)) throw flowError('Google Flow đã chặn lượt này vì phát hiện "hoạt động bất thường" (tiện ích điều khiển trang). cos_alpha_flow đã dừng cả lượt chạy và không thử lại. Đừng bấm chạy liên tục; nếu Flow vẫn báo như vậy, hãy tạm nghỉ hoặc chuyển sang Gemini API trong Cài đặt.', 'FLOW_BLOCKED');
+      if (CREDIT_RX.test(alert)) throw flowError(`Flow: ${alert}`, 'NO_CREDITS');
+      const failure = netFailure(item);
+      const tile = tileForItem(item, baselineTiles);
+      const tileText = tile ? (tile.innerText || '').replace(/\s+/g, ' ').trim() : '';
+      if (BLOCKED_RX.test(tileText)) throw flowError('Google Flow đã chặn lượt này vì phát hiện "hoạt động bất thường". cos_alpha_flow đã dừng cả lượt chạy và không thử lại.', 'FLOW_BLOCKED');
+      if (failure) {
+        const detail = tileText && (POLICY_RX.test(tileText) || FAIL_RX.test(tileText)) ? ` ${tileText.slice(0, 300)}` : '';
+        throw flowError(`${failure.text}${detail}`, AUDIO_FAIL_RX.test(tileText) ? 'AUDIO_FAILED' : failure.code);
+      }
+      // The tile says it failed (Flow's words) for 3 s while the reply has no code yet.
+      if (tileText && !/(^|\s)\d{1,3}%(\s|$)/.test(tileText) && item.state !== 3 && (POLICY_RX.test(tileText) || CREDIT_RX.test(tileText) || FAIL_RX.test(tileText))) {
+        failingSince.at = failingSince.at || Date.now();
+        if (Date.now() - failingSince.at > 3000) {
+          if (CREDIT_RX.test(tileText)) throw flowError(`Flow: ${tileText.slice(0, 300)}`, 'NO_CREDITS');
+          throw flowError(`Flow không tạo được ${kindVi(kind)} này: ${tileText.slice(0, 300)}`, AUDIO_FAIL_RX.test(tileText) ? 'AUDIO_FAILED' : POLICY_RX.test(tileText) ? 'SCENE_REFUSED' : 'FLOW_ERROR');
+        }
+      } else failingSince.at = 0;
+      if (item.state === 3 || item.video) {
+        let url = kind === 'video' ? item.video || '' : '';
+        if (!url && tile) {
+          const media = [...tile.querySelectorAll(kind === 'video' ? 'video' : 'img')].map(mediaSrc).find(src => src && !/^data:image\/svg/i.test(src));
+          if (media) url = media;
+          else if (kind === 'video') { for (const el of [...tile.querySelectorAll('img')].filter(el => !hovered.has(el)).slice(0, 2)) { hovered.add(el); await hoverOver(el, signal); } }
+        }
+        if (url) {
+          // Motion Studio (an extension page) fetches the signed link itself: no copy through the Flow page.
+          let copied = req.remoteOk && /^https:\/\/flow-content\.google\//.test(url) ? { url } : await copyLocally(url, kind);
+          if (copied.url.startsWith('blob:')) throw flowError(`Flow đã tạo xong ${kindVi(kind)} nhưng phát nó theo dạng luồng nên cos_alpha_flow chưa chép ra được. ${kindVi(kind)} vẫn nằm trong dự án Flow của bạn.`);
+          if (copied.error) warnings.push(copied.error);
+          const size = kind === 'video' ? await videoInfo(copied.url) : await mediaSize(copied.url, kind);
+          return { ok: true, url: copied.url, remoteUrl: url, mediaId: id, width: size.width, height: size.height, endFrame: size.endFrame || '', warnings, trustedInput: usedTrustedInput };
+        }
+      }
+      await delay(800, signal);
+    }
+    throw flowError(`Đã chờ quá lâu mà Flow chưa trả ${kindVi(kind)} mới. Câu lệnh chỉ gửi một lần, không gửi lại.`, 'TIMEOUT');
+  }
+
   async function generate(req, signal) {
     inputMode = ['auto', 'dom', 'cdp'].includes(req.inputMode) ? req.inputMode : 'auto';
     uiMode = req.uiMode === 'classic' ? 'classic' : 'agent';
@@ -1192,7 +1368,8 @@
     const warnings = [];
     if (!String(req.prompt || '').trim()) throw flowError('Câu lệnh đang trống.');
     // Chrome pauses drawing in background tabs, so Flow may not show its prompt box until the tab is in front.
-    if (inputMode !== 'dom') await bringToFront(signal);
+    // Only when the prompt box is not there yet: an open Flow page already has it, so Flow can stay in the background.
+    if (inputMode !== 'dom' && !findEditor()) await bringToFront(signal);
     // Wait for either the classic prompt box or the agent page to be drawn.
     let editor = await waitFor(() => findEditor() || (location.pathname.includes('/project/') && document.readyState === 'complete' && document.body.innerText.length > 50 ? 'page' : null), 15000, signal);
     if (editor === 'page') editor = findEditor();

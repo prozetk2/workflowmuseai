@@ -16,6 +16,7 @@
 <div class="layout">
 <nav class="toc" aria-label="Mục lục">
   <strong>Mục lục</strong>
+  <a href="#moi-1-12">Mới trong bản 1.12: chạy mượt như TobyFlow</a>
   <a href="#moi-1-11">Mới trong bản 1.11: sửa lỗi các đoạn ra cùng một video</a>
   <a href="#moi-1-10">Mới trong bản 1.10: âm thanh Motion Studio</a>
   <a href="#moi-1-9">Mới trong bản 1.9: lời thoại Motion Studio</a>
@@ -52,6 +53,17 @@
 </nav>
 
 <main>
+<section id="moi-1-12">
+<h2>Mới trong cos_alpha_flow 1.12: nhanh và chắc hơn, theo cách TobyFlow làm</h2>
+<ul>
+  <li><b>Biết chắc video nào của lệnh nào</b>: app đọc câu trả lời mà chính Flow nhận về sau mỗi lần bấm Tạo (mã item, trạng thái, mã lỗi), thay vì đoán bằng cách nhìn lưới. Không gửi thêm yêu cầu nào tới Google, chỉ đọc những gì Flow đã nhận.</li>
+  <li><b>Báo lỗi ngay</b>: khi Flow từ chối (ví dụ <i>người nổi tiếng</i>) hoặc lỗi âm thanh, app biết ngay theo mã lỗi của Flow và ghi mã đó vào thông báo.</li>
+  <li><b>Motion Studio chạy 2 đoạn cùng lúc</b> (ô <i>Chạy cùng lúc</i>: 1–3 đoạn). Đoạn sau được gửi ngay khi Flow đã nhận đoạn trước.</li>
+  <li><b>Ảnh nhân vật chỉ tải lên một lần</b>: các đoạn sau chọn lại ảnh đó trong thư viện của dự án Flow, nhanh hơn và dự án không đầy ảnh trùng.</li>
+  <li><b>Ít giật hơn</b>: không kéo tab Flow lên trước nếu không cần; Motion Studio tải video thẳng từ link của Flow khi có.</li>
+  <li>Gặp "hoạt động bất thường" vẫn dừng cả lượt như trước.</li>
+</ul>
+</section>
 <section id="moi-1-11">
 <h2>Mới trong cos_alpha_flow 1.11: mỗi đoạn Motion Studio ra đúng video của nó</h2>
 <ul>
@@ -770,7 +782,7 @@ Audio: tiếng chuông xe đạp, nhạc vui tươi</pre>
 <details><summary>Có thêm nhạc hoặc giọng đọc riêng được không?</summary><p>App xuất phim có âm thanh do Flow tạo. Để lồng nhạc hoặc giọng đọc riêng, hãy mở file MP4 bằng phần mềm dựng như CapCut hoặc Premiere.</p></details>
 </section>
 
-<footer>cos_alpha_flow 1.11.0 · Chúc bạn sáng tạo vui vẻ </footer>
+<footer>cos_alpha_flow 1.12.0 · Chúc bạn sáng tạo vui vẻ </footer>
 </main>
 </div>
 </body>
