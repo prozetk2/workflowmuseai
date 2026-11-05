@@ -575,11 +575,16 @@
       for (const clip of todo) {
         if (signal.aborted) break;
         if (state.project.settings.sceneAI && !clip.scene) {
-          try { await ensureScene(clip, signal); renderClips(); }
+          try {
+            await ensureScene(clip, signal); clip.sceneError = '';
+            const sc = clip.scene || {};
+            status(`${AGENT_NAME[state.project.settings.speechAgent] || 'Gemini'} đã xem đoạn ${clip.index + 1}: ${sc.actions?.length || 0} nhịp hành động, ${sc.objects?.length || 0} đồ vật${sc.camera ? ', có góc máy / cắt cảnh' : ''}. Bấm vào ô đoạn để xem chi tiết.`, 'ok');
+            renderClips(); await sleep(800, signal);
+          }
           catch (error) {
             if (error?.name === 'AbortError' || signal.aborted) throw error;
-            clip.sceneError = error.message;
-            if (!sceneWarned) { sceneWarned = true; status(`Không xem được cảnh đoạn ${clip.index + 1} (${error.message.slice(0, 160)}); vẫn tạo bằng câu lệnh chung.`, 'warn'); await sleep(1500, signal); }
+            clip.sceneError = error.message; renderClips();
+            if (!sceneWarned) { sceneWarned = true; status(`${AGENT_NAME[state.project.settings.speechAgent] || 'Gemini'} không xem được đoạn ${clip.index + 1}: ${error.message.slice(0, 160)}. Đoạn này vẫn tạo bằng câu lệnh chung.`, 'warn'); await sleep(2500, signal); }
           }
         }
         if (needsDialogue()) { try { await ensureTranscript(clip, signal); } catch (error) { if (error?.name === 'AbortError' || signal.aborted) throw error; } }
@@ -724,6 +729,8 @@
     const left = clips.filter(clip => !clip.result && clip.status !== 'skipped').length;
     $('#msGenerate').disabled = state.running || !left;
     $('#msGenerate').lastChild.textContent = !clips.length || left === clips.length ? 'Tạo tất cả đoạn' : left ? `Tạo tiếp ${left} đoạn chưa xong` : 'Đã tạo hết các đoạn';
+    // About 20 credits per clip (Omni with a video ingredient).
+    $('#msCost').textContent = left ? `${left} đoạn cần tạo · khoảng ${left * 20} tín dụng` : clips.length ? 'Đã tạo hết các đoạn' : 'Chọn video gốc rồi bấm Cắt thành đoạn';
     $('#msMerge').disabled = state.running || !clips.some(clip => clip.result);
     $('#msDownload').disabled = !state.finalUrl;
     $('#msRedoAudio').disabled = state.running || !clips.some(clip => clip.result);
@@ -791,6 +798,8 @@
       const meta = document.createElement('div'); meta.className = 'meta';
       meta.innerHTML = `<b>Đoạn ${clip.index + 1}</b><span>${fmt(clip.start)} – ${fmt(clip.end)}</span><span class="st"></span>`;
       meta.querySelector('.st').textContent = STATUS_VI[clip.status] || clip.status;
+      // What the AI wrote for this clip (or why it could not).
+      if (clip.scene || clip.sceneError) { const ai = document.createElement('span'); ai.className = clip.sceneError && !clip.scene ? 'talk ai-err' : 'talk ai'; ai.textContent = clip.scene ? (clip.scene.manual ? 'AI: mô tả cảnh sửa tay' : `AI: ${clip.scene.actions?.length || 0} nhịp hành động, ${clip.scene.objects?.length || 0} đồ vật`) : `AI lỗi: ${clip.sceneError.slice(0, 40)}`; ai.title = clip.scene ? sceneText(clip.scene) : clip.sceneError; meta.appendChild(ai); }
       if (clip.transcript) { const talk = document.createElement('span'); talk.className = 'talk'; talk.textContent = clip.transcript.has_speech ? `Lời thoại: ${clip.transcript.text.slice(0, 40)}${clip.transcript.text.length > 40 ? '…' : ''}` : 'Không có lời thoại'; meta.appendChild(talk); }
       if (clip.error) card.title = clip.error;
       card.append(thumbs, meta); card.onclick = () => openClip(clip.id); box.appendChild(card);
@@ -855,6 +864,9 @@
     bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msAudioMode', 'audioMode'); bind('#msSilentFallback', 'silentFallback', Boolean); bind('#msPace', 'pace', Number); bind('#msSceneAI', 'sceneAI', Boolean); bind('#msContinuity', 'continuity', Boolean); bind('#msVoiceMode', 'voiceMode'); bind('#msParallel', 'parallel', Number);
     bind('#msSpeechAgent', 'speechAgent');
     bind('#msSync', 'sync', Boolean); bind('#msSubtitles', 'subtitles', Boolean); bind('#msTranslate', 'translate');
+    for (const box of document.querySelectorAll('.ms-side details')) { try { if (localStorage.getItem(`ms-open-${box.id}`) === '1') box.open = true; } catch {} box.addEventListener('toggle', () => { try { localStorage.setItem(`ms-open-${box.id}`, box.open ? '1' : '0'); } catch {} }); }
+    // Turning on dialogue opens its section.
+    $('#msSync').addEventListener('change', () => { if ($('#msSync').checked) $('#msMoreVoice').open = true; });
     $('#msSync').addEventListener('change', () => $('#msVoiceBox').classList.toggle('hidden', !$('#msSync').checked));
     for (const [id, key] of [['#msVoiceDesc', 'voiceDesc'], ['#msFlowVoice', 'flowVoice']]) $(id).oninput = () => { state.project.settings[key] = $(id).value; saveSoon(); };
     $('#msTranscribeAll').onclick = transcribeAll;

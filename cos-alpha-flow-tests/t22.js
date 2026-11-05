@@ -29,7 +29,7 @@ const MP4 = fs.readFileSync(__dirname + '/v.mp4');
   const flow = await ctx.newPage(); flow.on('pageerror', e => errors.push('flow:' + e.message));
   await flow.goto('https://flow.google.com/project/abc'); await flow.waitForTimeout(1000);
   const page = await ctx.newPage(); page.on('pageerror', e => errors.push('motion:' + e.message)); page.on('dialog', d => d.accept());
-  await page.goto(`chrome-extension://${id}/motion.html`); await page.waitForTimeout(1000);
+  await page.goto(`chrome-extension://${id}/motion.html`); await page.waitForTimeout(1000); await page.evaluate(() => document.querySelectorAll(".ms-side details").forEach(d => { d.open = true; }));
   await page.evaluate(() => chrome.storage.local.set({ thekeyGeminiApiKey: 'test-key' }));
   // The signed-in Gemini tab (fake page); Motion Studio reuses the tab it knows, as the canvas does.
   const gemini = await ctx.newPage(); await gemini.goto('https://gemini.google.com/app'); await gemini.waitForTimeout(800);

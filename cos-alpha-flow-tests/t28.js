@@ -19,7 +19,7 @@ const MP4 = fs.readFileSync(__dirname + '/v.mp4'), OTHER = fs.readFileSync(__dir
   const flow = await ctx.newPage(); flow.on('pageerror', e => errors.push('flow:' + e.message));
   await flow.goto('https://flow.google.com/project/abc'); await flow.waitForTimeout(1000);
   const page = await ctx.newPage(); page.on('pageerror', e => errors.push('motion:' + e.message)); page.on('dialog', d => d.accept());
-  await page.goto(`chrome-extension://${id}/motion.html`); await page.waitForTimeout(1000);
+  await page.goto(`chrome-extension://${id}/motion.html`); await page.waitForTimeout(1000); await page.evaluate(() => document.querySelectorAll(".ms-side details").forEach(d => { d.open = true; }));
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'motion-'));
   const videoFile = path.join(tmp, 'source.mp4'), charFile = path.join(tmp, 'character.png'), bgFile = path.join(tmp, 'beach.png');
   const second = path.join(tmp, 'second.mp4');

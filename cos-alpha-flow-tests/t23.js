@@ -25,7 +25,7 @@ const hasAudio = buffer => { try { const file = path.join(os.tmpdir(), `t23-${Da
   const flow = await ctx.newPage(); flow.on('pageerror', e => errors.push('flow:' + e.message));
   await flow.goto('https://flow.google.com/project/abc'); await flow.waitForTimeout(1000);
   const page = await ctx.newPage(); page.on('pageerror', e => errors.push('motion:' + e.message)); page.on('dialog', d => d.accept());
-  await page.goto(`chrome-extension://${id}/motion.html`); await page.waitForTimeout(1000);
+  await page.goto(`chrome-extension://${id}/motion.html`); await page.waitForTimeout(1000); await page.evaluate(() => document.querySelectorAll(".ms-side details").forEach(d => { d.open = true; }));
   const chat = await ctx.newPage(); await chat.goto('https://chatgpt.com/'); await chat.waitForTimeout(800);
   await page.evaluate(async () => { const [tab] = await chrome.tabs.query({ url: 'https://chatgpt.com/*' }); await chrome.storage.session.set({ cosalphaChatTabs: { chatgpt: tab.id } }); });
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'motion-'));

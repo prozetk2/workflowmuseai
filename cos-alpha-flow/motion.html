@@ -20,61 +20,59 @@
 
   <div class="ms-main">
     <aside class="ms-side">
-      <section>
-        <h3>Khung hình</h3>
-        <div class="ms-row">
-          <label>Tỉ lệ<select id="msAspect"><option value="9:16">9:16 dọc</option><option value="16:9">16:9 ngang</option></select></label>
-          <label>Độ phân giải<select id="msResolution"><option value="720p">720p</option><option value="1080p">1080p</option></select></label>
-        </div>
-        <label>Mô hình video<select id="msModel"><option value="Omni 1.1 Flash">Omni 1.1 Flash · 12 credit</option></select></label>
-        <p class="ms-note">Chỉ Omni dùng được video gốc làm thành phần (giữ động tác, thay người). Veo bỏ qua video gốc nên không dùng cho Motion Studio. Omni hay từ chối gương mặt người trông như thật; nhân vật 3D / hoạt hình thường qua được.</p>
-        <label>Độ dài mỗi đoạn<select id="msClipLen"><option value="4">4 giây</option><option value="6">6 giây</option><option value="8" selected>8 giây</option><option value="10">10 giây (Omni)</option></select></label>
-      </section>
-      <section>
-        <h3>Nhân vật thay vào</h3>
+      <section class="ms-card">
+        <h3><b>1</b> Nhân vật thay vào</h3>
         <div id="msChars" class="ms-chars"></div>
-        <label class="ms-drop" id="msCharDrop"><input id="msCharInput" type="file" accept="image/*" multiple hidden /><i data-ic="user-plus"></i><span>Thả 1 ảnh nhân vật vào đây hoặc bấm để chọn (nên dùng ảnh nhân vật AI, rõ mặt và toàn thân)</span></label>
+        <label class="ms-drop" id="msCharDrop"><input id="msCharInput" type="file" accept="image/*" multiple hidden /><i data-ic="user-plus"></i><span>Thả 1 ảnh nhân vật (rõ mặt, toàn thân)</span></label>
       </section>
-      <section>
-        <h3>Bối cảnh mới (tuỳ chọn)</h3>
-        <p class="ms-note">Để trống thì giữ nguyên căn phòng của video gốc. Thêm 1 ảnh địa điểm thì cả đoạn diễn ra ở đó; đồ vật nhân vật cầm và hành động vẫn như video gốc.</p>
+      <section class="ms-card">
+        <h3><b>2</b> Bối cảnh <small>tuỳ chọn</small></h3>
         <div id="msBgs" class="ms-chars"></div>
-        <label class="ms-drop" id="msBgDrop"><input id="msBgInput" type="file" accept="image/*" hidden /><i data-ic="image-up"></i><span>Thả 1 ảnh bối cảnh vào đây hoặc bấm để chọn</span></label>
+        <label class="ms-drop" id="msBgDrop" title="Để trống thì giữ nguyên căn phòng của video gốc. Thêm ảnh thì cả đoạn diễn ra ở địa điểm đó; đồ vật và hành động vẫn như video gốc."><input id="msBgInput" type="file" accept="image/*" hidden /><i data-ic="image-up"></i><span>Giữ phòng gốc · thả ảnh để đổi địa điểm</span></label>
       </section>
-      <section>
-        <h3>Câu lệnh cho Flow</h3>
-        <p class="ms-note">Chỗ ghi <b>{{scene}}</b> là nơi app chèn mô tả bối cảnh, đồ vật, góc máy và mốc thời gian hành động của từng đoạn.</p>
-        <textarea id="msPrompt" rows="9"></textarea>
-        <button id="msPromptReset" type="button" class="ms-link">Dùng lại câu lệnh mặc định</button>
-        <label class="ms-check"><input id="msContinuity" type="checkbox" /> Nối tiếp giữa các đoạn: lấy khung cuối của đoạn trước làm ảnh 2 để nhân vật, đồ vật và vị trí liền mạch (chạy lần lượt từng đoạn)</label>
-        <label class="ms-check"><input id="msSceneAI" type="checkbox" checked /> Cho AI xem từng đoạn và ghi rõ bối cảnh, đồ vật, góc máy, hành động của tay vào câu lệnh (dùng trợ lý ở ô "Chép lời bằng")</label>
-      </section>
-      <section>
-        <h3>Lời thoại</h3>
-        <p class="ms-note">Lấy lời thoại trong từng đoạn bằng Gemini, rồi cho Flow nói lại bằng giọng mới, khớp khẩu hình.</p>
-        <label>Chép lời bằng<select id="msSpeechAgent"><option value="chatgpt">ChatGPT (tab đã đăng nhập, không cần key)</option><option value="gemini-web">Gemini (tab đã đăng nhập, không cần key)</option><option value="gemini-api">Gemini API (cần API key)</option></select></label>
-        <label class="ms-check"><input id="msSync" type="checkbox" /> Đồng bộ lời thoại</label>
-        <label>Kiểu giọng<select id="msVoiceMode"><option value="character">Nhân vật nói bằng giọng mới (theo mô tả giọng)</option><option value="lipsync">Khép khẩu hình theo giọng gốc (giữ nguyên giọng của video gốc)</option><option value="narration">Thuyết minh: giọng đọc bên ngoài, nhân vật không nói</option></select></label>
-        <div id="msVoiceBox">
-          <label>Mô tả giọng<input id="msVoiceDesc" type="text" placeholder="vd: giọng cô gái 24 tuổi, ấm, tự nhiên" /></label>
-          <label>Giọng có sẵn của Flow (tuỳ chọn)<input id="msFlowVoice" type="text" placeholder="tên giọng trong Flow, để trống = Flow tự chọn" /></label>
+      <section class="ms-card">
+        <h3><b>3</b> Khung hình</h3>
+        <div class="ms-row">
+          <label>Tỉ lệ<select id="msAspect"><option value="9:16">9:16</option><option value="16:9">16:9</option></select></label>
+          <label>Chất lượng<select id="msResolution"><option value="720p">720p</option><option value="1080p">1080p</option></select></label>
+          <label>Mỗi đoạn<select id="msClipLen"><option value="4">4 giây</option><option value="6">6 giây</option><option value="8" selected>8 giây</option><option value="10">10 giây</option></select></label>
         </div>
-        <label class="ms-check"><input id="msSubtitles" type="checkbox" /> Hiện phụ đề trong video</label>
-        <label>Dịch lời thoại sang<select id="msTranslate"><option value="">Giữ ngôn ngữ gốc</option><option value="Vietnamese">Tiếng Việt</option><option value="English">English</option><option value="Chinese">中文</option><option value="Japanese">日本語</option><option value="Korean">한국어</option><option value="Thai">ไทย</option><option value="Indonesian">Bahasa Indonesia</option></select></label>
-        <button id="msTranscribeAll" type="button" class="ms-ghost"><i data-ic="audio-lines"></i>Lấy lời thoại các đoạn</button>
+        <select id="msModel" hidden><option value="Omni 1.1 Flash">Omni 1.1 Flash</option></select>
+        <label class="ms-check" title="AI (ChatGPT / Gemini) xem 8 khung hình của mỗi đoạn và ghi bối cảnh, đồ vật, cắt cảnh, hành động từng giây vào câu lệnh."><input id="msSceneAI" type="checkbox" checked /> AI xem từng đoạn để chép đúng hành động</label>
+        <label class="ms-check" title="Đoạn sau nhận khung cuối của đoạn trước làm ảnh 2, nên nhân vật và đồ vật liền mạch. Các đoạn chạy lần lượt."><input id="msContinuity" type="checkbox" /> Nối tiếp giữa các đoạn</label>
+        <label>Trợ lý AI<select id="msSpeechAgent"><option value="chatgpt">ChatGPT (tab đã đăng nhập)</option><option value="gemini-web">Gemini (tab đã đăng nhập)</option><option value="gemini-api">Gemini API (cần key)</option></select></label>
       </section>
-      <section>
-        <h3>Âm thanh</h3>
-        <label>Âm thanh của video<select id="msAudioMode"><option value="auto">Flow tạo tiếng; đoạn nào Flow trả không tiếng thì dùng tiếng gốc</option><option value="flow">Chỉ dùng tiếng do Flow tạo</option><option value="original">Dùng âm thanh của video gốc (chắc chắn không lỗi âm thanh)</option></select></label>
-        <label class="ms-check"><input id="msSilentFallback" type="checkbox" checked /> Khi Flow báo "Không tạo được âm thanh": tự bật "Trả về video không có âm thanh" trong Flow và tạo lại đoạn đó</label>
-        <label>Chạy cùng lúc<select id="msParallel"><option value="1">1 đoạn</option><option value="2" selected>2 đoạn</option><option value="3">3 đoạn</option></select></label>
-        <label>Nghỉ giữa các đoạn<select id="msPace"><option value="0">không nghỉ</option><option value="5" selected>5 giây</option><option value="10">10 giây</option><option value="20">20 giây</option></select></label>
-      </section>
-      <div class="ms-side-actions">
-        <button id="msGenerate" type="button" class="ms-primary"><i data-ic="sparkles"></i>Tạo tất cả đoạn</button>
-        <button id="msStop" type="button" class="ms-ghost hidden"><i data-ic="x"></i>Dừng</button>
+      <details class="ms-card ms-more" id="msMoreVoice">
+        <summary><b>4</b> Lời thoại &amp; giọng <small>tuỳ chọn</small></summary>
+        <label class="ms-check"><input id="msSync" type="checkbox" /> Cho nhân vật nói theo lời thoại gốc</label>
+        <div id="msVoiceBox">
+          <label>Kiểu giọng<select id="msVoiceMode"><option value="character">Giọng mới (theo mô tả)</option><option value="lipsync">Khép khẩu hình, giữ giọng gốc</option><option value="narration">Thuyết minh, nhân vật không nói</option></select></label>
+          <label>Mô tả giọng<input id="msVoiceDesc" type="text" placeholder="vd: cô gái 24 tuổi, ấm, tự nhiên" /></label>
+          <label>Giọng có sẵn của Flow<input id="msFlowVoice" type="text" placeholder="để trống = Flow tự chọn" /></label>
+        </div>
+        <label class="ms-check"><input id="msSubtitles" type="checkbox" /> Hiện phụ đề</label>
+        <label>Dịch lời thoại<select id="msTranslate"><option value="">Giữ ngôn ngữ gốc</option><option value="Vietnamese">Tiếng Việt</option><option value="English">English</option><option value="Chinese">中文</option><option value="Japanese">日本語</option><option value="Korean">한국어</option><option value="Thai">ไทย</option><option value="Indonesian">Bahasa Indonesia</option></select></label>
+        <button id="msTranscribeAll" type="button" class="ms-ghost"><i data-ic="audio-lines"></i>Lấy lời thoại trước</button>
+      </details>
+      <details class="ms-card ms-more" id="msMoreAdvanced">
+        <summary><b>5</b> Nâng cao</summary>
+        <label>Âm thanh<select id="msAudioMode"><option value="auto">Tiếng Flow, thiếu thì dùng tiếng gốc</option><option value="flow">Chỉ tiếng Flow</option><option value="original">Tiếng của video gốc</option></select></label>
+        <label class="ms-check"><input id="msSilentFallback" type="checkbox" checked /> Flow lỗi âm thanh thì tự tạo lại không tiếng</label>
+        <div class="ms-row">
+          <label>Chạy cùng lúc<select id="msParallel"><option value="1">1 đoạn</option><option value="2" selected>2 đoạn</option><option value="3">3 đoạn</option></select></label>
+          <label>Nghỉ giữa đoạn<select id="msPace"><option value="0">không</option><option value="5" selected>5 giây</option><option value="10">10 giây</option><option value="20">20 giây</option></select></label>
+        </div>
+        <label>Câu lệnh gửi Flow <small>({{scene}} = mô tả riêng của từng đoạn)</small><textarea id="msPrompt" rows="8"></textarea></label>
+        <button id="msPromptReset" type="button" class="ms-link">Dùng lại câu lệnh mặc định</button>
+      </details>
+      <div class="ms-side-foot">
+        <small id="msCost" class="ms-cost"></small>
+        <div class="ms-side-actions">
+          <button id="msGenerate" type="button" class="ms-primary"><i data-ic="sparkles"></i>Tạo tất cả đoạn</button>
+          <button id="msStop" type="button" class="ms-ghost hidden"><i data-ic="x"></i>Dừng</button>
+        </div>
+        <p class="ms-note">Cần một dự án Flow đang mở, nút <b>Tác nhân</b> tắt. Mô hình: Omni 1.1 Flash.</p>
       </div>
-      <p class="ms-note">Mỗi đoạn là một lượt tạo video trên Flow (tốn credit). Flow cần mở một dự án, nút <b>Tác nhân</b> trong ô nhập phải tắt. Chỉ dùng video và ảnh bạn có quyền sử dụng.</p>
     </aside>
 
     <section class="ms-stage">

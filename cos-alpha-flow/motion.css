@@ -100,3 +100,22 @@ input[type=text]{font:inherit;width:100%;background:#0e1017;color:#eee;border:1p
 .ms-batch-row.done small{color:#4ade80}.ms-batch-row.error small{color:#f87171}.ms-batch-row.running small{color:#fbbf24}
 .ms-batch-row button{background:none;border:0;color:#9aa0ad;cursor:pointer;font-size:16px}
 #msBatchRun{align-self:flex-start}
+/* 1.15.1 tidy left panel: numbered cards, optional parts folded */
+.ms-side{display:flex;flex-direction:column;gap:10px;padding:12px}
+.ms-side .ms-card{background:#14151d;border:1px solid #23252f;border-radius:12px;padding:10px 12px;margin:0}
+.ms-side section.ms-card{border-bottom:1px solid #23252f;padding-bottom:10px}
+.ms-side h3,.ms-side summary{display:flex;align-items:center;gap:8px;margin:0;font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;color:#e4e5ea}
+.ms-side h3 b,.ms-side summary b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#2a2550;color:#c9c0ff;font-size:11px}
+.ms-side h3 small,.ms-side summary small{margin-left:auto;color:#7d808d;font-weight:400;font-size:11px}
+.ms-side summary{cursor:pointer;list-style:none}
+.ms-side summary::-webkit-details-marker{display:none}
+.ms-side summary::after{content:'▸';margin-left:8px;color:#7d808d}
+.ms-side details[open] summary::after{content:'▾'}
+.ms-side summary small{margin-left:auto}
+.ms-side .ms-drop{padding:10px;font-size:12px}
+.ms-side .ms-row{gap:6px}
+.ms-side .ms-check{margin-top:8px;font-size:12.5px}
+.ms-side-foot{position:sticky;bottom:-12px;margin:0 -12px -12px;padding:10px 12px 12px;background:#101118;border-top:1px solid #22242d}
+.ms-cost{display:block;color:#c9c0ff;font-size:12px;margin-bottom:6px}
+.ms-side-foot .ms-note{margin:6px 0 0}
+.ms-clip .talk.ai{color:#a78bfa}.ms-clip .talk.ai-err{color:#f87171}

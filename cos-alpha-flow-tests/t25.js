@@ -21,7 +21,7 @@ const MP4 = fs.readFileSync(__dirname + '/v.mp4'), OTHER = fs.readFileSync(__dir
   await flow.goto('https://flow.google.com/project/abc'); await flow.waitForTimeout(1000);
   // Flow's prompt box takes a moment per send, and generation takes 1.5 s: with 2 in flight the run overlaps.
   const page = await ctx.newPage(); page.on('pageerror', e => errors.push('motion:' + e.message)); page.on('dialog', d => d.accept());
-  await page.goto(`chrome-extension://${id}/motion.html`); await page.waitForTimeout(1000);
+  await page.goto(`chrome-extension://${id}/motion.html`); await page.waitForTimeout(1000); await page.evaluate(() => document.querySelectorAll(".ms-side details").forEach(d => { d.open = true; }));
   check('Có ô "Chạy cùng lúc", mặc định 2 đoạn', (await page.inputValue('#msParallel')) === '2');
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'motion-'));
   const videoFile = path.join(tmp, 'source.mp4'), charFile = path.join(tmp, 'character.png');
