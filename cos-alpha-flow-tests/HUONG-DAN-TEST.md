@@ -102,7 +102,7 @@ node run-all.js D:\duong\dan\ban-khac t15   # test một bản extension khác
 
 Trên Linux/macOS có thể dùng `./run-all.sh` thay cho `npm test`.
 
-Mỗi test (t4–t26) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out-tN.txt`. Kết quả mong đợi ở bản 1.13.0: tất cả đều qua.
+Mỗi test (t4–t26) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out-tN.txt`. Kết quả mong đợi ở bản 1.13.1: tất cả đều qua.
 
 | Test | Kiểm tra |
 | --- | --- |

@@ -8,14 +8,23 @@
   // Written like TobyFlow's request (character = "image 1", the clip is the motion reference), not as "replace the person".
   // Image 1 = who; the reference video = only how they move. The sound line is added per clip (see composePrompt).
   // The prompt keeps the scene, the objects and the hand actions of the source clip; only the person changes.
+  // {{scene}} is where each clip's own notes go (scene, objects, camera cuts and the action timeline).
   const DEFAULT_PROMPT = [
+    'Image 1 is the character. The reference video is the scene and the action to recreate. Recreate the reference video shot for shot, with the same length, cuts and timing, with the character from image 1 as the only person in it.',
+    'Copy the action second by second: every step, body position, gesture, head turn, gaze, facial expression and mouth movement happens at the same moment and speed as in the reference video. The hands hold, lift, cut, open, unwrap, pull, turn, show, put down and use each object exactly where, when and how the reference video shows it. Every object changes state (taped, opened, in its bag, unwrapped, held, put aside) at the same moment as in the reference video, and nothing moves unless the hands move it.',
+    '{{scene}}',
+    'Keep exactly as in the reference video: the room and background, every piece of furniture and decoration in the same place, every object and product with the same shape, colours, size, printing and logos, the lighting and colours, and the camera position, framing, zoom, camera moves and cuts.',
+    'The character keeps the face, hairstyle, skin tone, body shape and outfit from image 1 in every frame; nothing of the appearance of the person in the reference video (face, hair, clothes) carries over. Match the realism and image quality of the reference video.',
+    'No extra people or hands, no added, missing or changed objects, no skipped or extra actions, no on-screen text or watermark.'
+  ].join('\n\n');
+  const PROMPT_113 = [
     'Image 1 is the character. The reference video is the scene and the action to recreate. Recreate the reference video shot for shot with the character from image 1 as the only person in it.',
     'Keep exactly as in the reference video: the room and background, every piece of furniture and decoration in the same place, every object and product with the same shape, colours, size, printing and logos, the lighting and colours, and the camera position, framing, zoom and camera moves.',
     'Same action at the same moment: every step, gesture, head turn, facial expression and mouth movement; the hands hold, lift, open, turn, place and use each object exactly where, when and how it happens in the reference video, and objects move only when the hands move them.',
     'The character keeps the face, hairstyle, skin tone, body shape and outfit from image 1 in every frame; nothing of the appearance of the person in the reference video (face, hair, clothes) carries over. Match the realism and image quality of the reference video.',
     'No extra people or hands, no added, missing or changed objects, no on-screen text or watermark.'
   ].join('\n\n');
-  const OLD_PROMPTS = ['Image 1 is the character. The reference video is only a guide for motion and timing. Recreate the reference video shot for shot with the character from image 1 as the only person in it: the same body movement, gestures, head turns, facial expressions and mouth movement, the same timing and rhythm, the same camera position, framing and camera moves, the same room, props and lighting. In every frame the character keeps the face, hairstyle, body shape and outfit from image 1; nothing of the appearance of the person in the reference video (face, hair, clothes) carries over. Natural, realistic motion, no extra people, no on-screen text.', 'Animate the character in image 1 so that they perform exactly the same movement as in the reference video: the same body motion, gestures, facial expressions and lip movement, the same timing, the same camera movement and framing, the same location and lighting. The character keeps their own face, hairstyle and outfit from image 1 in every frame. Keep the sound of the reference video.', 'Replace the person in the attached video with the character from the attached reference image(s). Keep exactly the same motion, body movement, gestures, facial expressions, lip movement and timing, and the same camera movement, framing, lighting and background as the video. The character must look exactly like the reference (same face, hair and outfit). Do not add or remove people or objects. Keep the original speech and sound.'];
+  const OLD_PROMPTS = [PROMPT_113, 'Image 1 is the character. The reference video is only a guide for motion and timing. Recreate the reference video shot for shot with the character from image 1 as the only person in it: the same body movement, gestures, head turns, facial expressions and mouth movement, the same timing and rhythm, the same camera position, framing and camera moves, the same room, props and lighting. In every frame the character keeps the face, hairstyle, body shape and outfit from image 1; nothing of the appearance of the person in the reference video (face, hair, clothes) carries over. Natural, realistic motion, no extra people, no on-screen text.', 'Animate the character in image 1 so that they perform exactly the same movement as in the reference video: the same body motion, gestures, facial expressions and lip movement, the same timing, the same camera movement and framing, the same location and lighting. The character keeps their own face, hairstyle and outfit from image 1 in every frame. Keep the sound of the reference video.', 'Replace the person in the attached video with the character from the attached reference image(s). Keep exactly the same motion, body movement, gestures, facial expressions, lip movement and timing, and the same camera movement, framing, lighting and background as the video. The character must look exactly like the reference (same face, hair and outfit). Do not add or remove people or objects. Keep the original speech and sound.'];
   const state = {
     project: null, sourceUrl: '', clipUrls: new Map(), resultUrls: new Map(), finalUrl: '',
     running: false, abort: null, requestId: '', ffmpeg: null, ffmpegLogs: []
@@ -319,19 +328,22 @@
   // ---------- what must stay the same (scene, objects, camera, actions) ----------
   // ChatGPT / Gemini looks at four frames of the clip and writes down the place, the objects, the camera and a
   // timeline of what the hands do. It never describes the person, so nothing of their looks reaches the prompt.
-  const SCENE_SYSTEM = 'You help remake a short video clip with a different actor while everything else stays the same. The image is a 2x2 grid of frames from one clip in time order (top-left, top-right, bottom-left, bottom-right), each labelled with its time in seconds. Describe only what has to stay the same. Never describe the person\'s face, hair, skin, body or clothes and never guess who they are: call them "the person". Return JSON only: {"setting": "one sentence: the place, its layout, the main furniture and the lighting", "objects": ["up to 8 short items: each object or product the person uses or that stands out, with its colour, printing or logo and where it is"], "camera": "shot size, angle and any camera movement or cut", "actions": [{"start": seconds, "end": seconds, "text": "what the person does, above all with their hands and the objects: which hand, what they hold, lift, open, pull, turn or put down, and where"}]}. 2 to 5 actions covering the whole clip, times from the start of the clip. English, short and concrete.';
+  const SCENE_SYSTEM = 'You help remake a short video clip with a different actor while everything else stays exactly the same. The image is a grid of frames from one clip in time order (left to right, then the next row), each labelled with its time in seconds. Describe only what has to stay the same. Never describe the person\'s face, hair, skin, body or clothes and never guess who they are: call them "the person". Return JSON only: {"setting": "one sentence: the place, its layout, the main furniture and the lighting", "objects": ["up to 10 short items: each object or product the person touches or that stands out, with its colour, printing or logo, where it is and its state at the start (closed, taped, in a plastic bag, wrapped)"], "camera": "shot size, angle and movement of each shot, with the time of every cut, e.g. wide shot 0.0-0.6 s, cut to a static medium shot of the box 0.6-8.0 s", "actions": [{"start": seconds, "end": seconds, "text": "one beat of about one second: where the person stands and looks, which hand does what to which object, how the object changes (cut, opened, pulled out, unwrapped, bag pulled off, turned, put down) and where it ends up"}]}. 4 to 10 beats in time order covering the whole clip without gaps, times from the start of the clip; describe only what you see, never invent steps. English, short and concrete.';
   async function clipFrameGrid(clip) {
     const url = await clipUrl(clip, 'clip'), length = Math.max(0.4, clip.end - clip.start);
-    const times = [0.1, length * 0.35, length * 0.65, Math.max(0.1, length - 0.15)];
+    // 8 frames (4 per row) spread over the clip, so short beats and cuts show up.
+    const count = length >= 3 ? 8 : 4, cols = 4, step = length / count;
+    const times = Array.from({ length: count }, (_, index) => Math.min(length - 0.05, step * (index + 0.5)));
     const frames = [];
-    for (const time of times) frames.push({ time, src: await frameAt(url, time, 480) });
+    for (const time of times) frames.push({ time, src: await frameAt(url, time, 400) });
     const images = await Promise.all(frames.map(frame => new Promise(resolve => { if (!frame.src) return resolve(null); const img = new Image(); img.onload = () => resolve(img); img.onerror = () => resolve(null); img.src = frame.src; })));
     const first = images.find(Boolean); if (!first) throw new Error('Không lấy được khung hình của đoạn này.');
     const w = first.naturalWidth, h = first.naturalHeight, canvas = document.createElement('canvas');
-    canvas.width = w * 2; canvas.height = h * 2;
+    const rows = Math.ceil(frames.length / cols);
+    canvas.width = w * cols; canvas.height = h * rows;
     const ctx = canvas.getContext('2d'); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     images.forEach((img, index) => {
-      const x = (index % 2) * w, y = Math.floor(index / 2) * h;
+      const x = (index % cols) * w, y = Math.floor(index / cols) * h;
       if (img) ctx.drawImage(img, x, y, w, h);
       const label = `${frames[index].time.toFixed(1)} s`; ctx.font = `bold ${Math.round(h / 16)}px sans-serif`;
       const pad = Math.round(h / 60), tw = ctx.measureText(label).width;
@@ -355,8 +367,8 @@
     const clean = value => String(value || '').replace(/\s+/g, ' ').trim();
     clip.scene = {
       setting: clean(data.setting), camera: clean(data.camera),
-      objects: (Array.isArray(data.objects) ? data.objects : []).map(clean).filter(Boolean).slice(0, 8),
-      actions: (Array.isArray(data.actions) ? data.actions : []).map(item => ({ start: Math.max(0, Number(item.start) || 0), end: Math.max(0, Number(item.end) || 0), text: clean(item.text) })).filter(item => item.text).slice(0, 6),
+      objects: (Array.isArray(data.objects) ? data.objects : []).map(clean).filter(Boolean).slice(0, 10),
+      actions: (Array.isArray(data.actions) ? data.actions : []).map(item => ({ start: Math.max(0, Number(item.start) || 0), end: Math.max(0, Number(item.end) || 0), text: clean(item.text) })).filter(item => item.text).sort((a, b) => a.start - b.start).slice(0, 12),
       agent
     };
     saveSoon();
@@ -367,9 +379,9 @@
     if (scene.manual) return String(scene.text || '').trim();
     const lines = [];
     if (scene.setting) lines.push(`Scene (keep exactly): ${scene.setting.replace(/\.$/, '')}.`);
-    if (scene.objects?.length) lines.push(`Objects (keep exactly, same look and place): ${scene.objects.map(item => item.replace(/\.$/, '')).join('; ')}.`);
-    if (scene.camera) lines.push(`Camera (keep): ${scene.camera.replace(/\.$/, '')}.`);
-    if (scene.actions?.length) lines.push(`Action timeline (seconds from the start of the clip): ${scene.actions.map(item => `${item.start.toFixed(1)}–${item.end.toFixed(1)} s: ${item.text.replace(/\.$/, '')}`).join('; ')}.`);
+    if (scene.objects?.length) lines.push(`Objects (keep exactly, same look, place and starting state): ${scene.objects.map(item => item.replace(/\.$/, '')).join('; ')}.`);
+    if (scene.camera) lines.push(`Camera and cuts (keep, same times): ${scene.camera.replace(/\.$/, '')}.`);
+    if (scene.actions?.length) lines.push(`Action timeline, follow it beat by beat (seconds from the start of the clip): ${scene.actions.map(item => `${item.start.toFixed(1)}–${item.end.toFixed(1)} s: ${item.text.replace(/\.$/, '')}`).join('; ')}.`);
     return lines.join('\n');
   }
   async function ensureScene(clip, signal) {
@@ -393,9 +405,13 @@
   }
   function composePrompt(clip) {
     const settings = state.project.settings, t = clip.transcript;
-    const parts = [String(settings.prompt || DEFAULT_PROMPT).replace(SOUND_LINE, '').trim()];
     const scene = settings.sceneAI !== false || clip.scene?.manual ? sceneText(clip.scene) : '';
-    if (scene) parts.push(scene);
+    // The clip's notes go where the prompt has {{scene}} (right after the action rules); otherwise after the prompt.
+    let base = String(settings.prompt || DEFAULT_PROMPT).replace(SOUND_LINE, '').trim();
+    const placed = base.includes('{{scene}}');
+    base = base.replace(/\{\{scene\}\}/g, scene).replace(/\n{3,}/g, '\n\n').trim();
+    const parts = [base];
+    if (scene && !placed) parts.push(scene);
     const speech = t?.has_speech && (settings.sync || settings.subtitles || settings.translate);
     const translated = Boolean(settings.translate && t?.translation);
     const line = speech ? (translated ? t.translation : t.text).replace(/"/g, "'") : '';
