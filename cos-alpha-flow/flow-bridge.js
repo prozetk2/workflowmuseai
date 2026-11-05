@@ -76,7 +76,9 @@
   // Google's own "unusual activity" notice: this request was blocked, so stop instead of trying again.
   const BLOCKED_RX = /(hoạt động bất thường|unusual activity|unusual traffic|lưu lượng truy cập bất thường)/i;
   const CREDIT_RX = /(not enough credits|insufficient credits|out of credits|no credits left|run out of credits|hết tín dụng|không đủ tín dụng)/i;
-  const FAIL_RX = /(failed|error|something went wrong|try again|thất bại|đã xảy ra lỗi)/i;
+  const FAIL_RX = /(failed|error|something went wrong|try again|unsuccessful|thất bại|đã xảy ra lỗi|không thành công|không tạo được)/i;
+  // Flow made the picture but could not make its sound ("Không tạo được âm thanh"); credits are refunded.
+  const AUDIO_FAIL_RX = /(không tạo được âm thanh|could ?n[o']t generate (the )?audio|unable to generate (the )?audio|audio generation failed)/i;
   const MAX_TRANSFER_BYTES = 40 * 1024 * 1024;
 
   let SEL = DEFAULT_SELECTORS;
@@ -91,6 +93,7 @@
     SEL = { ...DEFAULT_SELECTORS, ...(message.selectors && typeof message.selectors === 'object' ? message.selectors : {}) };
     if (message.type === 'THEKEY_FLOW_CHECK_SESSION') { checkSession().then(sendResponse); return true; }
     if (message.type === 'THEKEY_FLOW_DIAGNOSE') { sendResponse(diagnose()); return false; }
+    if (message.type === 'THEKEY_FLOW_SILENT_FALLBACK') { setSilentFallback(message.on !== false).then(sendResponse, error => sendResponse({ ok: false, error: error.message || String(error) })); return true; }
     if (message.type === 'THEKEY_FLOW_GENERATE') {
       const controller = new AbortController();
       activeGenerations.set(message.requestId, controller);
@@ -1038,6 +1041,28 @@
     });
   }
 
+  // Flow's own setting (gear menu at the top): "Trả về video không có âm thanh" / return the video without sound
+  // when its audio cannot be made. Motion Studio turns it on (when the user allows it) and adds the source sound back.
+  async function setSilentFallback(on) {
+    const gear = clickables().find(el => /^(cài đặt|settings)$/i.test(labelOf(el)) || iconNames(el).some(icon => /^settings(_2)?$/.test(icon)) && el.getBoundingClientRect().top < 120);
+    if (!gear) return { ok: false, error: 'Không thấy nút Cài đặt (bánh răng) của Flow.' };
+    await press(gear, null);
+    // The smallest box holding both the label and its switch is the row.
+    const LABEL = /trả về video không có âm thanh|return videos? without (audio|sound)/i;
+    const row = await waitFor(() => [...document.querySelectorAll('div, li, label, mat-list-item, [role="menuitem"], [role="menuitemcheckbox"]')]
+      .filter(el => visible(el) && LABEL.test(el.textContent || '') && el.querySelector('[role="switch"], input[type="checkbox"], button'))
+      .sort((a, b) => (a.textContent || '').length - (b.textContent || '').length)[0], 3000);
+    if (!row) { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return { ok: false, error: 'Không thấy mục "Trả về video không có âm thanh" trong Cài đặt của Flow.' }; }
+    const toggle = row.querySelector('[role="switch"], input[type="checkbox"], button');
+    const isOn = () => toggle.getAttribute('aria-checked') === 'true' || toggle.checked === true || /checked|selected/.test(toggle.className || '');
+    const before = isOn();
+    if (before !== on) { await press(toggle, null, () => isOn() === on, 1500); }
+    const after = isOn();
+    (document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }));
+    await delay(300);
+    return { ok: after === on, changed: before !== after, on: after };
+  }
+
   // ---------- Flow with "Tác nhân" off (2026-11) ----------
   // The prompt box sends straight to the model chosen in its settings chip. Without switching that chip
   // to Video first, a video prompt was made into a picture and the run waited forever for a video.
@@ -1137,7 +1162,7 @@
         const since = failingSince.get(tile) || Date.now(); failingSince.set(tile, since);
         if (Date.now() - since > 3000) {
           if (CREDIT_RX.test(text)) throw flowError(`Flow: ${text.slice(0, 300)}`, 'NO_CREDITS');
-          throw flowError(`Flow không tạo được ${kindVi(kind)} này: ${text.slice(0, 300)}`, POLICY_RX.test(text) ? 'SCENE_REFUSED' : 'FLOW_ERROR');
+          throw flowError(`Flow không tạo được ${kindVi(kind)} này: ${text.slice(0, 300)}`, AUDIO_FAIL_RX.test(text) ? 'AUDIO_FAILED' : POLICY_RX.test(text) ? 'SCENE_REFUSED' : 'FLOW_ERROR');
         }
       }
       await delay(1000, signal);

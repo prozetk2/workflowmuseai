@@ -12,6 +12,8 @@ flow-prompt-box-settings{display:block;background:#333;padding:8px;width:320px}
 #menu{position:fixed;left:26vw;bottom:150px;background:#444;padding:8px;display:none}
 button{margin:2px}
 </style></head><body>
+<header style="position:fixed;top:0;right:0;z-index:5"><button id="gear" aria-label="Cài đặt"><mat-icon>settings_2</mat-icon></button></header>
+<div id="gearMenu" style="display:none;position:fixed;top:40px;right:0;background:#333;padding:8px;z-index:6"><div class="row"><span>Trả về video không có âm thanh</span><button role="switch" id="silentSwitch" aria-checked="false">o</button></div></div>
 <div id="grid"></div>
 <flow-prompt-box><flow-base-prompt-box>
   <div id="slots" style="display:none"><button class="empty-chip" id="startSlot">Bắt đầu</button><button class="empty-chip">Kết thúc</button></div>
@@ -70,12 +72,17 @@ $('#upload').onclick = () => {
   input.click();
 };
 function tile(html) { const t = document.createElement('flow-grid-tile-container'); t.innerHTML = html; $('#grid').prepend(t); return t; }
+$('#gear').onclick = () => { $('#gearMenu').style.display = $('#gearMenu').style.display === 'none' ? 'block' : 'none'; };
+$('#silentSwitch').onclick = () => { S.silentFallback = !S.silentFallback; $('#silentSwitch').setAttribute('aria-checked', String(S.silentFallback)); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#gearMenu').style.display = 'none'; });
 $('#send').onclick = () => {
   const text = $('#box').innerText.trim(); if (!text) return;
   const order = (S.attachOrder || []).join(','); S.attachOrder = [];
   S.sent.push({ order, text, mode: S.mode, model: S.mode === 'video' ? S.model : '', vtype: S.vtype, aspect: S.aspect, dur: S.dur, attachments: $('#atts').querySelectorAll('img').length, videos: $('#atts').querySelectorAll('video').length, slot: $('#startSlot').querySelectorAll('img').length });
   $('#box').textContent = ''; $('#atts').innerHTML = ''; $('#startSlot').textContent = 'Bắt đầu';
   const t = tile('<span>Đang tạo 10%</span>');
+  if (/AUDIOFAIL/.test(text) && !S.silentFallback) { setTimeout(() => { t.innerHTML = '<span>warning Không thành công Không tạo được âm thanh. Vui lòng thử một câu lệnh khác hoặc gửi ý kiến phản hồi.</span>'; }, 800); return; }
+  if (/AUDIOFAIL/.test(text)) { n++; setTimeout(() => { t.innerHTML = `<video muted src="/media/silent${n}.mp4"></video><span>Video ${n}</span>`; }, 1500); return; }
   if (/BLOCKME/.test(text)) { setTimeout(() => { t.innerHTML = '<span>Chúng tôi phát hiện thấy hoạt động bất thường.</span>'; }, 800); return; }
   if (/FAILME/.test(text)) { setTimeout(() => { t.innerHTML = '<span>Không tạo được. Đã xảy ra lỗi.</span>'; }, 800); return; }
   n++;

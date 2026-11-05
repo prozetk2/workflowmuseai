@@ -1,4 +1,4 @@
-# Hướng dẫn test cos_alpha_flow 1.9.0
+# Hướng dẫn test cos_alpha_flow 1.10.0
 
 Tài liệu cho tester. Phần A là test bằng tay trên Chrome thật, phần B là chạy bộ test tự động (trang giả, không tốn credit).
 
@@ -9,7 +9,7 @@ Tài liệu cho tester. Phần A là test bằng tay trên Chrome thật, phần
 1. Tải repo về: nút **Code → Download ZIP** trên GitHub rồi giải nén, hoặc `git clone https://github.com/prozetk2/workflowmuseai.git`.
 2. Mở `chrome://extensions`, bật **Developer mode** (góc phải trên).
 3. Bấm **Load unpacked**, chọn thư mục `cos-alpha-flow` (thư mục có `manifest.json`).
-4. Kiểm tra thẻ extension ghi **1.9.0**. Nếu máy còn TheKey.studio Flow hoặc bản cos_alpha_flow cũ, tắt bản đó đi.
+4. Kiểm tra thẻ extension ghi **1.10.0**. Nếu máy còn TheKey.studio Flow hoặc bản cos_alpha_flow cũ, tắt bản đó đi.
 5. Mỗi lần kéo code mới về (`git pull`), quay lại `chrome://extensions` và bấm nút tải lại (mũi tên vòng) trên thẻ cos_alpha_flow, rồi tải lại tab Flow.
 
 ### 2. Chuẩn bị
@@ -95,14 +95,14 @@ Cần Node.js 18 trở lên.
 cd cos-alpha-flow-tests
 npm install
 npx playwright install chromium
-npm test                      # chạy t1..t22 với ../cos-alpha-flow
+npm test                      # chạy t1..t23 với ../cos-alpha-flow
 node run-all.js t14 t15       # chỉ chạy vài test
 node run-all.js D:\duong\dan\ban-khac t15   # test một bản extension khác
 ```
 
 Trên Linux/macOS có thể dùng `./run-all.sh` thay cho `npm test`.
 
-Mỗi test (t4–t22) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out-tN.txt`. Kết quả mong đợi ở bản 1.9.0: tất cả đều qua.
+Mỗi test (t4–t23) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out-tN.txt`. Kết quả mong đợi ở bản 1.10.0: tất cả đều qua.
 
 | Test | Kiểm tra |
 | --- | --- |
@@ -125,3 +125,4 @@ Mỗi test (t4–t22) in `PASS` / `FAIL` từng mục và ghi toàn bộ ra `out
 | t20 | Motion Studio: nút trên canvas mở trang; nạp video gốc + ảnh nhân vật; cắt đoạn bằng FFmpeg; mỗi đoạn gửi Flow ở Video · Thành phần kèm 1 video + ảnh nhân vật; ghép thành video dài bằng video gốc; tải lại trang vẫn còn dự án |
 | t21 | Chạy 1 node có node tạo phía trước chưa xong: hỏi trước; Huỷ = chỉ chạy node đó; OK = chạy node phía trước rồi tới node đó; phía trước đã xong thì không hỏi |
 | t22 | Motion Studio lời thoại: mặc định gửi đoạn video .mp4 vào tab Gemini (trang giả) để chép lời + dịch, không cần API key; chọn Gemini API thì gửi tới API; câu lệnh có câu thoại đã dịch, giọng mới theo mô tả, phụ đề; không gọi Gemini lại; sửa tay lời thoại rồi tạo lại dùng đúng câu đã sửa |
+| t23 | Motion Studio âm thanh: ChatGPT (trang giả) nhận .wav và trả lời thoại có mốc thời gian; câu lệnh có Timeline + giọng mới; Flow báo "Không tạo được âm thanh" → tự bật "Trả về video không có âm thanh", gửi lại 1 lần; ghép lấy âm thanh gốc; nút Làm lại âm thanh |

@@ -27,9 +27,9 @@ $('#send').onclick = () => {
   const text = box().innerText.trim(); if (!text) return; window.__chat.sent.push(text); box().textContent = ''; saved();
   document.querySelectorAll('.uploader-file-preview').forEach(chip => chip.remove());
   if (/Transcribe exactly what is spoken/.test(text)) {
-    const translate = /translate the line into Vietnamese/.test(text);
+    const translate = /translate it into Vietnamese/.test(text);
     const r = document.createElement(SITE === 'chatgpt' ? 'div' : 'model-response'); if (SITE === 'chatgpt') r.setAttribute('data-message-author-role', 'assistant');
-    r.innerHTML = '<div class="markdown"><pre><code></code></pre></div>'; r.querySelector('code').textContent = JSON.stringify({ has_speech: true, language: 'English', text: 'This speaker has two hundred watts.', translation: translate ? 'Chiếc loa này có công suất hai trăm oát.' : '' });
+    r.innerHTML = '<div class="markdown"><pre><code></code></pre></div>'; r.querySelector('code').textContent = JSON.stringify({ has_speech: true, language: 'English', text: 'This speaker has two hundred watts.', translation: translate ? 'Chiếc loa này có công suất hai trăm oát.' : '', segments: [{ start: 0.2, end: 1.6, text: 'This speaker has two hundred watts.', translation: translate ? 'Chiếc loa này có công suất hai trăm oát.' : '' }] });
     setTimeout(() => { $('#msgs').appendChild(turn(r)); copyBtn(r); }, 800);
     return;
   }

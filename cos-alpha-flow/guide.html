@@ -16,6 +16,7 @@
 <div class="layout">
 <nav class="toc" aria-label="Mục lục">
   <strong>Mục lục</strong>
+  <a href="#moi-1-10">Mới trong bản 1.10: âm thanh Motion Studio</a>
   <a href="#moi-1-9">Mới trong bản 1.9: lời thoại Motion Studio</a>
   <a href="#moi-1-8">Mới trong bản 1.8: Motion Studio</a>
   <a href="#moi-1-7-2">Mới trong bản 1.7.2</a>
@@ -50,6 +51,17 @@
 </nav>
 
 <main>
+<section id="moi-1-10">
+<h2>Mới trong cos_alpha_flow 1.10: âm thanh và câu lệnh Motion Studio</h2>
+<ul>
+  <li><b>ChatGPT làm Speech agent</b>: <i>Chép lời bằng</i> có thêm <b>ChatGPT (tab đã đăng nhập)</b>, bên cạnh Gemini và Gemini API. App tách âm thanh từng đoạn ra file <b>WAV</b> nhỏ (không gửi cả video) rồi đưa vào tab đó.</li>
+  <li><b>Lời thoại có mốc thời gian</b>: mỗi câu kèm giây bắt đầu – kết thúc; câu lệnh gửi Omni ghi rõ <i>Timeline</i> để khẩu hình và nhịp nói khớp video gốc, kèm giọng mới theo mô tả.</li>
+  <li><b>Câu lệnh mặc định mới</b>: ảnh 1 là nhân vật, video tham chiếu chỉ để lấy chuyển động và nhịp; giữ nguyên góc máy, bối cảnh, ánh sáng; không mang theo gương mặt, tóc, quần áo của người trong video gốc. Âm thanh được thêm đúng một câu theo chế độ bạn chọn.</li>
+  <li><b>Ô "Âm thanh của video"</b>: <i>Flow tạo tiếng; đoạn nào Flow trả không tiếng thì dùng tiếng gốc</i> (mặc định) · <i>Chỉ dùng tiếng Flow</i> · <i>Dùng âm thanh của video gốc</i> (chắc chắn không lỗi âm thanh).</li>
+  <li><b>Lỗi "Không tạo được âm thanh"</b>: nếu bật ô tương ứng, app tự bật cài đặt <i>"Trả về video không có âm thanh"</i> của Flow (bánh răng góc trên), tạo lại đoạn đó một lần (lượt lỗi được hoàn credit), rồi khi ghép dùng âm thanh của video gốc cho đoạn đó.</li>
+  <li><b>Làm lại âm thanh</b>: nút cạnh <i>Tải video</i>, ghép lại video hoàn chỉnh với âm thanh của video gốc mà không phải tạo lại hình.</li>
+</ul>
+</section>
 <section id="moi-1-9">
 <h2>Mới trong cos_alpha_flow 1.9: lời thoại trong Motion Studio</h2>
 <p>Giống phần Speech agent / Sync dialogue / Show subtitles / Translate dialogue của TobyFlow.</p>
@@ -749,7 +761,7 @@ Audio: tiếng chuông xe đạp, nhạc vui tươi</pre>
 <details><summary>Có thêm nhạc hoặc giọng đọc riêng được không?</summary><p>App xuất phim có âm thanh do Flow tạo. Để lồng nhạc hoặc giọng đọc riêng, hãy mở file MP4 bằng phần mềm dựng như CapCut hoặc Premiere.</p></details>
 </section>
 
-<footer>cos_alpha_flow 1.9.0 · Chúc bạn sáng tạo vui vẻ </footer>
+<footer>cos_alpha_flow 1.10.0 · Chúc bạn sáng tạo vui vẻ </footer>
 </main>
 </div>
 </body>

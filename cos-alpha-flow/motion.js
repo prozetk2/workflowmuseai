@@ -6,8 +6,9 @@
   const FLOW_TAB_URLS = ['https://flow.google.com/*', 'https://labs.google/fx/*'];
   const DURATIONS = [4, 6, 8, 10];
   // Written like TobyFlow's request (character = "image 1", the clip is the motion reference), not as "replace the person".
-  const DEFAULT_PROMPT = 'Animate the character in image 1 so that they perform exactly the same movement as in the reference video: the same body motion, gestures, facial expressions and lip movement, the same timing, the same camera movement and framing, the same location and lighting. The character keeps their own face, hairstyle and outfit from image 1 in every frame. Keep the sound of the reference video.';
-  const OLD_PROMPTS = ['Replace the person in the attached video with the character from the attached reference image(s). Keep exactly the same motion, body movement, gestures, facial expressions, lip movement and timing, and the same camera movement, framing, lighting and background as the video. The character must look exactly like the reference (same face, hair and outfit). Do not add or remove people or objects. Keep the original speech and sound.'];
+  // Image 1 = who; the reference video = only how they move. The sound line is added per clip (see composePrompt).
+  const DEFAULT_PROMPT = 'Image 1 is the character. The reference video is only a guide for motion and timing. Recreate the reference video shot for shot with the character from image 1 as the only person in it: the same body movement, gestures, head turns, facial expressions and mouth movement, the same timing and rhythm, the same camera position, framing and camera moves, the same room, props and lighting. In every frame the character keeps the face, hairstyle, body shape and outfit from image 1; nothing of the appearance of the person in the reference video (face, hair, clothes) carries over. Natural, realistic motion, no extra people, no on-screen text.';
+  const OLD_PROMPTS = ['Animate the character in image 1 so that they perform exactly the same movement as in the reference video: the same body motion, gestures, facial expressions and lip movement, the same timing, the same camera movement and framing, the same location and lighting. The character keeps their own face, hairstyle and outfit from image 1 in every frame. Keep the sound of the reference video.', 'Replace the person in the attached video with the character from the attached reference image(s). Keep exactly the same motion, body movement, gestures, facial expressions, lip movement and timing, and the same camera movement, framing, lighting and background as the video. The character must look exactly like the reference (same face, hair and outfit). Do not add or remove people or objects. Keep the original speech and sound.'];
   const state = {
     project: null, sourceUrl: '', clipUrls: new Map(), resultUrls: new Map(), finalUrl: '',
     running: false, abort: null, requestId: '', ffmpeg: null, ffmpegLogs: []
@@ -39,7 +40,7 @@
   function saveNow() { clearTimeout(saveTimer); return idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')); }
   function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(() => idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')), 300); }
   function newProject() {
-    return { source: null, chars: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, pace: 5, sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
+    return { source: null, chars: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, audioMode: 'auto', silentFallback: true, pace: 5, sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
   }
 
   // ---------- small helpers ----------
@@ -241,73 +242,104 @@
     return blob ? objectUrl(map, clip.id, blob) : '';
   }
 
-  // ---------- dialogue (speech agent: Gemini) ----------
-  const TRANSCRIBE_SYSTEM = 'You transcribe speech in short video clips for dubbing. Return JSON only: {"has_speech": true|false, "language": "language of the speech in English, e.g. Vietnamese", "text": "exactly what is said, in the original language, no speaker names, no descriptions of sounds", "translation": "the same line translated as asked, or an empty string"}. If nobody speaks, return has_speech false and empty strings.';
-  const needsDialogue = () => Boolean(state.project.settings.sync || state.project.settings.subtitles);
-  // Like TobyFlow's speech agent: by default the clip goes to the user's own signed-in Gemini tab (no API key);
-  // the Gemini API is the other choice. ChatGPT on the web cannot hear the sound of a video, so it is not offered.
-  const GEMINI_WEB = 'https://gemini.google.com/app';
+  // ---------- dialogue (speech agent: ChatGPT / Gemini tab, or the Gemini API) ----------
+  // As in TobyFlow: each clip's sound is taken out as a small WAV file and sent to the user's own signed-in
+  // ChatGPT or Gemini tab (no API key), which writes down what is said, with a timeline of who speaks when.
+  const TRANSCRIBE_SYSTEM = 'You transcribe speech in a short audio clip for lip-synced dubbing. Return JSON only: {"has_speech": true|false, "language": "language of the speech in English, e.g. Vietnamese", "text": "exactly what is said, verbatim, in the original language; numbers written as spoken words; no speaker names, no descriptions of sounds or music", "translation": "the whole line translated as asked, or an empty string", "segments": [{"start": seconds from the start of the clip, "end": seconds, "text": "the words said in this part", "translation": "this part translated as asked, or an empty string"}]}. Split segments at pauses; times to 0.1 s. If nobody speaks (music or silence only), return has_speech false, empty strings and an empty segments list.';
+  const AGENT_NAME = { chatgpt: 'ChatGPT', 'gemini-web': 'Gemini', 'gemini-api': 'Gemini API' };
+  const CHAT_URL = { chatgpt: 'https://chatgpt.com/', 'gemini-web': 'https://gemini.google.com/app' };
+  const needsDialogue = () => Boolean(state.project.settings.sync || state.project.settings.subtitles || state.project.settings.translate);
   const waitTabLoaded = tabId => new Promise(resolve => { const done = (id, info) => { if (id === tabId && info.status === 'complete') { chrome.tabs.onUpdated.removeListener(done); resolve(); } }; chrome.tabs.onUpdated.addListener(done); setTimeout(() => { chrome.tabs.onUpdated.removeListener(done); resolve(); }, 30000); });
-  async function geminiWebAsk(prompt, files, signal) {
+  async function chatWebAsk(target, prompt, files, signal) {
+    const name = AGENT_NAME[target] || target;
     const [previous] = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => []);
     const saved = (await chrome.storage.session?.get?.('cosalphaChatTabs').catch(() => ({})))?.cosalphaChatTabs || {};
-    let tab = saved['gemini-web'] ? await chrome.tabs.get(saved['gemini-web']).catch(() => null) : null;
-    if (tab) tab = await chrome.tabs.update(tab.id, { url: GEMINI_WEB, active: true });
-    else tab = await chrome.tabs.create({ url: GEMINI_WEB, active: true, ...(previous?.windowId !== undefined ? { windowId: previous.windowId } : {}) });
-    chrome.storage.session?.set?.({ cosalphaChatTabs: { ...saved, 'gemini-web': tab.id } }).catch(() => {});
+    let tab = saved[target] ? await chrome.tabs.get(saved[target]).catch(() => null) : null;
+    if (tab) tab = await chrome.tabs.update(tab.id, { url: CHAT_URL[target], active: true });
+    else tab = await chrome.tabs.create({ url: CHAT_URL[target], active: true, ...(previous?.windowId !== undefined ? { windowId: previous.windowId } : {}) });
+    chrome.storage.session?.set?.({ cosalphaChatTabs: { ...saved, [target]: tab.id } }).catch(() => {});
     const back = () => { if (previous?.id && previous.id !== tab.id) chrome.tabs.update(previous.id, { active: true }).catch(() => {}); };
     try {
       await waitTabLoaded(tab.id);
       let ready = await chrome.tabs.sendMessage(tab.id, { type: 'COSALPHA_CHAT_PING' }).catch(() => null);
       if (!ready) { await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['chat-bridge.js'] }).catch(() => {}); ready = await chrome.tabs.sendMessage(tab.id, { type: 'COSALPHA_CHAT_PING' }).catch(() => null); }
-      if (!ready) throw new Error('Không gắn được vào tab Gemini. Hãy tải lại cos_alpha_flow rồi thử lại.');
-      if (ready.loginNeeded) throw new Error('Hãy đăng nhập Gemini (gemini.google.com) trong tab vừa mở rồi lấy lời thoại lại.');
+      if (!ready) throw new Error(`Không gắn được vào tab ${name}. Hãy tải lại cos_alpha_flow rồi thử lại.`);
+      if (ready.loginNeeded) throw new Error(`Hãy đăng nhập ${name} trong tab vừa mở rồi lấy lời thoại lại.`);
       const reply = await sendToTab(tab.id, { type: 'COSALPHA_CHAT_ASK', prompt, best: false, files, timeoutSec: 300 }, signal);
-      if (!reply?.ok) throw new Error(reply?.error || 'Gemini không trả lời.');
+      if (!reply?.ok) throw new Error(reply?.error || `${name} không trả lời.`);
       if ((await chrome.storage.local.get('cosalphaChatCleanup').catch(() => ({}))).cosalphaChatCleanup !== false) await chrome.tabs.sendMessage(tab.id, { type: 'COSALPHA_CHAT_DELETE', url: reply.conversationUrl }).catch(() => {});
       return reply.text || '';
     } finally { back(); }
   }
   function parseJsonReply(text) {
     const raw = String(text || ''), match = raw.match(/\{[\s\S]*\}/);
-    try { return JSON.parse(match ? match[0] : raw); } catch { throw new Error('Gemini trả lời không đúng dạng khi chép lời thoại. Hãy thử lại.'); }
+    try { return JSON.parse(match ? match[0] : raw); } catch { throw new Error('Câu trả lời khi chép lời thoại không đúng dạng. Hãy thử lại.'); }
+  }
+  async function blobHasAudio(blob) {
+    try { const ff = await ffmpeg(); await ff.writeFile('/probe-in.mp4', new Uint8Array(await blob.arrayBuffer())); const yes = await hasAudio(ff, '/probe-in.mp4'); await ff.deleteFile('/probe-in.mp4').catch(() => {}); return yes; } catch { return true; }
+  }
+  // The clip's sound as a mono 16 kHz WAV (small, and both ChatGPT and Gemini accept it); null when the clip has none.
+  async function clipWav(clip) {
+    const blob = await getBlob(`clip:${clip.id}`); if (!blob) throw new Error('Đoạn này mất file gốc. Hãy cắt lại video.');
+    const ff = await ffmpeg();
+    await ff.writeFile('/speech-in.mp4', new Uint8Array(await blob.arrayBuffer()));
+    try {
+      if (!(await hasAudio(ff, '/speech-in.mp4'))) return null;
+      await run(ff, ['-i', '/speech-in.mp4', '-vn', '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', '-y', '/speech.wav']);
+      return new Blob([await ff.readFile('/speech.wav')], { type: 'audio/wav' });
+    } finally { await ff.deleteFile('/speech-in.mp4').catch(() => {}); await ff.deleteFile('/speech.wav').catch(() => {}); }
   }
   async function transcribe(clip, signal) {
-    const blob = await getBlob(`clip:${clip.id}`); if (!blob) throw new Error('Đoạn này mất file gốc. Hãy cắt lại video.');
     const target = state.project.settings.translate || '';
-    const user = `Transcribe exactly what is spoken in this ${(clip.end - clip.start).toFixed(1)}-second clip.${target ? ` Also translate the line into ${target} as "translation", natural and about the same length so it fits the same timing.` : ' Leave "translation" empty.'}`;
-    const video = await blobToDataUrl(new Blob([blob], { type: 'video/mp4' }));
+    const wav = await clipWav(clip);
+    if (!wav) { clip.transcript = { has_speech: false, language: '', text: '', translation: '', segments: [], target }; saveSoon(); return clip.transcript; }
+    const user = `Transcribe exactly what is spoken in this ${(clip.end - clip.start).toFixed(1)}-second audio clip, with its timeline.${target ? ` Also translate it into ${target} ("translation" for the whole line and for each segment), natural and about the same length so it fits the same timing.` : ' Leave every "translation" empty.'}`;
+    const audio = await blobToDataUrl(wav);
+    const agent = state.project.settings.speechAgent || 'gemini-web';
     let replyText;
-    if ((state.project.settings.speechAgent || 'gemini-web') === 'gemini-api') {
+    if (agent === 'gemini-api') {
       if (!window.CosAlphaAI?.text) throw new Error('Chưa tải được phần Gemini của app. Hãy tải lại trang Motion Studio.');
-      replyText = (await window.CosAlphaAI.text({ system: TRANSCRIBE_SYSTEM, user, images: [video], json: true, temperature: 0.1, signal })).text;
+      replyText = (await window.CosAlphaAI.text({ system: TRANSCRIBE_SYSTEM, user, images: [audio], json: true, temperature: 0.1, signal })).text;
     } else {
-      replyText = await geminiWebAsk(`${TRANSCRIBE_SYSTEM}\n\n${user} Reply with the JSON object only.`, [{ dataUrl: video, name: `motion-doan-${clip.index + 1}.mp4`, type: 'video/mp4' }], signal);
+      replyText = await chatWebAsk(agent, `${TRANSCRIBE_SYSTEM}\n\n${user} Listen to the attached audio file. Reply with the JSON object only.`, [{ dataUrl: audio, name: `motion-doan-${clip.index + 1}.wav`, type: 'audio/wav' }], signal);
     }
     const data = parseJsonReply(replyText);
-    clip.transcript = { has_speech: Boolean(data.has_speech && String(data.text || '').trim()), language: String(data.language || ''), text: String(data.text || '').trim(), translation: String(data.translation || '').trim(), target };
+    const segments = (Array.isArray(data.segments) ? data.segments : []).map(item => ({ start: Math.max(0, Number(item.start) || 0), end: Math.max(0, Number(item.end) || 0), text: String(item.text || '').trim(), translation: String(item.translation || '').trim() })).filter(item => item.text);
+    clip.transcript = { has_speech: Boolean(data.has_speech && String(data.text || '').trim()), language: String(data.language || ''), text: String(data.text || '').trim(), translation: String(data.translation || '').trim(), segments, target, agent };
     saveSoon();
     return clip.transcript;
   }
   async function ensureTranscript(clip, signal) {
     const t = clip.transcript;
     if (t && (t.manual || (t.target || '') === (state.project.settings.translate || ''))) return t;
-    status(`Đang lấy lời thoại đoạn ${clip.index + 1} bằng Gemini…`, 'warn');
+    status(`Đang lấy lời thoại đoạn ${clip.index + 1} bằng ${AGENT_NAME[state.project.settings.speechAgent] || 'Gemini'}…`, 'warn');
     return transcribe(clip, signal);
   }
-  // The clip's prompt: the motion prompt, plus the line to speak with a new voice and/or the subtitles.
+  // The clip's prompt: the motion prompt, then exactly one line about sound: the dialogue to speak (with its
+  // timeline and the new voice), or plain ambience when the source sound is put back at merge.
+  const SOUND_LINE = /\s*(Keep the (original speech and )?sound of the reference video\.?|Sound: [^\n]*)/gi;
+  function timelineText(t, translated) {
+    const segments = (t.segments || []).filter(item => String(translated ? item.translation || '' : item.text || '').trim());
+    if (!segments.length) return '';
+    return segments.map(item => `${Number(item.start).toFixed(1)}–${Number(item.end).toFixed(1)} s: "${String(translated ? item.translation : item.text).replace(/"/g, "'").trim()}"`).join('; ');
+  }
   function composePrompt(clip) {
     const settings = state.project.settings, t = clip.transcript;
-    // With a new voice, the "keep the sound" line of the motion prompt would contradict the dialogue part.
-    const base = settings.prompt || DEFAULT_PROMPT;
-    const parts = [settings.sync && t?.has_speech ? base.replace(/\s*Keep the (original speech and )?sound of the reference video\.?/i, '') : base];
-    if (t?.has_speech && (settings.sync || settings.subtitles)) {
-      const translated = settings.translate && t.translation, line = (translated ? t.translation : t.text).replace(/"/g, "'");
-      const language = translated ? settings.translate : t.language;
-      if (settings.sync) parts.push(`Dialogue: the character says exactly this line${language ? ` in ${language}` : ''}, with natural lip-sync and the same timing and pauses as the speech in the reference video: "${line}". Voice: ${settings.voiceDesc?.trim() || 'a natural voice that suits the character'}. Use this new voice, not the voice of the reference video.`);
-      else if (translated) parts.push(`Dialogue: the character says this line in ${language} with natural lip-sync and the same timing as the reference video: "${line}".`);
-      if (settings.subtitles) parts.push(`Show burned-in subtitles at the bottom of the frame with exactly this text, timed to the speech: "${line}".`);
+    const parts = [String(settings.prompt || DEFAULT_PROMPT).replace(SOUND_LINE, '').trim()];
+    const speech = t?.has_speech && (settings.sync || settings.subtitles || settings.translate);
+    const translated = Boolean(settings.translate && t?.translation);
+    const line = speech ? (translated ? t.translation : t.text).replace(/"/g, "'") : '';
+    const language = translated ? settings.translate : t?.language;
+    const timeline = speech ? timelineText(t, translated) : '';
+    if (speech && (settings.sync || translated)) {
+      parts.push(`Dialogue: the character speaks${language ? ` in ${language}` : ''}, mouth movement exactly in sync with the words, starting and pausing exactly when the person in the reference video does${timeline ? `. Timeline (seconds from the start of the clip): ${timeline}` : `: "${line}"`}.`);
+      parts.push(`Voice: ${settings.voiceDesc?.trim() || 'a natural voice that suits the character'}; a new voice, not the voice of the reference video. Sound: only this dialogue over quiet room ambience, no music.`);
+    } else if (settings.audioMode === 'original') {
+      parts.push('Sound: quiet room ambience only, no music and no speech (the original soundtrack is added afterwards).');
+    } else {
+      parts.push('Sound: natural sound for the action and the room, in the same mood as the reference video; no copyrighted music.');
     }
+    if (speech && settings.subtitles) parts.push(`Subtitles: burned-in at the bottom of the frame, exactly this text, each part shown while it is spoken: "${line}".`);
     return parts.join('\n\n');
   }
   async function transcribeAll() {
@@ -316,7 +348,7 @@
     let done = 0;
     try {
       for (const clip of state.project.clips) {
-        status(`Đang lấy lời thoại đoạn ${clip.index + 1}/${state.project.clips.length} bằng Gemini…`, 'warn');
+        status(`Đang lấy lời thoại đoạn ${clip.index + 1}/${state.project.clips.length} bằng ${AGENT_NAME[state.project.settings.speechAgent] || 'Gemini'}…`, 'warn');
         try { await transcribe(clip, state.abort.signal); done++; renderClips(); }
         catch (error) { if (error?.name === 'AbortError') throw error; status(error.message, 'error'); if (error.code === 'NO_API_KEY') return; }
       }
@@ -339,12 +371,29 @@
       sourceVideo: await blobToDataUrl(blob), references: state.project.chars.map(item => item.dataUrl), firstFrame: '', uiMode: 'agent', timeoutSec: 1200
     }, signal);
     if (!reply?.ok) throw Object.assign(new Error(reply?.error || 'Flow không trả video.'), { code: reply?.code || '' });
+    await keepResult(clip, reply);
+  }
+  async function keepResult(clip, reply) {
     const result = await (await fetch(reply.url)).blob();
     if (!result.size) throw new Error('Video Flow trả về bị rỗng.');
     await putBlob(`result:${clip.id}`, result.type ? result : new Blob([result], { type: 'video/mp4' }));
     objectUrl(state.resultUrls, clip.id, result);
     clip.result = true; clip.status = 'success'; clip.error = (reply.warnings || []).join(' ');
     clip.resultThumb = await frameAt(state.resultUrls.get(clip.id), 0.1);
+    clip.resultSilent = !(await blobHasAudio(result));
+  }
+  // Flow could make the picture but not its sound: with the user's OK, switch on Flow's "return the video without
+  // sound" setting and send the clip once more; the source clip's sound is used for it at merge.
+  async function generateWithFallback(clip, signal) {
+    try { await generateClip(clip, signal); }
+    catch (error) {
+      if (error.code !== 'AUDIO_FAILED' || !state.project.settings.silentFallback) throw error;
+      status(`Flow không tạo được âm thanh cho đoạn ${clip.index + 1} (được hoàn credit). Bật "Trả về video không có âm thanh" trong Flow rồi tạo lại…`, 'warn');
+      const set = await flowMessage({ type: 'THEKEY_FLOW_SILENT_FALLBACK', on: true }, signal).catch(problem => ({ ok: false, error: problem.message }));
+      if (!set?.ok) throw Object.assign(new Error(`${error.message} (Không tự bật được "Trả về video không có âm thanh": ${set?.error || 'không rõ lý do'}. Hãy bật trong Cài đặt của Flow rồi tạo lại.)`), { code: 'AUDIO_FAILED' });
+      await generateClip(clip, signal);
+      clip.error = [clip.error, 'Flow trả video không tiếng; khi ghép sẽ dùng âm thanh của video gốc.'].filter(Boolean).join(' ');
+    }
   }
   async function generate(clips) {
     if (state.running) return;
@@ -357,7 +406,7 @@
       for (const [index, clip] of todo.entries()) {
         if (index > 0 && Number(state.project.settings.pace) > 0) { status(`Nghỉ ${state.project.settings.pace} giây trước đoạn kế tiếp…`, 'warn'); await sleep(Number(state.project.settings.pace) * 1000, signal); }
         status(`Đang tạo đoạn ${clip.index + 1} (${index + 1}/${todo.length}) trên Flow…`, 'warn');
-        try { await generateClip(clip, signal); done++; }
+        try { await generateWithFallback(clip, signal); done++; }
         catch (error) {
           if (error?.name === 'AbortError' || signal.aborted) throw error;
           clip.status = 'error'; clip.error = error.message; failed++;
@@ -381,22 +430,25 @@
   }
 
   // ---------- merge ----------
-  async function merge() {
+  async function merge({ originalAudio = false } = {}) {
     const clips = state.project.clips.filter(clip => clip.status !== 'skipped');
     const missing = clips.filter(clip => !clip.result);
     if (!clips.length) return;
     if (missing.length) { status(`Còn ${missing.length} đoạn chưa có kết quả Flow (${missing.map(clip => clip.index + 1).join(', ')}). Tạo xong hoặc bấm "Bỏ qua đoạn" trước khi ghép.`, 'warn'); return; }
     setBusy(true);
     try {
-      const ff = await ffmpeg(), keep = state.project.settings.keepAudio;
+      const ff = await ffmpeg(), mode = originalAudio ? 'original' : state.project.settings.audioMode || (state.project.settings.keepAudio ? 'original' : 'auto');
       const inputs = [], info = [];
       for (const [index, clip] of clips.entries()) {
         status(`Đang nạp đoạn ${index + 1}/${clips.length} vào FFmpeg…`, 'warn');
         const result = await getBlob(`result:${clip.id}`); const path = `/r${index}.mp4`;
         await ff.writeFile(path, new Uint8Array(await result.arrayBuffer())); inputs.push(path);
-        const audioFrom = keep ? `/s${index}.mp4` : path;
-        if (keep) { const source = await getBlob(`clip:${clip.id}`); await ff.writeFile(audioFrom, new Uint8Array(await source.arrayBuffer())); }
-        info.push({ duration: clip.end - clip.start, audioPath: audioFrom, audio: await hasAudio(ff, audioFrom) });
+        // Sound of each clip: the source clip's when asked for, or when Flow's result came back without sound.
+        const resultAudio = await hasAudio(ff, path);
+        const useSource = mode === 'original' || (mode === 'auto' && !resultAudio);
+        let audioFrom = path, audio = resultAudio;
+        if (useSource) { audioFrom = `/s${index}.mp4`; const source = await getBlob(`clip:${clip.id}`); await ff.writeFile(audioFrom, new Uint8Array(await source.arrayBuffer())); audio = await hasAudio(ff, audioFrom); }
+        info.push({ duration: clip.end - clip.start, audioPath: audioFrom, audio, separate: useSource });
       }
       const first = await videoMeta(state.resultUrls.get(clips[0].id) || await clipUrl(clips[0], 'result'));
       const scale = Math.min(1, 1920 / Math.max(first.width || 1280, first.height || 720));
@@ -404,12 +456,12 @@
       const args = [], filters = [], labels = [];
       inputs.forEach(path => args.push('-i', path));
       const audioInputs = new Map(); let next = inputs.length;
-      info.forEach((item, index) => { if (keep && item.audio) { args.push('-i', item.audioPath); audioInputs.set(index, next++); } });
+      info.forEach((item, index) => { if (item.separate && item.audio) { args.push('-i', item.audioPath); audioInputs.set(index, next++); } });
       const silentIndex = next; await ff.writeFile('/silence.wav', silentWav(12)); args.push('-stream_loop', '-1', '-i', '/silence.wav');
       info.forEach((item, index) => {
         const d = item.duration.toFixed(3);
         filters.push(`[${index}:v:0]trim=duration=${d},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:black,fps=24,setsar=1,format=yuv420p,tpad=stop_mode=clone:stop_duration=${d},trim=duration=${d}[v${index}]`);
-        const audio = keep ? (item.audio ? `${audioInputs.get(index)}:a:0` : `${silentIndex}:a:0`) : (item.audio ? `${index}:a:0` : `${silentIndex}:a:0`);
+        const audio = !item.audio ? `${silentIndex}:a:0` : item.separate ? `${audioInputs.get(index)}:a:0` : `${index}:a:0`;
         filters.push(`[${audio}]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,asetpts=PTS-STARTPTS,apad=pad_dur=${d},atrim=duration=${d}[a${index}]`);
         labels.push(`[v${index}][a${index}]`);
       });
@@ -418,12 +470,13 @@
       status('FFmpeg đang ghép các đoạn thành video hoàn chỉnh…', 'warn');
       await run(ff, args);
       const data = await ff.readFile('/final.mp4');
-      for (const path of [...inputs, ...info.map(item => item.audioPath), '/final.mp4', '/silence.wav']) await ff.deleteFile(path).catch(() => {});
+      for (const path of new Set([...inputs, ...info.map(item => item.audioPath), '/final.mp4', '/silence.wav'])) await ff.deleteFile(path).catch(() => {});
       const finalBlob = new Blob([data], { type: 'video/mp4' });
       await clearFinal(); await putBlob('final', finalBlob);
       state.finalUrl = URL.createObjectURL(finalBlob);
       state.project.final = { size: finalBlob.size, duration: info.reduce((sum, item) => sum + item.duration, 0), at: Date.now() };
-      await saveNow(); status('Đã ghép xong video hoàn chỉnh. Bấm "Tải video" để lưu về máy.', 'ok');
+      state.project.final.audio = mode;
+      await saveNow(); status(originalAudio ? 'Đã làm lại âm thanh: video hoàn chỉnh giờ dùng âm thanh của video gốc.' : 'Đã ghép xong video hoàn chỉnh. Bấm "Tải video" để lưu về máy.', 'ok');
     } catch (error) { status(`Ghép video thất bại: ${error.message}`, 'error'); }
     finally { setBusy(false); renderAll(); }
   }
@@ -437,7 +490,7 @@
   function setBusy(busy) {
     $('#msGenerate').disabled = busy || !state.project.clips.length;
     $('#msStop').classList.toggle('hidden', !state.running);
-    for (const id of ['#msSplit', '#msMerge', '#msSourcePick', '#msClear', '#msTranscribeAll']) $(id).disabled = busy;
+    for (const id of ['#msSplit', '#msMerge', '#msRedoAudio', '#msSourcePick', '#msClear', '#msTranscribeAll']) $(id).disabled = busy;
     if (!busy) renderButtons();
   }
   function renderButtons() {
@@ -448,6 +501,7 @@
     $('#msGenerate').lastChild.textContent = !clips.length || left === clips.length ? 'Tạo tất cả đoạn' : left ? `Tạo tiếp ${left} đoạn chưa xong` : 'Đã tạo hết các đoạn';
     $('#msMerge').disabled = state.running || !clips.some(clip => clip.result);
     $('#msDownload').disabled = !state.finalUrl;
+    $('#msRedoAudio').disabled = state.running || !clips.some(clip => clip.result);
     $('#stepSource').classList.toggle('on', Boolean(project.source));
     $('#stepGenerate').classList.toggle('on', clips.some(clip => clip.result));
     $('#stepExport').classList.toggle('on', Boolean(project.final));
@@ -458,7 +512,7 @@
     $('#msSpeechAgent').value = settings.speechAgent || 'gemini-web';
     $('#msSync').checked = Boolean(settings.sync); $('#msVoiceDesc').value = settings.voiceDesc || ''; $('#msFlowVoice').value = settings.flowVoice || '';
     $('#msSubtitles').checked = Boolean(settings.subtitles); $('#msTranslate').value = settings.translate || ''; $('#msVoiceBox').classList.toggle('hidden', !settings.sync);
-    $('#msPrompt').value = settings.prompt; $('#msKeepAudio').checked = Boolean(settings.keepAudio); $('#msPace').value = String(settings.pace);
+    $('#msPrompt').value = settings.prompt; $('#msAudioMode').value = settings.audioMode || 'auto'; $('#msSilentFallback').checked = settings.silentFallback !== false; $('#msPace').value = String(settings.pace);
   }
   function renderSource() {
     const source = state.project.source, video = $('#msSourceVideo');
@@ -544,7 +598,8 @@
     $('#msSplit').onclick = splitSource;
     $('#msGenerate').onclick = () => generate(state.project.clips.filter(clip => !clip.result));
     $('#msStop').onclick = stop;
-    $('#msMerge').onclick = merge;
+    $('#msMerge').onclick = () => merge();
+    $('#msRedoAudio').onclick = () => merge({ originalAudio: true });
     $('#msDownload').onclick = () => download(state.finalUrl, `motion-studio-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.mp4`);
     $('#msClear').onclick = async () => {
       if (!confirm('Xoá video gốc, các đoạn và kết quả của dự án Motion Studio này? (Video trong dự án Flow vẫn còn.)')) return;
@@ -554,7 +609,7 @@
       saveSoon(); renderAll(); status('Đã làm mới dự án.', 'ok');
     };
     const bind = (id, key, parse = value => value) => { $(id).onchange = () => { state.project.settings[key] = parse($(id).type === 'checkbox' ? $(id).checked : $(id).value); saveSoon(); }; };
-    bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msKeepAudio', 'keepAudio', Boolean); bind('#msPace', 'pace', Number);
+    bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msAudioMode', 'audioMode'); bind('#msSilentFallback', 'silentFallback', Boolean); bind('#msPace', 'pace', Number);
     bind('#msSpeechAgent', 'speechAgent');
     bind('#msSync', 'sync', Boolean); bind('#msSubtitles', 'subtitles', Boolean); bind('#msTranslate', 'translate');
     $('#msSync').addEventListener('change', () => $('#msVoiceBox').classList.toggle('hidden', !$('#msSync').checked));
@@ -590,6 +645,8 @@
     // Only Omni takes the source clip as an ingredient; Veo ignores it (1.8.3 offered Veo here by mistake).
     state.project.settings.model = 'Omni 1.1 Flash';
     if (OLD_PROMPTS.includes(state.project.settings.prompt)) state.project.settings.prompt = DEFAULT_PROMPT;
+    // 1.9 "Giữ âm thanh của video gốc" becomes the "original" sound mode (once).
+    if (state.project.settings.keepAudio) { state.project.settings.audioMode = 'original'; state.project.settings.keepAudio = false; }
     if (state.project.chars.length > 1) state.project.chars = state.project.chars.slice(0, 1);
     // A clip left "running" by a closed page never finished.
     for (const clip of state.project.clips) if (clip.status === 'running') { clip.status = clip.result ? 'success' : 'idle'; clip.error = 'Lần tạo trước bị ngắt.'; }
