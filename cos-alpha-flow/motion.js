@@ -408,7 +408,7 @@
   }
   async function ensureScene(clip, signal) {
     if (!state.project.settings.sceneAI || clip.scene) return clip.scene || null;
-    status(`Đang cho ${AGENT_NAME[state.project.settings.speechAgent] || 'Gemini'} xem đoạn ${clip.index + 1} (bối cảnh, đồ vật, hành động)…`, 'warn');
+    status(`${AGENT_NAME[state.project.settings.speechAgent] || 'Gemini'} đang ghi lại hành động, đồ vật của đoạn ${clip.index + 1} để Flow làm đúng như video gốc…`, 'warn');
     return analyzeScene(clip, signal);
   }
   async function ensureTranscript(clip, signal) {
