@@ -89,3 +89,14 @@ input[type=text]{font:inherit;width:100%;background:#0e1017;color:#eee;border:1p
 .ms-dialogue label{flex:1;margin-top:0}
 .ms-dialogue-actions{display:flex;flex-direction:column;gap:6px}
 .ms-clip .talk{color:#a99bff}
+.ms-batch{flex:none;background:#12131a;border:1px solid #262833;border-radius:12px;padding:8px 12px 12px;display:flex;flex-direction:column;gap:8px}
+.ms-batch header{display:flex;align-items:center;gap:8px}
+.ms-batch header small{color:#9aa0ad}
+.ms-batch .ms-drop{min-height:0;padding:10px}
+.ms-batch-list{display:flex;flex-direction:column;gap:4px;max-height:160px;overflow:auto}
+.ms-batch-row{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:8px;background:#1a1c25;font-size:13px}
+.ms-batch-row span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ms-batch-row small{color:#9aa0ad}
+.ms-batch-row.done small{color:#4ade80}.ms-batch-row.error small{color:#f87171}.ms-batch-row.running small{color:#fbbf24}
+.ms-batch-row button{background:none;border:0;color:#9aa0ad;cursor:pointer;font-size:16px}
+#msBatchRun{align-self:flex-start}

@@ -36,6 +36,12 @@
         <label class="ms-drop" id="msCharDrop"><input id="msCharInput" type="file" accept="image/*" multiple hidden /><i data-ic="user-plus"></i><span>Thả 1 ảnh nhân vật vào đây hoặc bấm để chọn (nên dùng ảnh nhân vật AI, rõ mặt và toàn thân)</span></label>
       </section>
       <section>
+        <h3>Bối cảnh mới (tuỳ chọn)</h3>
+        <p class="ms-note">Để trống thì giữ nguyên căn phòng của video gốc. Thêm 1 ảnh địa điểm thì cả đoạn diễn ra ở đó; đồ vật nhân vật cầm và hành động vẫn như video gốc.</p>
+        <div id="msBgs" class="ms-chars"></div>
+        <label class="ms-drop" id="msBgDrop"><input id="msBgInput" type="file" accept="image/*" hidden /><i data-ic="image-up"></i><span>Thả 1 ảnh bối cảnh vào đây hoặc bấm để chọn</span></label>
+      </section>
+      <section>
         <h3>Câu lệnh cho Flow</h3>
         <p class="ms-note">Chỗ ghi <b>{{scene}}</b> là nơi app chèn mô tả bối cảnh, đồ vật, góc máy và mốc thời gian hành động của từng đoạn.</p>
         <textarea id="msPrompt" rows="9"></textarea>
@@ -47,7 +53,8 @@
         <h3>Lời thoại</h3>
         <p class="ms-note">Lấy lời thoại trong từng đoạn bằng Gemini, rồi cho Flow nói lại bằng giọng mới, khớp khẩu hình.</p>
         <label>Chép lời bằng<select id="msSpeechAgent"><option value="chatgpt">ChatGPT (tab đã đăng nhập, không cần key)</option><option value="gemini-web">Gemini (tab đã đăng nhập, không cần key)</option><option value="gemini-api">Gemini API (cần API key)</option></select></label>
-        <label class="ms-check"><input id="msSync" type="checkbox" /> Đồng bộ lời thoại (Flow tạo giọng mới)</label>
+        <label class="ms-check"><input id="msSync" type="checkbox" /> Đồng bộ lời thoại</label>
+        <label>Kiểu giọng<select id="msVoiceMode"><option value="character">Nhân vật nói bằng giọng mới (theo mô tả giọng)</option><option value="lipsync">Khép khẩu hình theo giọng gốc (giữ nguyên giọng của video gốc)</option><option value="narration">Thuyết minh: giọng đọc bên ngoài, nhân vật không nói</option></select></label>
         <div id="msVoiceBox">
           <label>Mô tả giọng<input id="msVoiceDesc" type="text" placeholder="vd: giọng cô gái 24 tuổi, ấm, tự nhiên" /></label>
           <label>Giọng có sẵn của Flow (tuỳ chọn)<input id="msFlowVoice" type="text" placeholder="tên giọng trong Flow, để trống = Flow tự chọn" /></label>
@@ -84,6 +91,13 @@
         </article>
       </div>
       <div class="ms-status" id="msStatus">Bắt đầu bằng việc chọn video gốc.</div>
+      <section class="ms-batch">
+        <header><strong>Làm nhiều video một lượt</strong><small id="msBatchInfo"></small></header>
+        <p class="ms-note">Cùng nhân vật, bối cảnh, câu lệnh và cài đặt ở trên cho mọi video: app cắt, tạo trên Flow, ghép rồi lưu từng video vào thư mục Tải xuống, xong video này mới sang video sau. Danh sách mất khi tải lại trang.</p>
+        <label class="ms-drop" id="msBatchDrop"><input id="msBatchInput" type="file" accept="video/*" multiple hidden /><i data-ic="film"></i><span>Thả nhiều video vào đây hoặc bấm để chọn</span></label>
+        <div id="msBatchList" class="ms-batch-list"></div>
+        <button id="msBatchRun" type="button" class="ms-primary" disabled><i data-ic="play"></i>Chạy tất cả video</button>
+      </section>
       <section class="ms-timeline">
         <header><strong>Các đoạn</strong><small id="msClipCount"></small><span class="ms-legend"><i class="dot ok"></i>Xong <i class="dot run"></i>Đang tạo <i class="dot err"></i>Lỗi</span></header>
         <div id="msClips" class="ms-clips"><p class="ms-hint">Bấm "Cắt thành đoạn" để chia video gốc theo độ dài đã chọn.</p></div>

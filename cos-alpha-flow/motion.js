@@ -65,7 +65,7 @@
   function saveNow() { clearTimeout(saveTimer); return idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')); }
   function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(() => idb('meta', 'readwrite', store => store.put(state.project, 'project')).catch(error => status(`Không lưu được dự án: ${error.message}`, 'error')), 300); }
   function newProject() {
-    return { source: null, chars: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, audioMode: 'auto', silentFallback: true, pace: 5, parallel: 2, sceneAI: true, continuity: false, sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
+    return { source: null, chars: [], bgs: [], clips: [], final: null, settings: { aspect: '9:16', resolution: '720p', model: 'Omni 1.1 Flash', clipLen: 8, prompt: DEFAULT_PROMPT, keepAudio: false, audioMode: 'auto', silentFallback: true, pace: 5, parallel: 2, sceneAI: true, continuity: false, voiceMode: 'character', sync: false, voiceDesc: '', flowVoice: '', subtitles: false, translate: '', speechAgent: 'gemini-web' } };
   }
 
   // ---------- small helpers ----------
@@ -186,20 +186,21 @@
   }
 
   // ---------- source & characters ----------
-  async function loadSource(file) {
+  async function loadSource(file, { force = false } = {}) {
     if (!file || !/^video\//.test(file.type)) { status('Hãy chọn một file video (MP4/MOV/WebM).', 'warn'); return; }
     if (file.size > 500 * 1024 * 1024) { status('Video lớn hơn 500 MB. Hãy cắt ngắn trước (vài chục giây là hợp lý).', 'warn'); return; }
-    if (state.project.clips.some(clip => clip.result) && !confirm('Thay video gốc sẽ xoá các đoạn và kết quả hiện có. Tiếp tục?')) return;
+    if (!force && state.project.clips.some(clip => clip.result) && !confirm('Thay video gốc sẽ xoá các đoạn và kết quả hiện có. Tiếp tục?')) return false;
     await clearClips();
     await putBlob('source', file);
     if (state.sourceUrl) URL.revokeObjectURL(state.sourceUrl);
     const url = state.sourceUrl = URL.createObjectURL(file);
     const meta = await videoMeta(url);
-    if (!meta.duration) { status('Trình duyệt không mở được video này. Hãy dùng MP4 (H.264) hoặc WebM.', 'error'); return; }
+    if (!meta.duration) { status('Trình duyệt không mở được video này. Hãy dùng MP4 (H.264) hoặc WebM.', 'error'); return false; }
     state.project.source = { name: file.name, type: file.type, size: file.size, ...meta };
     if (meta.width && meta.height) state.project.settings.aspect = meta.width >= meta.height ? '16:9' : '9:16';
     saveSoon(); renderAll();
     status(`Đã nạp ${file.name} (${fmt(meta.duration)}). Chọn độ dài đoạn rồi bấm "Cắt thành đoạn".`, 'ok');
+    return true;
   }
   async function addChars(files) {
     // One character picture, as TobyFlow does: it is "image 1" in the prompt.
@@ -210,6 +211,15 @@
       catch (error) { status(error.message, 'error'); }
     }
     saveSoon(); renderChars();
+  }
+
+  // A picture of the place (like TobyFlow's background reference): the clip happens there instead of the source room.
+  async function addBgs(files) {
+    if (state.project.bgs.length >= 1) { status('Chỉ dùng 1 ảnh bối cảnh. Xoá ảnh hiện tại trước khi thêm ảnh khác.', 'warn'); return; }
+    const file = [...files].find(item => /^image\//.test(item.type)); if (!file) return;
+    try { state.project.bgs.push({ id: uid('bg'), name: file.name, dataUrl: await shrinkImage(file) }); }
+    catch (error) { status(error.message, 'error'); }
+    saveSoon(); renderBgs();
   }
 
   // ---------- clips ----------
@@ -230,9 +240,9 @@
     if (cuts.length > 1 && cuts.at(-1)[1] - cuts.at(-1)[0] < 1.5) { const last = cuts.pop(); cuts.at(-1)[1] = last[1]; }
     return cuts;
   }
-  async function splitSource() {
-    const source = state.project.source; if (!source) return;
-    if (state.project.clips.some(clip => clip.result) && !confirm('Cắt lại sẽ xoá các kết quả Flow hiện có. Tiếp tục?')) return;
+  async function splitSource({ force = false } = {}) {
+    const source = state.project.source; if (!source) return false;
+    if (!force && state.project.clips.some(clip => clip.result) && !confirm('Cắt lại sẽ xoá các kết quả Flow hiện có. Tiếp tục?')) return false;
     const length = Number(state.project.settings.clipLen) || 8;
     const cuts = plan(source.duration, length);
     if (cuts.length > 40) { status(`Video dài ${fmt(source.duration)} sẽ thành ${cuts.length} đoạn. Hãy chọn đoạn dài hơn hoặc cắt ngắn video.`, 'warn'); return; }
@@ -257,7 +267,8 @@
       await ff.deleteFile('/source').catch(() => {});
       await saveNow();
       status(`Đã cắt thành ${cuts.length} đoạn. Thêm ảnh nhân vật rồi bấm "Tạo tất cả đoạn".`, 'ok');
-    } catch (error) { status(`Cắt video thất bại: ${error.message}`, 'error'); }
+      return true;
+    } catch (error) { status(`Cắt video thất bại: ${error.message}`, 'error'); return false; }
     finally { setBusy(false); renderAll(); }
   }
   async function clipUrl(clip, kind = 'clip') {
@@ -384,11 +395,11 @@
     saveSoon();
     return clip.scene;
   }
-  function sceneText(scene) {
+  function sceneText(scene, { newPlace = false } = {}) {
     if (!scene) return '';
     if (scene.manual) return String(scene.text || '').trim();
     const lines = [];
-    if (scene.setting) lines.push(`Scene (keep exactly): ${scene.setting.replace(/\.$/, '')}.`);
+    if (scene.setting && !newPlace) lines.push(`Scene (keep exactly): ${scene.setting.replace(/\.$/, '')}.`);
     if (scene.objects?.length) lines.push(`Objects (keep exactly, same look, place and starting state): ${scene.objects.map(item => item.replace(/\.$/, '')).join('; ')}.`);
     if (scene.camera) lines.push(`Camera and cuts (keep, same times): ${scene.camera.replace(/\.$/, '')}.`);
     if (scene.actions?.length) lines.push(`Action timeline, follow it beat by beat (seconds from the start of the clip): ${scene.actions.map(item => `${item.start.toFixed(1)}–${item.end.toFixed(1)} s: ${item.text.replace(/\.$/, '')}`).join('; ')}.`);
@@ -414,13 +425,22 @@
     if (!segments.length) return '';
     return segments.map(item => `${Number(item.start).toFixed(1)}–${Number(item.end).toFixed(1)} s: "${String(translated ? item.translation : item.text).replace(/"/g, "'").trim()}"`).join('; ');
   }
-  const CONTINUITY_LINE = 'Image 2 is the last frame of the previous clip: this clip continues straight on from it, so at the start the character, every object, its state and its position, the lighting and the framing match image 2 exactly; the action then follows the reference video. The character still looks exactly like image 1.';
+  const continuityLine = n => `Image ${n} is the last frame of the previous clip: this clip continues straight on from it, so at the start the character, every object, its state and its position, the lighting and the framing match image ${n} exactly; the action then follows the reference video. The character still looks exactly like image 1.`;
+  const backgroundLine = n => `Image ${n} is the new location: the whole clip takes place there. Its walls, floor, furniture, windows and light replace the room of the reference video, seen from the same camera angle and framing; the objects the person handles keep their look, size and action from the reference video.`;
+  // Images in the order they are sent: 1 = character, then the location picture, then the previous clip's last frame.
+  function imageSlots({ continuity = false } = {}) {
+    const background = state.project.bgs?.length ? 2 : 0;
+    return { background, continuity: continuity ? (background ? 3 : 2) : 0 };
+  }
   function composePrompt(clip, { continuity = false } = {}) {
     const settings = state.project.settings, t = clip.transcript;
-    const notes = settings.sceneAI !== false || clip.scene?.manual ? sceneText(clip.scene) : '';
-    const scene = [continuity ? CONTINUITY_LINE : '', notes].filter(Boolean).join('\n');
+    const slots = imageSlots({ continuity });
+    const notes = settings.sceneAI !== false || clip.scene?.manual ? sceneText(clip.scene, { newPlace: Boolean(slots.background) }) : '';
+    const scene = [slots.background ? backgroundLine(slots.background) : '', slots.continuity ? continuityLine(slots.continuity) : '', notes].filter(Boolean).join('\n');
     // The clip's notes go where the prompt has {{scene}} (right after the action rules); otherwise after the prompt.
     let base = String(settings.prompt || DEFAULT_PROMPT).replace(SOUND_LINE, '').trim();
+    // With a new location the source room is not kept, only the objects, light direction and camera.
+    if (slots.background) base = base.replace('Keep exactly as in the reference video: background, furniture and their positions, ', 'Keep exactly as in the reference video: ').replace('(same length, cuts, camera, room, lighting and objects)', '(same length, cuts, camera and objects, in the location of image ' + slots.background + ')');
     const placed = base.includes('{{scene}}');
     base = base.replace(/\{\{scene\}\}/g, scene).replace(/\n{3,}/g, '\n\n').trim();
     const parts = [base];
@@ -430,7 +450,17 @@
     const line = speech ? (translated ? t.translation : t.text).replace(/"/g, "'") : '';
     const language = translated ? settings.translate : t?.language;
     const timeline = speech ? timelineText(t, translated) : '';
-    if (speech && (settings.sync || translated)) {
+    const mode = settings.voiceMode || 'character';
+    const said = timeline ? `Timeline (seconds from the start of the clip): ${timeline}` : `"${line}"`;
+    if (speech && settings.sync && mode === 'lipsync') {
+      // Lip sync: the character mouths the original words; the original voice is put back at merge.
+      const original = timelineText(t, false);
+      parts.push(`Lip sync: the character says exactly the original words of the reference video${t?.language ? ` in ${t.language}` : ''}, mouth, jaw and breathing in sync with every word and pause, starting and stopping exactly when the person in the reference video does${original ? `. Timeline (seconds from the start of the clip): ${original}` : `: "${String(t.text || '').replace(/"/g, "'")}"`}.`);
+      parts.push('Sound: quiet room ambience only, no music and no speech (the original voice is added afterwards).');
+    } else if (speech && settings.sync && mode === 'narration') {
+      parts.push(`Voice-over: a narrator${language ? ` speaking ${language}` : ''} says: ${said}. The character does not talk: mouth closed or natural expressions only, no lip movement for these words.`);
+      parts.push(`Voice: ${settings.voiceDesc?.trim() || 'a warm, clear narrator voice'}. Sound: only this narration over quiet room ambience, no music.`);
+    } else if (speech && (settings.sync || translated)) {
       parts.push(`Dialogue: the character speaks${language ? ` in ${language}` : ''}, mouth movement exactly in sync with the words, starting and pausing exactly when the person in the reference video does${timeline ? `. Timeline (seconds from the start of the clip): ${timeline}` : `: "${line}"`}.`);
       parts.push(`Voice: ${settings.voiceDesc?.trim() || 'a natural voice that suits the character'}; a new voice, not the voice of the reference video. Sound: only this dialogue over quiet room ambience, no music.`);
     } else if (settings.audioMode === 'original') {
@@ -472,7 +502,7 @@
     const reply = await flowMessage({
       type: 'THEKEY_FLOW_GENERATE', requestId, remoteOk: true, kind: 'video', prompt: composePrompt(clip, { continuity: Boolean(lastFrame) }), voice: settings.sync ? (settings.flowVoice || '').trim() : '',
       aspect: settings.aspect, duration: flowDuration(clip.end - clip.start), resolution: settings.resolution, model: settings.model || '', inputType: 'ingredients',
-      sourceVideo: await blobToDataUrl(blob), references: [...state.project.chars.map(item => item.dataUrl), ...(lastFrame ? [lastFrame] : [])], firstFrame: '', uiMode: 'agent', timeoutSec: 1200
+      sourceVideo: await blobToDataUrl(blob), references: [...state.project.chars.map(item => item.dataUrl), ...(state.project.bgs || []).map(item => item.dataUrl), ...(lastFrame ? [lastFrame] : [])], firstFrame: '', uiMode: 'agent', timeoutSec: 1200
     }, signal);
     if (!reply?.ok) throw Object.assign(new Error(reply?.error || 'Flow không trả video.'), { code: reply?.code || '' });
     await keepResult(clip, reply);
@@ -556,9 +586,11 @@
       }
       // Workers start a little apart so the first send reaches Flow before the second one asks for the prompt box.
       await Promise.all(Array.from({ length: Math.min(limit, todo.length) }, (_, slot) => sleep(slot * 1500, signal).then(worker)));
+      state.lastRun = { done, failed, stopped, aborted: signal.aborted };
       if (stopped) status(stopped, 'error');
       else if (!signal.aborted) status(failed ? `Xong ${done} đoạn, ${failed} đoạn lỗi. Bấm vào đoạn lỗi để xem và tạo lại.` : `Đã tạo xong ${done} đoạn. Bấm "Ghép video" để ra video hoàn chỉnh.`, failed ? 'warn' : 'ok');
     } catch (error) {
+      state.lastRun = { done, failed, stopped: stopped || 'Đã dừng.', aborted: true };
       for (const active of state.project.clips.filter(clip => clip.status === 'running')) { active.status = 'idle'; active.error = 'Đã dừng.'; }
       status('Đã dừng.', 'warn');
     } finally { state.running = false; state.abort = null; setBusy(false); renderAll(); saveSoon(); }
@@ -577,7 +609,8 @@
     if (missing.length) { status(`Còn ${missing.length} đoạn chưa có kết quả Flow (${missing.map(clip => clip.index + 1).join(', ')}). Tạo xong hoặc bấm "Bỏ qua đoạn" trước khi ghép.`, 'warn'); return; }
     setBusy(true);
     try {
-      const ff = await ffmpeg(), mode = originalAudio ? 'original' : state.project.settings.audioMode || (state.project.settings.keepAudio ? 'original' : 'auto');
+      const lipsync = state.project.settings.sync && state.project.settings.voiceMode === 'lipsync';
+      const ff = await ffmpeg(), mode = originalAudio || lipsync ? 'original' : state.project.settings.audioMode || (state.project.settings.keepAudio ? 'original' : 'auto');
       const inputs = [], info = [];
       for (const [index, clip] of clips.entries()) {
         status(`Đang nạp đoạn ${index + 1}/${clips.length} vào FFmpeg…`, 'warn');
@@ -616,9 +649,61 @@
       state.finalUrl = URL.createObjectURL(finalBlob);
       state.project.final = { size: finalBlob.size, duration: info.reduce((sum, item) => sum + item.duration, 0), at: Date.now() };
       state.project.final.audio = mode;
-      await saveNow(); status(originalAudio ? 'Đã làm lại âm thanh: video hoàn chỉnh giờ dùng âm thanh của video gốc.' : 'Đã ghép xong video hoàn chỉnh. Bấm "Tải video" để lưu về máy.', 'ok');
-    } catch (error) { status(`Ghép video thất bại: ${error.message}`, 'error'); }
+      await saveNow(); state.lastMerge = finalBlob; status(originalAudio ? 'Đã làm lại âm thanh: video hoàn chỉnh giờ dùng âm thanh của video gốc.' : 'Đã ghép xong video hoàn chỉnh. Bấm "Tải video" để lưu về máy.', 'ok');
+    } catch (error) { state.lastMerge = null; status(`Ghép video thất bại: ${error.message}`, 'error'); }
     finally { setBusy(false); renderAll(); }
+  }
+
+  // ---------- many videos in one go (like TobyFlow's bulk Motion) ----------
+  // Same character, location, prompt and settings for every video: each one is cut, made on Flow, merged and saved to
+  // the Downloads folder, then the next one starts. Google's "unusual activity" or no credits stops the whole batch.
+  const batch = { items: [], running: false };
+  function addBatch(files) {
+    for (const file of [...files].filter(item => /^video\//.test(item.type))) batch.items.push({ id: uid('batch'), file, name: file.name, status: 'waiting', note: '' });
+    renderBatch();
+  }
+  function renderBatch() {
+    const box = $('#msBatchList'); if (!box) return;
+    box.innerHTML = '';
+    const label = { waiting: 'Chờ', running: 'Đang làm', done: 'Xong', error: 'Lỗi', stopped: 'Đã dừng' };
+    for (const item of batch.items) {
+      const row = document.createElement('div'); row.className = `ms-batch-row ${item.status}`;
+      const name = document.createElement('span'); name.textContent = item.name;
+      const st = document.createElement('small'); st.textContent = `${label[item.status] || item.status}${item.note ? ` · ${item.note}` : ''}`;
+      const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '×'; remove.title = 'Bỏ khỏi danh sách'; remove.disabled = batch.running;
+      remove.onclick = () => { batch.items = batch.items.filter(other => other !== item); renderBatch(); };
+      row.append(name, st, remove); box.appendChild(row);
+    }
+    $('#msBatchRun').disabled = batch.running || state.running || !batch.items.some(item => item.status === 'waiting');
+    $('#msBatchInfo').textContent = batch.items.length ? `${batch.items.filter(item => item.status === 'done').length}/${batch.items.length} video xong` : '';
+  }
+  async function runBatch() {
+    if (batch.running || state.running) return;
+    if (!state.project.chars.length) { status('Hãy thêm ảnh nhân vật trước khi chạy nhiều video.', 'warn'); return; }
+    batch.running = true; batch.stop = false; renderBatch();
+    try {
+      for (const item of batch.items.filter(entry => entry.status === 'waiting')) {
+        if (batch.stop) break;
+        item.status = 'running'; item.note = 'đang cắt'; renderBatch();
+        if (!(await loadSource(item.file, { force: true })) || !(await splitSource({ force: true }))) { item.status = 'error'; item.note = 'không mở / cắt được video'; renderBatch(); continue; }
+        item.note = 'đang tạo trên Flow'; renderBatch();
+        await generate(state.project.clips.filter(clip => !clip.result));
+        const run = state.lastRun || {};
+        if (run.aborted || batch.stop) { item.status = 'stopped'; item.note = ''; renderBatch(); break; }
+        const missing = state.project.clips.filter(clip => clip.status !== 'skipped' && !clip.result).length;
+        if (missing) {
+          item.status = 'error'; item.note = `${missing} đoạn lỗi; mở lại video này để tạo nốt`; renderBatch();
+          if (run.stopped) { batch.stop = true; status(`Dừng cả lượt nhiều video: ${run.stopped}`, 'error'); break; }
+          continue;
+        }
+        item.note = 'đang ghép'; renderBatch();
+        state.lastMerge = null; await merge();
+        if (!state.lastMerge) { item.status = 'error'; item.note = 'ghép video thất bại'; renderBatch(); continue; }
+        const out = `motion-${item.name.replace(/\.[a-z0-9]+$/i, '')}.mp4`;
+        await download(URL.createObjectURL(state.lastMerge), out);
+        item.status = 'done'; item.note = `đã lưu ${out}`; renderBatch();
+      }
+    } finally { batch.running = false; renderBatch(); }
   }
   async function download(url, name) {
     if (!url) return;
@@ -652,7 +737,7 @@
     $('#msSpeechAgent').value = settings.speechAgent || 'gemini-web';
     $('#msSync').checked = Boolean(settings.sync); $('#msVoiceDesc').value = settings.voiceDesc || ''; $('#msFlowVoice').value = settings.flowVoice || '';
     $('#msSubtitles').checked = Boolean(settings.subtitles); $('#msTranslate').value = settings.translate || ''; $('#msVoiceBox').classList.toggle('hidden', !settings.sync);
-    $('#msPrompt').value = settings.prompt; $('#msAudioMode').value = settings.audioMode || 'auto'; $('#msSilentFallback').checked = settings.silentFallback !== false; $('#msPace').value = String(settings.pace); $('#msSceneAI').checked = settings.sceneAI !== false; $('#msContinuity').checked = Boolean(settings.continuity); $('#msParallel').value = String(settings.parallel || 2);
+    $('#msPrompt').value = settings.prompt; $('#msAudioMode').value = settings.audioMode || 'auto'; $('#msSilentFallback').checked = settings.silentFallback !== false; $('#msPace').value = String(settings.pace); $('#msSceneAI').checked = settings.sceneAI !== false; $('#msContinuity').checked = Boolean(settings.continuity); $('#msVoiceMode').value = settings.voiceMode || 'character'; $('#msParallel').value = String(settings.parallel || 2);
   }
   function renderSource() {
     const source = state.project.source, video = $('#msSourceVideo');
@@ -681,6 +766,18 @@
     }
     $('#msCharDrop').classList.toggle('hidden', state.project.chars.length >= 1);
   }
+  function renderBgs() {
+    const box = $('#msBgs'); if (!box) return; box.innerHTML = '';
+    for (const bg of state.project.bgs || []) {
+      const card = document.createElement('div'); card.className = 'ms-char';
+      const img = document.createElement('img'); img.src = bg.dataUrl; img.alt = '';
+      const name = document.createElement('span'); name.textContent = bg.name;
+      const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '×'; remove.title = 'Bỏ ảnh bối cảnh';
+      remove.onclick = () => { state.project.bgs = state.project.bgs.filter(item => item.id !== bg.id); saveSoon(); renderBgs(); };
+      card.append(img, name, remove); box.appendChild(card);
+    }
+    $('#msBgDrop').classList.toggle('hidden', (state.project.bgs || []).length >= 1);
+  }
   const STATUS_VI = { idle: 'Chưa tạo', running: 'Đang tạo trên Flow…', success: 'Xong', error: 'Lỗi', skipped: 'Bỏ qua khi ghép' };
   function renderClips() {
     const box = $('#msClips'), clips = state.project.clips;
@@ -699,7 +796,7 @@
       card.append(thumbs, meta); card.onclick = () => openClip(clip.id); box.appendChild(card);
     }
   }
-  function renderAll() { renderSettings(); renderSource(); renderChars(); renderClips(); renderFinal(); renderButtons(); }
+  function renderAll() { renderSettings(); renderSource(); renderChars(); renderBgs(); renderBatch(); renderClips(); renderFinal(); renderButtons(); }
 
   let modalClip = null;
   async function openClip(id) {
@@ -736,9 +833,14 @@
     dropZone($('#msSourceBox'), files => loadSource(files[0]));
     $('#msCharInput').onchange = event => { addChars(event.target.files); event.target.value = ''; };
     dropZone($('#msCharDrop'), addChars);
+    $('#msBgInput').onchange = event => { addBgs(event.target.files); event.target.value = ''; };
+    dropZone($('#msBgDrop'), addBgs);
+    $('#msBatchInput').onchange = event => { addBatch(event.target.files); event.target.value = ''; };
+    dropZone($('#msBatchDrop'), addBatch);
+    $('#msBatchRun').onclick = runBatch;
     $('#msSplit').onclick = splitSource;
     $('#msGenerate').onclick = () => generate(state.project.clips.filter(clip => !clip.result));
-    $('#msStop').onclick = stop;
+    $('#msStop').onclick = () => { batch.stop = true; stop(); };
     $('#msMerge').onclick = () => merge();
     $('#msRedoAudio').onclick = () => merge({ originalAudio: true });
     $('#msDownload').onclick = () => download(state.finalUrl, `motion-studio-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.mp4`);
@@ -750,7 +852,7 @@
       saveSoon(); renderAll(); status('Đã làm mới dự án.', 'ok');
     };
     const bind = (id, key, parse = value => value) => { $(id).onchange = () => { state.project.settings[key] = parse($(id).type === 'checkbox' ? $(id).checked : $(id).value); saveSoon(); }; };
-    bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msAudioMode', 'audioMode'); bind('#msSilentFallback', 'silentFallback', Boolean); bind('#msPace', 'pace', Number); bind('#msSceneAI', 'sceneAI', Boolean); bind('#msContinuity', 'continuity', Boolean); bind('#msParallel', 'parallel', Number);
+    bind('#msAspect', 'aspect'); bind('#msResolution', 'resolution'); bind('#msModel', 'model'); bind('#msClipLen', 'clipLen', Number); bind('#msAudioMode', 'audioMode'); bind('#msSilentFallback', 'silentFallback', Boolean); bind('#msPace', 'pace', Number); bind('#msSceneAI', 'sceneAI', Boolean); bind('#msContinuity', 'continuity', Boolean); bind('#msVoiceMode', 'voiceMode'); bind('#msParallel', 'parallel', Number);
     bind('#msSpeechAgent', 'speechAgent');
     bind('#msSync', 'sync', Boolean); bind('#msSubtitles', 'subtitles', Boolean); bind('#msTranslate', 'translate');
     $('#msSync').addEventListener('change', () => $('#msVoiceBox').classList.toggle('hidden', !$('#msSync').checked));
@@ -802,6 +904,7 @@
     // 1.9 "Giữ âm thanh của video gốc" becomes the "original" sound mode (once).
     if (state.project.settings.keepAudio) { state.project.settings.audioMode = 'original'; state.project.settings.keepAudio = false; }
     if (state.project.chars.length > 1) state.project.chars = state.project.chars.slice(0, 1);
+    if (!Array.isArray(state.project.bgs)) state.project.bgs = [];
     // A clip left "running" by a closed page never finished.
     for (const clip of state.project.clips) if (clip.status === 'running') { clip.status = clip.result ? 'success' : 'idle'; clip.error = 'Lần tạo trước bị ngắt.'; }
     const source = state.project.source ? await getBlob('source').catch(() => null) : null;
